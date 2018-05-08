@@ -1,0 +1,261 @@
+;: TEST1.LCA (2064LPC68-10), XACT 5.1.0, Sun May  6 22:40:39 2018
+Version 2
+Design 2064LPC68 8 0
+Speed -10
+Addnet AE P59.T 
+Program AE {170G150} {173G150} {167G166} {167G167} {176G167} {176G150} 
+NProgram AE col.I.long.2:PAD17.T col.I.local.2:PAD17.T col.I.local.0:row.A.local.2-l col.I.local.0:row.A.local.1-s col.I.local.4:row.A.local.1-l col.I.local.4:PAD17.T 
+Addnet AF P66.K P65.K P66.O 
+Addnet BC BC.X AD.B 
+Netdelay BC AD.B 1.5 
+Program BC {70G154} {70G143} {71G140} {71G136} 
+NProgram BC col.D.local.3:AD.B BD.8.2.0 BD.8.2.4 col.D.local.4:BC.X 
+Addnet bc2 BC.Y AD.C 
+Netdelay bc2 AD.C 1.7 
+Program bc2 {71G153} {71G143} {70G140} {70G132} 
+NProgram bc2 col.D.local.4:AD.C BD.8.2.1 BD.8.2.5 col.D.local.3:BC.Y 
+Addnet BD BD.X AE.A AE.B AE.C AE.D 
+Netdelay BD AE.A 3.5 AE.B 2.8 AE.C 2.8 AE.D 2.5 
+Program BD {101G141} {92G141} {91G140} {101G163} {92G163} {90G162} {90G154} {90G153} {90G143} {91G140} {91G136} 
+NProgram BD row.B.local.5:AE.D BE.8.2.3 BE.8.2.4 row.A.local.4:AE.A AE.8.2.3 AE.8.2.5 col.E.local.3:AE.B col.E.local.3:AE.C BE.8.2.0 BE.8.2.4 col.E.local.4:BD.X 
+Addnet bd2 BD.Y AE.K 
+Netdelay bd2 AE.K 2.6 
+Program bd2 {96G152} {96G132} 
+NProgram bd2 col.E.long.2:AE.K col.E.long.2:BD.Y 
+Addnet CB CC.X CG.A 
+Addnet DB DB.X AH.A 
+Program DB {161G163} 
+NProgram DB row.A.local.4:AH.A 
+Addnet EC EC.X 
+Addnet K BA.X BA.K 
+Netdelay K BA.K 15.4 
+Program K {12G133} {12G164} {29G164} {30G162} {30G143} {31G140} {31G136} 
+NProgram K col.A.long.4:BA.K col.A.long.4:row.A.local.3-s AB.8.2.7 AB.8.2.5 BB.8.2.0 BB.8.2.4 col.B.local.4:BA.X 
+Addnet pins CE.X P58.T P57.T P56.T P2.T P3.T P5.T P7.T P8.T P9.T P11.T P12.T P13.T P14.T P15.T P16.T P17.T P19.T P20.T P21.T P22.T P23.T P24.T 
+Netdelay pins P58.T 12.3 P57.T 12.3 P56.T 13.3 P2.T 8.6 P3.T 8.6 P5.T -2.0 P7.T 15.3 P8.T 17.8 P9.T 17.8 P11.T 19.7 P12.T 21.0 P13.T 21.0 P14.T 21.7 P15.T 21.7 P16.T 26.9 P17.T 26.9 P19.T 28.1 P20.T 28.7 P21.T 28.7 P22.T 33.2 P23.T 33.2 P24.T 33.9 
+Program pins {173G138} {173G131} {173G127} {171G126} {173G119} {173G124} {172G127} {172G127} {171G126} {149G126} {146G126} {129G126} {126G126} {109G126} {108G124} {5G24} {5G29} {5G32} {5G36} {5G43} {5G48} {5G51} {5G55} {5G62} {5G67} {5G70} {5G74} {5G86} {5G89} {5G93} {5G100} {5G105} {5G108} {5G112} {5G119} {5G124} {5G127} {5G131} {5G138} {5G143} {5G146} {5G150} {5G167} {19G167} {24G167} {26G167} {29G167} {40G167} {46G167} {49G166} {66G166} {69G167} {80G167} {84G167} {86G167} {89G166} {106G166} {108G165} {108G146} {108G143} {108G127} {108G124} {108G117} 
+NProgram pins col.I.local.2:PAD18.T col.I.local.2:PAD19.T CI.8.1.1 CI.8.1.7 col.I.local.2:PAD20.T CI.8.1.4 CI.8.1.0 CI.8.1.0 CI.8.1.7 CH.8.1.2 CH.8.1.7 CG.8.1.2 CG.8.1.7 CF.8.1.2 CF.8.1.4 col.A.local.1:PAD46.T HA.8.1.5 HA.8.1.0 col.A.local.1:PAD47.T col.A.local.1:PAD48.T GA.8.1.5 GA.8.1.0 col.A.local.1:PAD49.T col.A.local.1:PAD50.T FA.8.1.5 FA.8.1.0 col.A.local.1:PAD51.T EA.8.1.5 EA.8.1.0 col.A.local.1:PAD52.T col.A.local.1:PAD53.T DA.8.1.5 DA.8.1.0 col.A.local.1:PAD54.T col.A.local.1:PAD55.T CA.8.1.5 CA.8.1.0 col.A.local.1:PAD56.T col.A.local.1:PAD57.T BA.8.1.5 BA.8.1.0 col.A.local.1:PAD58.T col.A.local.1:row.A.local.1-s row.A.local.1:PAD1.T row.A.local.1:PAD2.T AB.8.1.7 AB.8.1.2 row.A.local.1:PAD3.T AC.8.1.7 AC.8.1.3 AD.8.1.6 AD.8.1.2 row.A.local.1:PAD7.T row.A.local.1:PAD8.T AE.8.1.7 AE.8.1.3 AF.8.1.6 AF.8.1.4 BF.8.1.1 BF.8.1.4 CF.8.1.1 CF.8.1.4 col.F.local.2:CE.X 
+Addnet p1 EB.X P2.O P3.O P4.O P5.O P6.O P8.O P11.O P12.O P13.O P14.O P15.O P16.O P17.O P19.O P20.O P21.O P22.O P23.O P24.O 
+Netdelay p1 P2.O 17.9 P3.O 19.4 P4.O 20.4 P5.O 28.8 P6.O 28.7 P8.O 32.3 P11.O 33.7 P12.O 32.3 P13.O 37.1 P14.O 37.0 P15.O 42.0 P16.O 41.9 P17.O 43.1 P19.O 5.1 P20.O 4.7 P21.O 11.1 P22.O 11.0 P23.O 12.7 P24.O 12.6 
+Program p1 {15G69} {26G69} {29G69} {16G30} {7G30} {6G32} {15G31} {7G31} {6G32} {6G48} {6G51} {16G49} {7G49} {6G51} {15G50} {7G50} {6G51} {6G67} {7G68} {16G68} {26G68} {29G69} {46G69} {48G70} {15G145} {26G145} {29G144} {16G87} {7G87} {6G89} {6G105} {6G108} {16G106} {7G106} {6G108} {15G107} {7G107} {6G108} {6G124} {6G127} {16G125} {7G125} {6G127} {15G126} {7G126} {6G127} {6G143} {7G144} {16G144} {26G144} {29G144} {33G159} {33G144} {46G144} {49G145} {48G159} {48G146} {49G145} {47G158} {47G146} {49G145} {66G145} {68G146} {68G159} {68G165} {69G166} {78G166} {86G166} {88G165} {88G159} {88G146} {86G145} {69G145} {68G143} {68G127} {68G124} {68G108} {68G105} {68G89} {66G88} {49G88} {48G86} {48G79} 
+NProgram p1 row.F.local.1:PAD50.O FB.8.1.7 FB.8.1.2 row.H.local.3:PAD47.O HA.8.1.3 HA.8.1.1 row.H.local.1:PAD46.O HA.8.1.2 HA.8.1.1 GA.8.1.4 GA.8.1.1 row.G.local.3:PAD49.O GA.8.1.3 GA.8.1.1 row.G.local.1:PAD48.O GA.8.1.2 GA.8.1.1 FA.8.1.4 FA.8.1.3 row.F.local.3:PAD51.O FB.8.1.6 FB.8.1.2 FC.8.1.7 FC.8.1.1 row.B.local.1:PAD57.O BB.8.1.7 BB.8.1.3 row.E.local.3:PAD52.O EA.8.1.3 EA.8.1.1 DA.8.1.4 DA.8.1.1 row.D.local.3:PAD54.O DA.8.1.3 DA.8.1.1 row.D.local.1:PAD53.O DA.8.1.2 DA.8.1.1 CA.8.1.4 CA.8.1.1 row.C.local.3:PAD56.O CA.8.1.3 CA.8.1.1 row.C.local.1:PAD55.O CA.8.1.2 CA.8.1.1 BA.8.1.4 BA.8.1.3 row.B.local.3:PAD58.O BB.8.1.6 BB.8.1.3 col.B.local.5:PAD2.O col.B.local.5:row.B.local.3-s BC.8.1.6 BC.8.1.2 col.C.local.2:PAD4.O BC.8.1.1 BC.8.1.2 col.C.local.1:PAD5.O BC.8.1.0 BC.8.1.2 BD.8.1.7 BD.8.1.1 col.D.local.2:PAD6.O AD.8.1.4 AD.8.1.3 row.A.local.2:PAD7.O AE.8.1.6 AE.8.1.4 col.E.local.2:PAD8.O BE.8.1.1 BE.8.1.7 BD.8.1.2 BD.8.1.4 CD.8.1.1 CD.8.1.4 DD.8.1.1 DD.8.1.4 ED.8.1.1 ED.8.1.7 EC.8.1.2 EC.8.1.4 
+NProgram p1 col.C.local.2:EB.X 
+Addnet P3 FB.X P40.O P41.O P42.O P43.O P46.O P47.O P48.O P49.O P50.O P51.O P27.O 
+Netdelay P3 P40.O 26.7 P41.O 34.3 P42.O 35.7 P43.O 34.2 P46.O 38.4 P47.O 39.6 P48.O 40.1 P49.O 43.3 P50.O 43.8 P51.O 44.4 P27.O 10.1 
+Program P3 {17G10} {29G10} {30G11} {30G26} {32G27} {49G27} {50G29} {50G45} {51G48} {162G9} {152G9} {149G10} {173G34} {173G32} {172G29} {173G53} {173G51} {172G48} {173G72} {173G70} {172G67} {172G60} {172G51} {172G48} {172G41} {172G32} {172G29} {172G22} {172G10} {158G10} {152G10} {149G10} {151G14} {151G11} {149G10} {132G10} {130G11} {130G15} {130G26} {130G29} {130G45} {129G46} {112G46} {109G46} {92G46} {89G46} {72G46} {69G46} {52G46} {51G48} {51G60} 
+NProgram P3 row.I.local.1:PAD45.O IB.8.2.7 IB.8.2.0 HB.8.2.5 HB.8.2.3 HC.8.2.6 HC.8.2.0 GC.8.2.5 GC.8.2.1 row.I.local.2:PAD30.O IH.8.2.3 IH.8.2.7 col.I.local.2:PAD28.O HI.8.1.1 HI.8.1.5 col.I.local.2:PAD26.O GI.8.1.1 GI.8.1.5 col.I.local.2:PAD24.O FI.8.1.1 FI.8.1.5 col.I.local.1:PAD25.O GI.8.1.0 GI.8.1.5 col.I.local.1:PAD27.O HI.8.1.0 HI.8.1.5 col.I.local.1:PAD29.O col.I.local.1:row.I.local.1-s row.I.local.1:PAD31.O IH.8.2.2 IH.8.2.7 col.H.local.4:PAD32.O IH.8.2.1 IH.8.2.7 IG.8.2.2 IG.8.2.0 col.G.local.3:PAD33.O HG.8.2.5 HG.8.2.0 GG.8.2.5 GG.8.2.6 GF.8.2.3 GF.8.2.6 GE.8.2.3 GE.8.2.6 GD.8.2.3 GD.8.2.6 GC.8.2.3 GC.8.2.1 col.C.local.4:FB.X 
+Addnet P4 P4.T 
+Addnet P5 P5.I 
+Program P5 {59G161} {59G164} {59G167} 
+NProgram P5 row.A.long.3:PAD5.I row.A.local.3:PAD5.I row.A.local.1:PAD5.I 
+Addnet P6 P6.T 
+Program P6 {44G169} 
+NProgram P6 row.A.long.2:PAD4.T 
+Addnet P7 P7.O 
+Program P7 {38G166} 
+NProgram P7 row.A.local.2:PAD3.O 
+Addnet P9 AA.X P9.O 
+Netdelay P9 P9.O 1.6 
+Program P9 {17G166} {26G166} {28G165} {28G155} 
+NProgram P9 row.A.local.2:PAD1.O AB.8.1.6 AB.8.1.4 col.B.local.2:AA.X 
+Addnet q1 AB.Y P28.T P29.O P30.T P31.T P32.O P33.O P34.O P53.O P54.T P55.O P56.O P57.O P61.O P61.T P59.O 
+Netdelay q1 P28.T 26.2 P29.O 24.9 P30.T 24.6 P31.T 27.9 P32.O 27.9 P33.O 31.9 P34.O 32.0 P53.O 23.7 P54.T 25.2 P55.O 28.3 P56.O 30.9 P57.O 33.9 P61.O 35.4 P61.T 38.9 P59.O 33.8 
+Program q1 {24G9} {29G9} {32G10} {38G10} {49G10} {50G11} {44G9} {49G9} {50G11} {82G9} {72G9} {69G9} {78G10} {72G10} {69G9} {62G9} {60G9} {52G9} {51G11} {51G11} {52G10} {52G10} {50G11} {50G26} {51G29} {51G45} {50G48} {50G64} {50G67} {50G83} {50G86} {176G110} {176G105} {176G102} {164G164} {152G164} {151G162} {151G143} {152G141} {174G141} {176G140} {175G158} {175G143} {176G140} {176G129} {176G124} {175G121} {166G142} {174G142} {175G140} {175G124} {175G121} {175G117} {175G105} {176G102} {176G100} {176G86} {174G85} {166G85} {152G85} {149G84} {132G84} {129G84} {112G84} {109G84} {92G84} {89G84} {72G84} {69G85} {52G85} {50G86} {50G102} {50G105} {50G121} {50G124} {50G140} {50G143} {50G151} 
+NProgram q1 row.I.local.2:PAD44.T IB.8.2.6 IB.8.2.2 row.I.local.1:PAD43.O IC.8.2.7 IC.8.2.0 row.I.local.2:PAD42.T IC.8.2.6 IC.8.2.0 row.I.local.2:PAD38.O ID.8.2.3 ID.8.2.6 row.I.local.1:PAD39.O ID.8.2.2 ID.8.2.6 row.I.local.2:PAD40.O row.I.local.2:PAD41.T IC.8.2.3 IC.8.2.1 IC.8.2.1 IC.8.2.2 IC.8.2.2 IC.8.2.0 HC.8.2.5 HC.8.2.1 GC.8.2.4 GC.8.2.0 FC.8.2.5 FC.8.2.0 EC.8.2.5 EC.8.2.0 col.I.local.4:PAD21.O DI.8.2.1 DI.8.2.4 row.A.local.3:PAD16.T AH.8.2.2 AH.8.2.4 BH.8.2.1 BH.8.2.3 BI.8.2.6 BI.8.2.4 col.I.local.3:PAD16.O BI.8.2.0 BI.8.2.4 col.I.local.4:PAD19.O CI.8.2.1 CI.8.2.5 row.B.local.4:PAD17.O BI.8.2.7 BI.8.2.5 CI.8.2.0 CI.8.2.5 col.I.local.3:PAD20.O DI.8.2.0 DI.8.2.4 col.I.local.4:PAD22.T EI.8.2.1 EI.8.2.7 row.E.local.4:PAD23.O EH.8.2.2 EH.8.2.6 EG.8.2.3 EG.8.2.6 EF.8.2.3 EF.8.2.6 EE.8.2.3 EE.8.2.6 ED.8.2.3 ED.8.2.7 EC.8.2.2 EC.8.2.0 DC.8.2.5 DC.8.2.0 CC.8.2.5 CC.8.2.0 BC.8.2.5 BC.8.2.0 col.C.local.3:AB.Y 
+Editblk GD
+Base FG
+Config X: Y: F: G: Q:FF SET: RES: CLK:C 
+Endblk
+Editblk GE
+Base FG
+Config X: Y: F: G: Q:FF SET: RES: CLK:C:NOT 
+Endblk
+Editblk FD
+Base FG
+Config X: Y: F: G: Q:FF SET: RES: CLK:C 
+Endblk
+Editblk FE
+Base FG
+Config X: Y: F: G: Q:FF SET: RES: CLK:C:NOT 
+Endblk
+Editblk FF
+Base FG
+Config X: Y: F: G: Q:FF SET: RES: CLK:G 
+Endblk
+Editblk FG
+Base FG
+Config X: Y: F: G: Q:FF SET: RES: CLK:G:NOT 
+Endblk
+Editblk DA
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = ~(A+B+C)
+Endblk
+Editblk DB
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = A*~(B+C)
+Endblk
+Editblk DC
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = ~(A+C)*B
+Endblk
+Editblk DD
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = A*B*~C
+Endblk
+Editblk DE
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = ~(A+B)*C
+Endblk
+Editblk DF
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = A*~B*C
+Endblk
+Editblk DG
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = ~A*B*C
+Endblk
+Editblk DH
+Base FG
+Config X: Y: F: G:A:B:C Q: SET: RES: CLK: 
+Equate G = A*B*C
+Endblk
+Editblk CA
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = ~(A+B+C)
+Endblk
+Editblk CB
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = A*~(B+C)
+Endblk
+Editblk CC
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = ~(A+C)*B
+Endblk
+Editblk CD
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = A*B*~C
+Endblk
+Editblk CE
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = ~(A+B)*C
+Endblk
+Editblk CF
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = A*~B*C
+Endblk
+Editblk CG
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = ~A*B*C
+Endblk
+Editblk CH
+Base FG
+Config X: Y: F:A:B:C G: Q: SET: RES: CLK: 
+Equate F = A*B*C
+Endblk
+Editblk BA
+Base FG
+Config X:F Y:F F: G: Q:FF SET:A RES:D CLK:K 
+Endblk
+Editblk BB
+Base FG
+Config X:G Y:G F: G: Q:LATCH SET:F RES:G CLK:C 
+Endblk
+Editblk BC
+Base FG
+Config X:Q Y:Q F: G: Q:LATCH SET:F RES:G CLK:G 
+Endblk
+Editblk BD
+Base FG
+Config X:F Y:G F: G: Q:LATCH SET:A RES:G CLK:G:NOT 
+Endblk
+Editblk BE
+Base FG
+Config X:Q Y:G F: G: Q:FF SET:F RES:D CLK:C:NOT 
+Endblk
+Editblk AB
+Base FG
+Config X: Y: F:B:C:D G:A:C:Q Q: SET: RES: CLK: 
+Equate F = B+(C*D)
+Equate G = A+(C@Q)
+Endblk
+Editblk HA
+Base F
+Config X: Y: F:A Q: SET: RES: CLK: 
+Equate F = A
+Endblk
+Editblk HB
+Base F
+Config X: Y: F:B Q: SET: RES: CLK: 
+Equate F = B
+Endblk
+Editblk HC
+Base F
+Config X: Y: F:C Q: SET: RES: CLK: 
+Equate F = C+C
+Endblk
+Editblk HD
+Base F
+Config X: Y: F:D Q: SET: RES: CLK: 
+Equate F = D
+Endblk
+Editblk HE
+Base F
+Config X: Y: F:Q Q: SET: RES: CLK: 
+Equate F = Q
+Endblk
+Editblk HF
+Base F
+Config X: Y: F:A:B Q: SET: RES: CLK: 
+Equate F = A+~B
+Endblk
+Editblk HG
+Base F
+Config X: Y: F:C:Q Q: SET: RES: CLK: 
+Equate F = C+~Q
+Endblk
+Editblk HH
+Base F
+Config X: Y: F:A:B:C:D Q: SET: RES: CLK: 
+Equate F = ((A*B)@C)+D
+Endblk
+Editblk AC
+Base F
+Config X: Y: F:A:B:C:Q Q: SET: RES: CLK: 
+Equate F = (A@Q)+(C@B)
+Endblk
+Editblk P9
+Base IO
+Config I:PAD BUF: 
+Endblk
+Editblk P7
+Base IO
+Config I: BUF:ON 
+Endblk
+Editblk P8
+Base IO
+Config I:Q BUF: 
+Endblk
+Editblk P6
+Base IO
+Config I: BUF:TRI 
+Endblk
+Editblk AA
+Base FGM
+Config X: Y: F:A:B:D G:A:B:C Q: SET: RES: CLK: 
+Equate F = (A*B)+D
+Equate G = A*(B+C)
+Endblk
