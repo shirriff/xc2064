@@ -1,0 +1,78 @@
+<html>
+  <!--
+
+  View coordinate data.
+  -->
+<head>
+  <!--
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+-->
+<script src="jquery.min.js"></script>
+<script src="data.js"></script>
+
+<script>
+$(document).ready(function() {
+  window.onerror = function errorHandler(msg, url, line) {
+    alert('Exception ' + msg + ' ' + url + ' ' + line);
+    error('Exception ' + msg + ' ' + url + ' ' + line);
+    return false;
+  }
+
+  $("#canvas").click(function(e) {
+    var offset = $(this).offset();
+    var x = e.pageX - offset.left;
+    var y = e.pageY - offset.top;
+    function inside(x, y, pt) { // Test if x, y inside the point pt
+      if (pt[0] * SCALE - 2 <= x && x <= pt[0] * SCALE + 4 && pt[1] * SCALE - 2 <= y && y <= pt[1] * SCALE + 4) {
+        return true;
+      }
+      return false;
+    }
+    $("#info").html("miss");
+    $("#info2").html("miss");
+    Object.keys(coords).some(function(key) {
+      var pt = coords[key];
+      if (inside(x, y, pt)) {
+        $("#info").html(key + ' '  + coords[key][2]);
+        $("#info2").html(key + ' '  + coords[key][2]);
+        return true; // Break out of some()
+      } else {
+        return false;
+      }
+    });
+  });
+
+  var ctx = $("#canvas")[0].getContext("2d");
+
+  SCALE = 5;
+  ctx.fillStyle = 'red'
+  Object.keys(coords).forEach(function(key) {
+    if (key.includes('PAD')) {
+      ctx.fillStyle = 'green';
+    } else if (key.includes('long')) {
+      ctx.fillStyle = 'blue';
+    } else if (key.includes('short')) {
+      ctx.fillStyle = 'orange';
+    } else if (key.includes('.8.1.')) {
+      ctx.fillStyle = 'pink';
+    } else if (key.includes('.8.2.')) {
+      ctx.fillStyle = 'pink';
+    } else {
+      ctx.fillStyle = 'black';
+    }
+    coords[key][1] = 180 - coords[key][1]; // Flip y
+    var pt = coords[key];
+    ctx.fillRect(pt[0] * SCALE, pt[1] * SCALE, SCALE*.7, SCALE*.7);
+  });
+  
+});
+
+</script>
+<title>FPGA viewer</title>
+</head>
+<body>
+<div id="info2"> </div>
+<canvas id="canvas" width=1000 height=900></canvas>
+<div id="info"> </div>
+</body>
+</html>

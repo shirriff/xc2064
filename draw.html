@@ -1,0 +1,733 @@
+<html>
+  <!--
+
+  View coordinate data.
+  -->
+<head>
+  <!--
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+-->
+<script src="jquery.min.js"></script>
+<script src="data.js"></script>
+<script src="formula.js"></script>
+
+<script>
+$(document).ready(function() {
+  window.onerror = function errorHandler(msg, url, line) {
+    alert('Exception ' + msg + ' ' + url + ' ' + line);
+    error('Exception ' + msg + ' ' + url + ' ' + line);
+    return false;
+  }
+
+  // https://makitweb.com/drag-and-drop-file-upload-with-jquery-and-ajax/
+
+  $("html").on("dragover", function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  $("html").on("drop", function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var files = e.originalEvent.dataTransfer.files;
+
+    if (files.length != 1) {
+      alert('Unexpected upload length ' + files.length);
+      return;
+    }
+    var ucname = files[0].name.toUpperCase();
+    if (ucname.endsWith('.LCA')) {
+      files[0].text().then(lcaUpload);
+    } else if (ucname.endsWith('.RBT')) {
+      files[0].text().then(rbtUpload);
+    } else {
+      alert('Need to upload a .RBT or .LCA file.');
+    }
+  });
+
+  function lcaUpload(contents) {
+    $("#info").html('LCA: ' + contents);
+  }
+
+  var rbtstream = null;
+  var bitstream = null;
+  /**
+   * Handles the upload of a .RBT file, storing it into the variable bitstream, which has 160 lines of 71 '0'/'1' characters,
+   * the contents of the .RBT file.
+   */
+  function rbtUpload(contents) {
+    var lines = contents.split(/[\r\n]+/);
+    var contents = [];
+    var mode = 'header';
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i]
+      if (mode == 'header') {
+        if (line.startsWith('0') && line.endsWith('111')) {
+          mode = 'data';
+        }
+      }
+      if (mode == 'data') {
+        if (line.startsWith('1111')) {
+          mode = 'done';
+        } else if (line.startsWith('0') && line.endsWith('111')) {
+          mode = 'data';
+          var data = line.slice(1, -3);
+          if (data.length != 71) {
+            alert('Bad line length ' + data.length + ' in .RBT file');
+            return;
+          }
+          contents.push(data);
+        } else {
+          alert('Bad data line in .RBT file');
+          return;
+        }
+      }
+    }
+    if (contents.length != 160) {
+      alert('Wrong number of data lines' + contents.length + ' in .RBT file');
+      return;
+    }
+    rbtstream = contents;
+    diestream = makeDiestream(rbtstream);
+    displayStream(diestream);
+  }
+
+  /**
+   * The RBT file is organized:
+   * HH ... AH
+   * .       .
+   * HA ... AA
+   * stored as rbtstream[line][char] of '0' and '1'.
+   *
+   * The die is organized:
+   * AA ... AH
+   * .       .
+   * HA ... HH
+   * This function flips the rbtstream to match the die, stored as diestream[x][y].
+   * diestream also holds ints (not chars) and is inverted with respect to the bitstream, so 1 is active.
+   * I'm using the term "diestream" to describe the bitstream with the die's layout and "rbtstream" to describe the bitstream
+   * with the .RBT file's layout.
+   */
+  function makeDiestream(rbtstream) {
+    var diestream = new Array(160);
+    for (var x = 0; x < 160; x++) {
+      diestream[x] = new Array(71);
+      for (var y = 0; y < 71; y++) {
+        diestream[x][y] = rbtstream[159 - x][70 - y] == '1' ? 0 : 1;
+        
+      }
+    }
+    return diestream;
+  }
+
+  /**
+   * Displays the bitstream data.
+   */
+  function displayStream(diestream) {
+    canvasMode = 'bitstream';
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    // Draw labels
+    ctx.canvas.height = 570;
+    $("#container").css('height', '570px');
+    ctx.font = "45pt arial";
+    ctx.fillStyle = "#ddf";
+    var SIZE = 8; // Each digit is a SIZE x SIZE block.
+    var xpos = 3; // 3 bits to first cell.
+    ctx.strokeStyle = "#ccc";
+    ctx.beginPath();
+    ctx.rect(0, 0, 160 * SIZE, 71 * SIZE);
+    ctx.stroke();
+    ctx.strokeStyle = "#fbb";
+    ctx.beginPath();
+    for (var x = 0; x < 8; x++) {
+      if (x == 3 || x == 6) {
+        xpos += 2; // Skip buffer
+      }
+      console.log('x ' + x + ' ' + xpos + ' ' + "ABCDEFGH"[x]);
+      var ypos = 1; // 1 bit to first cell
+      for (var y = 0; y < 8; y++) {
+      if (x == 0) {
+        console.log('y ' + y + ' ' + ypos + ' ' + "ABCDEFGH"[y]);
+        }
+        if (y == 3 || y == 6) {
+          ypos += 1; // Skip buffer
+        }
+        fillText("ABCDEFGH"[y] + "ABCDEFGH"[x], 30 + xpos * SIZE, 52 + ypos * SIZE);
+        ctx.rect(xpos * SIZE, ypos * SIZE, 18 * SIZE, 8 * SIZE);
+        ypos += 8; // 8 bits per tile
+      }
+      xpos += 18; // 18 bits per tile
+    }
+    ctx.stroke();
+
+    // Draw data
+    $("#img").css('opacity', 0);
+    ctx.font = "9px arial";
+    ctx.fillStyle = "black";
+    for (var x = 0; x < 160; x++) {
+      for (var y = 0; y < 71; y++) {
+        fillText(diestream[x][y] == 0 ? ' ' : '1', 1 + x * SIZE, 7 + y * SIZE);
+      }
+    }
+  }
+
+  // Bit position starts for the tiles A through I. Note there is I/O before A and buffers between C-D and F-G.
+  var xTileStarts = [3, 21, 39, 59, 77, 95, 115, 133, 151];
+
+  /**
+   * Take a bit index and return the tile A-I, along with starting bitstream index.
+   */
+  function findTileX(x) {
+    for (var i = 8; i >= 0; i--) {
+      if (x >= xTileStarts[i]) {
+        if (x < xTileStarts[i] + 18) {
+          return ["ABCDEFGHI"[i], xTileStarts[i]];
+        } else {
+          return ["buf", xTileStarts[i] + 18];
+        }
+      }
+    }
+    return ["io", 0];
+  }
+
+  var yTileStarts = [1, 9, 17, 26, 34, 42, 51, 59, 67];
+
+  /**
+   * Take a bit index and return the tile A-I, along with starting bitstream index.
+   */
+  function findTileY(y) {
+    for (var i = 8; i >= 0; i--) {
+      if (y >= yTileStarts[i]) {
+        if (y < yTileStarts[i] + 8) {
+          return ["ABCDEFGHI"[i], yTileStarts[i]];
+        } else {
+          return ["buf", yTileStarts[i] + 8];
+        }
+      }
+    }
+    return ["io", 0];
+  }
+  
+
+  /**
+   * Decode tile starting at bit x, y.
+   */
+  function tileDecode(x, y) {
+    var nf = 0;
+    for (var bitnum = 0; bitnum < 8; bitnum++) {
+      bit = diestream[x + bitnum][y + 7];
+      if (bit) {
+        nf |= 1 << [1, 0, 2, 3, 5, 4, 6, 7][bitnum]; // Ordering of LUT is irregular
+      }
+    }
+    var fin1 = diestream[x + 7][y + 6] ? 'A' : 'B';
+    var fin2 = diestream[x + 6][y + 6] ? 'B' : 'C';
+    var fin3 = 'Q';
+    if ( diestream[x + 1][y + 6]) {
+      fin3 = 'C';
+    } else if ( diestream[x + 0][y + 6]) {
+      fin3 = 'D';
+    }
+
+    var ng = 0;
+    for (var bitnum = 0; bitnum < 8; bitnum++) {
+      bit = diestream[x + bitnum + 10][y + 7];
+      if (bit) {
+        ng |= 1 << [7, 6, 4, 5, 3, 2, 0, 1][bitnum]; // Ordering of LUT is irregular
+      }
+    }
+    var gin1 = diestream[x + 11][y + 6] ? 'A' : 'B';
+    var gin2 = diestream[x + 12][y + 6] ? 'B' : 'C';
+    var gin3 = 'Q';
+    if ( diestream[x + 16][y + 6]) {
+      gin3 = 'C';
+    } else if ( diestream[x + 17][y + 6]) {
+      gin3 = 'D';
+    }
+
+    var str;
+    if (diestream[x + 9][y + 7] != 1) {
+      if (fin1 == gin1 && fin2 == gin2 && fin3 == gin3) {
+        str = 'F = ' + formula4((nf << 8) | ng, fin1, fin2, fin3, 'B');
+      } else {
+        str = 'F = B*(' + formula3(nf, fin1, fin2, fin3) +
+          ') + ~B*(' + formula3(ng, gin1, gin2, gin3) + ')';
+      }
+    } else {
+      str = 'F = ' + formula3(nf, fin1, fin2, fin3);
+      str += '<br/>G = ' + formula3(ng, gin1, gin2, gin3);
+    }
+    return str;
+  }
+
+  function bitstreamClick(x, y) {
+    var xn = x / 8; // Convert to bit indices
+    var yn = y / 8;
+    var xinfo = findTileX(xn);
+    var yinfo = findTileY(yn);
+    if ("BCDEFGH".indexOf(xinfo[0]) >= 0 && "ABCDEFGH".indexOf(yinfo[0]) >= 0) {
+      // "normal" tile
+      $("#info3").html(yinfo[0] + xinfo[0] + ' ' + tileDecode(xinfo[1], yinfo[1]));
+    } else {
+      $("#info3").html(x + ' ' + y + ' ' + xinfo + ' ' + yinfo);
+    }
+  }
+
+// From internal Y coordinate to the corresponding row name
+var rowNames = {
+0: "row.I.local.5",
+4: "row.I.long.2",
+6: "row.I.local.4",
+7: "row.I.local.3",
+9: "row.I.local.2",
+10: "row.I.local.1",
+12: "row.I.long.1",
+17: "row.I.local.0",
+160: "row.A.local.5",
+161: "row.A.long.3",
+163: "row.A.local.4",
+164: "row.A.local.3",
+166: "row.A.local.2",
+167: "row.A.local.1",
+169: "row.A.long.2",
+173: "row.A.local.0",
+}
+
+// From internal X coordinate to the corresponding row name
+var colNames = {
+0: "col.A.local.0",
+3: "col.A.long.2",
+5: "col.A.local.1",
+6: "col.A.local.2",
+8: "col.A.local.3",
+9: "col.A.local.4",
+11: "col.A.long.3",
+12: "col.A.long.4",
+14: "col.A.local.5",
+167: "col.I.local.0",
+169: "col.I.long.1",
+170: "col.I.long.2",
+172: "col.I.local.1",
+173: "col.I.local.2",
+175: "col.I.local.3",
+176: "col.I.local.4",
+178: "col.I.long.3",
+181: "col.I.local.5",
+}
+
+function initNames() {
+  // Generate formulaic row and column names (B through H)
+  for (var i = 1; i < 8; i++) {
+    var cstart = 27 + 20 * (i-1);
+    var name = "ABCDEFGHI"[i];
+
+    colNames[cstart] = 'col.' + name + '.local.1';
+    colNames[cstart + 1] = 'col.' + name + '.local.2';
+    colNames[cstart + 3] = 'col.' + name + '.local.3';
+    colNames[cstart + 4] = 'col.' + name + '.local.4';
+    colNames[cstart + 6] = 'col.' + name + '.local.5';
+    colNames[cstart + 7] = 'col.' + name + '.local.6';
+    colNames[cstart + 8] = 'col.' + name + '.long.1';
+    colNames[cstart + 9] = 'col.' + name + '.long.2';
+
+    var rstart = 25 + 19 * (7 - i)
+    rowNames[rstart] = 'row.' + name + '.long.1';
+    rowNames[rstart + 2] = 'row.' + name + '.local.5';
+    rowNames[rstart + 3] = 'row.' + name + '.local.4';
+    rowNames[rstart + 5] = 'row.' + name + '.local.3';
+    rowNames[rstart + 6] = 'row.' + name + '.local.1';
+    rowNames[rstart + 7] = 'row.' + name + '.local.0';
+  }
+}
+
+  class Clb {
+    constructor(x, y, screenPt, lcaPt) {
+      this.x = x;
+      this.y = y;
+      this.name = "ABCDEFGH"[y] + "ABCDEFGH"[x];
+      this.screenPt = screenPt;
+      this.lcaPt = lcaPt;
+    }
+
+    draw() {
+      ctx.strokeStyle = "red";
+      ctx.beginPath();
+      var x0 = this.screenPt[0];
+      var y0 = this.screenPt[1];
+      ctx.rect(x0, y0, 20, 32);
+      ctx.moveTo(x0 + 16, y0 - 2);
+      ctx.lineTo(x0 + 16, y0);
+
+      ctx.moveTo(x0 - 2, y0 + 12);
+      ctx.lineTo(x0, y0 + 12);
+      ctx.moveTo(x0 - 2, y0 + 18);
+      ctx.lineTo(x0, y0 + 18);
+      ctx.moveTo(x0 - 2, y0 + 24);
+      ctx.lineTo(x0, y0 + 24);
+
+      ctx.moveTo(x0 + 10, y0 + 33);
+      ctx.lineTo(x0 + 10, y0 + 35);
+
+      ctx.moveTo(x0 + 21, y0 + 18);
+      ctx.lineTo(x0 + 23, y0 + 18);
+      ctx.moveTo(x0 + 21, y0 + 28);
+      ctx.lineTo(x0 + 23, y0 + 28);
+
+      ctx.stroke();
+      ctx.font = "10px arial";
+      ctx.fillStyle = "green";
+      fillText(this.name, x0 + 1, y0 + 8);
+    }
+  }
+
+  class Pip {
+    constructor(screenPt, lcaPt) {
+      this.screenPt = screenPt;
+      this.lcaPt = lcaPt;
+    }
+
+    draw() {
+      ctx.strokeStyle = "red";
+      ctx.beginPath();
+      ctx.rect(this.screenPt[0], this.screenPt[1], 2, 2);
+      ctx.stroke();
+    }
+  }
+
+  class TileRouting {
+    constructor(x, y, screenPt, lcaPt) {
+      this.x = x;
+      this.y = y;
+      this.name = "ABCDEFGH"[y] + "ABCDEFGH"[x];
+      this.screenPt = screenPt;
+      this.lcaPt = lcaPt;
+      this.pips = [];
+      var screenX = screenPt[0] - 44;
+      var screenY = screenPt[1] - 28
+      if (x == 0 && y == 0) {
+        // Upper left
+        this.switch1 = null;
+        this.switch2 = null;
+        screenX -= 13;
+        screenY -= 15;
+        for (var i = 0; i < 12; i++) {
+          var pip = new Pip([screenX + [0, 4, 22, 0, 4, 8, 12, 26, 16, 16, 22, 26][i],
+                             screenY + [0, 0, 0, 4, 4, 8, 12, 12, 16, 22, 22, 22][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else if (x < 8 && y == 0) {
+        // Top edge
+        screenY -= 12;
+        this.switch1 = new Switch(this.name + '.8.1', [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20]);
+        this.switch2 = new Switch(this.name + '.8.2', [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10]);
+        for (var i = 0; i < 11; i++) {
+          var pip = new Pip([screenX + [27, 31, 19, 27, 19, 31, 27, 1, 13, 27, 31][i],
+                             screenY + [-3, 1, 5, 5, 9, 9, 13, 19, 19, 19, 19, 19][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else if (y == 0) {
+        // upper right
+        screenX += 7;
+        screenY -= 15;
+        for (var i = 0; i < 19; i++) {
+          var pip = new Pip([screenX + [30, 34, 0, 30, 34, 0, 26, 0, 22, 0, 18, 0, 8, 12, 12, 18, 22, 26, 30][i],
+                             screenY + [0, 0, 4, 4, 4, 8, 8, 12, 12, 16, 16, 22, 22, 22, 26, 26, 26, 26, 26][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else if (x == 0 && y < 8) {
+        // left
+        screenX -= 10;
+        this.switch1 = new Switch(this.name + '.8.1', [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20]);
+        this.switch2 = new Switch(this.name + '.8.2', [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10]);
+        for (var i = 0; i < 7; i++) {
+          var pip = new Pip([screenX + [19, 23, -3, 1, 13, 19, 23][i],
+                             screenY + [1, 5, 19, 19, 19, 19, 19][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else if (x < 8 && y < 8) {
+        // center
+        // Main part
+        this.switch1 = new Switch(this.name + '.8.1', [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20]);
+        this.switch2 = new Switch(this.name + '.8.2', [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10]);
+        for (var i = 0; i < 11; i++) {
+          var pip = new Pip([screenX + [19, 31, 19, 23, 27, 19, 23, 31, 27, 1, 13][i],
+                             screenY + [-1, 1, 5, 5, 5, 9, 9, 9, 13, 19, 19][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else if (y < 8) {
+        // right
+        screenX += 24;
+        this.switch1 = new Switch(this.name + '.8.1', [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20]);
+        this.switch2 = new Switch(this.name + '.8.2', [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10]);
+        for (var i = 0; i < 9; i++) {
+          var pip = new Pip([screenX + [-5, -9, -5, -9, -9, -5, 1, 13, 17][i],
+                             screenY + [1, 5, 9, 13, 19, 19, 19, 19, 19][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else if (x == 0) {
+        // bottom left
+        screenX -= 13;
+        screenY += 7;
+        for (var i = 0; i < 17; i++) {
+          var pip = new Pip([screenX + [16, 22, 26, 34, 16, 34, 12, 26, 34, 8, 34, 0, 4, 34, 0, 4, 22][i],
+                              + screenY + [0, 0, 0, 0, 6, 6, 10, 10, 10, 14, 14, 18, 18, 18, 22, 22, 22][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else if (x < 8) {
+        // bottom
+        screenY += 12;
+        this.switch1 = new Switch(this.name + '.8.1', [screenX, screenY + 8], [lcaPt[0] - 20, lcaPt[1] - 10]);
+        this.switch2 = new Switch(this.name + '.8.2', [screenX + 8, screenY], [lcaPt[0] - 10, lcaPt[1] - 20]);
+        for (var i = 0; i < 11; i++) {
+          var pip = new Pip([screenX + [1, 13, 27, 31, 27, 19, 31, 19, 27, 31, 27][i],
+                             screenY + [-5, -5, -5, -5, 1, 5, 5, 9, 9, 13, 17][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      } else {
+        // bottom right
+        screenX += 15;
+        screenY += 7;
+        for (var i = 0; i < 9; i++) {
+          var pip = new Pip([screenX + [0, 4, 10, 14, 18, 22, 26, 22, 26][i],
+                             screenY + [0, 0, 6, 10, 14, 18, 18, 22, 22][i]],
+                             [lcaPt[0] + [1,2,3][i], lcaPt[1] + [1,2,3][i]]);
+          this.pips.push(pip);
+        }
+      }
+    }
+
+    draw() {
+      if (this.switch1 != null) {
+        this.switch1.draw();
+        this.switch2.draw();
+      }
+      this.pips.forEach(pip => pip.draw());
+    }
+  }
+
+  class Switch {
+    constructor(name, screenPt, lcaPt) {
+      this.name = name;
+      this.screenPt = screenPt;
+      this.lcaPt = lcaPt;
+    }
+
+    draw() {
+      ctx.strokeStyle = "red";
+      ctx.beginPath();
+      var x0 = this.screenPt[0];
+      var y0 = this.screenPt[1];
+      ctx.rect(x0, y0, 8, 8);
+      for (var i = 0; i < 8; i++) {
+        ctx.moveTo(x0 + [2, 6, 9, 9, 6, 2, 0, 0][i], y0 + [0, 0, 2, 6, 9, 9, 6, 2][i]);
+        ctx.lineTo(x0 + [2, 6, 10, 10, 6, 2, -2, -2][i], y0 + [-2, -2, 2, 6, 10, 10, 6, 2][i]);
+      }
+      ctx.stroke();
+    }
+  }
+
+  var canvasMode = 'wiring';
+  $("#canvas").mousemove(function(e) {
+    var offset = $(this).offset();
+    var x = e.pageX - offset.left;
+    var y = e.pageY - offset.top;
+    if (canvasMode == 'bitstream') {
+      bitstreamClick(x, y);
+    }
+  });
+
+  // Prevent antialiasing of lines
+  var ctx = $("#canvas")[0].getContext("2d");
+  ctx.translate(0.5, 0.5);
+
+
+  function fillText(text, x, y) {
+    ctx.fillText(text, x + 0.5, y + 0.5);
+  }
+
+  function vtext(text, x, y) {
+    for (var i = 0 ; i < text.length; i++) {
+      fillText(text[i], x, y + 8 * i);
+    }
+  }
+
+  function drawPin(name, x0, y0, style) {
+    ctx.strokeStyle = "red";
+
+    ctx.font = "10px arial";
+    ctx.fillStyle = "green";
+    ctx.beginPath();
+
+    if (style == "a") { // top
+      ctx.rect(x0, y0, 20, 12);
+      ctx.moveTo(x0 + 8, y0);
+      ctx.lineTo(x0 + 8, y0 - 2);
+
+      ctx.moveTo(x0 + 8, y0+ 12);
+      ctx.lineTo(x0 + 8, y0 + 15);
+      ctx.moveTo(x0 + 12, y0+ 12);
+      ctx.lineTo(x0 + 12, y0 + 15);
+      ctx.moveTo(x0 + 16, y0+ 12);
+      ctx.lineTo(x0 + 16, y0 + 15);
+      ctx.stroke();
+      fillText(name, x0 + 1, y0 + 8);
+    } else if (style == "b") { // alternate top
+      ctx.rect(x0, y0, 20, 12);
+      ctx.moveTo(x0 + 4, y0);
+      ctx.lineTo(x0 + 4, y0 - 2);
+
+      ctx.moveTo(x0 + 4, y0+ 12);
+      ctx.lineTo(x0 + 4, y0 + 15);
+      ctx.moveTo(x0 + 8, y0+ 12);
+      ctx.lineTo(x0 + 8, y0 + 15);
+      ctx.moveTo(x0 + 12, y0+ 12);
+      ctx.lineTo(x0 + 12, y0 + 15);
+      ctx.stroke();
+      fillText(name, x0 + 1, y0 + 8);
+    } else if (style == "c") { // left
+      ctx.rect(x0, y0, 12, 26);
+      ctx.moveTo(x0 - 2, y0 + 12);
+      ctx.lineTo(x0, y0 + 12);
+
+      ctx.moveTo(x0+ 12, y0 + 12);
+      ctx.lineTo(x0 + 15, y0 + 12);
+      ctx.moveTo(x0+ 12, y0 + 16);
+      ctx.lineTo(x0 + 15, y0 + 16);
+      ctx.moveTo(x0+ 12, y0 + 20);
+      ctx.lineTo(x0 + 15, y0 + 20);
+      ctx.stroke();
+      vtext(name, x0 + 1, y0 + 8);
+    } else if (style == "d") { // right
+      ctx.rect(x0, y0, 12, 26);
+      ctx.moveTo(x0+ 12, y0 + 12);
+      ctx.lineTo(x0 + 16,  y0 + 12);
+
+      ctx.moveTo(x0 - 2, y0 + 12);
+      ctx.lineTo(x0, y0 + 12);
+      ctx.moveTo(x0 - 2, y0 + 16);
+      ctx.lineTo(x0, y0 + 16);
+      ctx.moveTo(x0 - 2, y0 + 20);
+      ctx.lineTo(x0, y0 + 20);
+      ctx.stroke();
+      vtext(name, x0 + 1, y0 + 8);
+    } else if (style == "e") { // bottom
+      ctx.rect(x0, y0, 20, 12);
+      ctx.moveTo(x0 + 8, y0 + 12);
+      ctx.lineTo(x0 + 8, y0 + 14);
+
+      ctx.moveTo(x0 + 8, y0 - 3);
+      ctx.lineTo(x0 + 8, y0);
+      ctx.moveTo(x0 + 12, y0 - 3);
+      ctx.lineTo(x0 + 12, y0);
+      ctx.moveTo(x0 + 16, y0 - 3);
+      ctx.lineTo(x0 + 16, y0);
+      ctx.stroke();
+      fillText(name, x0 + 1, y0 + 8);
+    } else if (style == "f") { // alternate bottom
+      ctx.rect(x0, y0, 20, 12);
+      ctx.moveTo(x0 + 4, y0 + 12);
+      ctx.lineTo(x0 + 4, y0 + 14);
+
+      ctx.moveTo(x0 + 4, y0 - 3);
+      ctx.lineTo(x0 + 4, y0);
+      ctx.moveTo(x0 + 8, y0 - 3);
+      ctx.lineTo(x0 + 8, y0);
+      ctx.moveTo(x0 + 12, y0 - 3);
+      ctx.lineTo(x0 + 12, y0);
+      ctx.stroke();
+      fillText(name, x0 + 1, y0 + 8);
+    }
+  }
+
+  function initPins() {
+    drawPin("P9", 62, 6, "a");
+    drawPin("P8", 90, 6, "b");
+    drawPin("P7", 138, 6, "a");
+    drawPin("P6", 162, 6, "b");
+    drawPin("P5", 210, 6, "a");
+    drawPin("P4", 234, 6, "b");
+    drawPin("P3", 282, 6, "a");
+    drawPin("P2", 306, 6, "b");
+    drawPin("P68", 354, 6, "a");
+    drawPin("P67", 378, 6, "b");
+    drawPin("P66", 426, 6, "a");
+    drawPin("P65", 450, 6, "b");
+    drawPin("P64", 498, 6, "a");
+    drawPin("P63", 522, 6, "b");
+    drawPin("P62", 570, 6, "a");
+    drawPin("P61", 594, 6, "b");
+
+    drawPin("P27", 62, 656, "e");
+    drawPin("P28", 90, 656, "f");
+    drawPin("P29", 138, 656, "e");
+    drawPin("P30", 162, 656, "f");
+    drawPin("P31", 210, 656, "e");
+    drawPin("P32", 234, 656, "f");
+    drawPin("P33", 282, 656, "e");
+    drawPin("P34", 306, 656, "f");
+    drawPin("P36", 354, 656, "e");
+    drawPin("P37", 378, 656, "f");
+    drawPin("P38", 426, 656, "e");
+    drawPin("P39", 450, 656, "f");
+    drawPin("P40", 498, 656, "e");
+    drawPin("P41", 522, 656, "f");
+    drawPin("P42", 570, 656, "e");
+    drawPin("P43", 594, 656, "f");
+
+    for (var i = 0; i < 14; i++) {
+      if (i == 7) continue;
+      drawPin("P" + (11 + i), 6, 88 + 36 * i, "c");
+    }
+
+    for (var i = 0; i < 14; i++) {
+      if (i == 7) continue;
+      drawPin("P" + (59 - i), 656, 88 + 36 * i, "d");
+    }
+  }
+
+  function initTiles() {
+    for (var x = 0; x < 9; x++) {
+      for (var y = 0; y < 9; y++) {
+        if (x < 8 && y < 8) {
+          var clb = new Clb(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20]);
+          clb.draw();
+        }
+        var tile = new TileRouting(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20]);
+        tile.draw();
+      }
+    }
+  }
+
+  function init() {
+    initNames();
+    initPins();
+    initTiles();
+  }
+
+  init();
+
+
+});
+
+</script>
+<title>FPGA viewer: draw</title>
+</head>
+<body>
+<div id="info"> </div>
+<div id="info2"> </div>
+<div id="container" style="position: relative">
+  <canvas style="position:absolute; z-index: 1" id="canvas" width=2000 height=2000></canvas>
+  <img id="img" style="position:absolute" src="pips.png" width=680 height=680></img>
+</div>
+<div id="info3"> </div>
+</body>
+</html>
