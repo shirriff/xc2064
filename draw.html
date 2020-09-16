@@ -514,8 +514,8 @@ function initNames() {
         var screenX = screenPt[0] - 44;
         var screenY = screenPt[1] - 28
         screenY -= 12;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [27 + (x-1) * 20, 168], bitPt, 'top');
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [30 + (x-1) * 20, 165], bitPt, 'top');
+        this.switch1 = new Switch(this.name + '.8.1', 1, bitPt, 'top');
+        this.switch2 = new Switch(this.name + '.8.2', 2, bitPt, 'top');
 
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1]])));
       } else if (y == 0) {
@@ -539,8 +539,8 @@ function initNames() {
         var screenX = screenPt[0] - 44;
         var screenY = screenPt[1] - 28
         screenX -= 10;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [5, 146 - (y-1) * 19], bitPt, 'left');
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [8, 143 - (y-1) * 19], bitPt, 'left');
+        this.switch1 = new Switch(this.name + '.8.1', 1, bitPt, 'left');
+        this.switch2 = new Switch(this.name + '.8.2', 2, bitPt, 'left');
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
       } else if (x < 8 && y < 8) {
         // center
@@ -554,8 +554,8 @@ function initNames() {
         // Main part
         var screenX = screenPt[0] - 44;
         var screenY = screenPt[1] - 28
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [27 + (x-1) * 20, 146 - (y-1) * 19], bitPt);
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [30 + (x-1) * 20, 143 - (y-1) * 19], bitPt);
+        this.switch1 = new Switch(this.name + '.8.1', 1, bitPt);
+        this.switch2 = new Switch(this.name + '.8.2', 2, bitPt);
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1] + yoffset])));
       } else if (y < 8) {
         // right
@@ -568,8 +568,8 @@ function initNames() {
         var screenX = screenPt[0] - 44;
         var screenY = screenPt[1] - 28
         screenX += 24;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [172, 146 - (y-1) * 19], bitPt, 'right');
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [175, 143 - (y-1) * 19], bitPt, 'right');
+        this.switch1 = new Switch(this.name + '.8.1', 1, bitPt, 'right');
+        this.switch2 = new Switch(this.name + '.8.2', 2, bitPt, 'right');
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
       } else if (x == 0) {
         // bottom left
@@ -596,8 +596,8 @@ function initNames() {
         var screenX = screenPt[0] - 44;
         var screenY = screenPt[1] - 28
         screenY += 12;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY + 8], [30 + (x-1) * 20, 11], bitPt, 'bottom');
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY], [27 + (x-1) * 20, 8], bitPt, 'bottom');
+        this.switch1 = new Switch(this.name + '.8.1', 1, 'bottom');
+        this.switch2 = new Switch(this.name + '.8.2', 2, 'bottom');
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1]])));
       } else {
         // bottom right
@@ -646,7 +646,7 @@ function initNames() {
    * Coordinates: screenPt is the upper left corner of the box. lcaPt is the coordinate of pin 8.
    */
   class Switch {
-    constructor(name, num, screenPt, lcaPt, bitPt, mode) {
+    constructor(name, num, bitPt, mode) {
       this.name = name;
       this.num = num; // 1 or 2
       this.wires = null;
