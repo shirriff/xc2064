@@ -50,7 +50,7 @@ $(document).ready(function() {
   }
 
   $('#mode').on('change', function() {
-    alert( this.value );
+    redraw();
   });
 
   var rbtstream = null;
@@ -93,7 +93,13 @@ $(document).ready(function() {
     }
     rbtstream = contents;
     diestream = makeDiestream(rbtstream);
-    displayStream(diestream);
+  }
+
+  function redraw() {
+    if (canvasMode() == 'bitstream') {
+      displayStream(diestream);
+    } else {
+    }
   }
 
   /**
@@ -128,7 +134,7 @@ $(document).ready(function() {
    * Displays the bitstream data.
    */
   function displayStream(diestream) {
-    canvasMode = 'bitstream';
+    canvasMode() = 'bitstream';
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     // Draw labels
@@ -387,13 +393,17 @@ function initNames() {
   }
 
   class Pip {
-    constructor(name, screenPt) {
+    constructor(name, bitPt) {
       this.name = name;
       var parts = name.split(':');
+      if (colInfo[parts[0]] == undefined || rowInfo[parts[1]] == undefined) {
+        alert('undefined name ' + name);
+      }
       this.screenPt = [colInfo[parts[0]][1], rowInfo[parts[1]][1]];
       if (this.screenPt[0] == 999 || this.screenPt[1] == 999) {
-        console.log('missing coord ' + name);
+        alert('Undefined coord ' + name);
       }
+      this.bitPt = bitPt
     }
 
     draw() {
@@ -435,110 +445,111 @@ function initNames() {
         screenX -= 13;
         screenY -= 15;
 
+        // Name of pip and corresponding bitmap entry
         var pips = [
-          "col.A.long.2:row.A.long.2", "col.A.local.1:row.A.long.2", "col.A.long.3:row.A.long.2",
-          "col.A.long.2:row.A.local.1", "col.A.local.1:row.A.local.1",
-          "col.A.local.2:row.A.local.2",
-          "col.A.local.3:row.A.local.3", "col.A.long.4:row.A.local.3",
-          "col.A.local.4:row.A.local.4",
-          "col.A.local.4:row.A.long.3", "col.A.long.3:row.A.long.3", "col.A.long.4:row.A.long.3"];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+          ["col.A.long.2:row.A.long.2", [6, 3]], ["col.A.local.1:row.A.long.2", [7, 3]], ["col.A.long.3:row.A.long.2", [12, 1]],
+          ["col.A.long.2:row.A.local.1", [9, 3]], ["col.A.local.1:row.A.local.1", [8, 3]],
+          ["col.A.local.2:row.A.local.2", [12, 3]],
+          ["col.A.local.3:row.A.local.3", [14, 3]], ["col.A.long.4:row.A.local.3", [17, 0]],
+          ["col.A.local.4:row.A.local.4", [20, 3]],
+          ["col.A.local.4:row.A.long.3", [20, 1]], ["col.A.long.3:row.A.long.3", [13, 3]], ["col.A.long.4:row.A.long.3", [16, 3]]];
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
       } else if (x < 8 && y == 0) {
         // Top edge
         var pips = [
-          "col.COL.long.1:row.A.long.2",
-          "col.COL.long.2:row.A.local.1",
-          "col.COL.local.5:row.A.local.2", "col.COL.long.1:row.A.local.2",
-          "col.COL.local.5:row.A.local.3", "col.COL.long.2:row.A.local.3",
-          "col.COL.long.1:row.A.local.4",
-          "col.COL.local.1:row.A.long.3", "col.COL.local.4:row.A.long.3", "col.COL.long.1:row.A.long.3", "col.COL.long.2:row.A.long.3"];
+          ["col.COL.long.1:row.A.long.2", [30, 1]],
+          ["col.COL.long.2:row.A.local.1", [33, 3]],
+          ["col.COL.local.5:row.A.local.2", [28, 3]], ["col.COL.long.1:row.A.local.2", [31, 2]],
+          ["col.COL.local.5:row.A.local.3", [29, 2]], ["col.COL.long.2:row.A.local.3", [35, 0]],
+          ["col.COL.long.1:row.A.local.4", [33, 2]],
+          ["col.COL.local.1:row.A.long.3", [23, 2]], ["col.COL.local.4:row.A.long.3", [38, 1]], ["col.COL.long.1:row.A.long.3", [32, 2]], ["col.COL.long.2:row.A.long.3", [32, 3]]];
         screenY -= 12;
         this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
         this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + 72 * (x - 1), pip[1][1]])));
       } else if (y == 0) {
         // upper right
 
         var pips = [
-          "col.I.local.4:row.A.long.2", "col.I.long.3:row.A.long.2",
-          "col.I.local.0:row.A.local.1", "col.I.local.4:row.A.local.1", "col.I.long.3:row.A.local.1",
-          "col.I.local.0:row.A.local.2", "col.I.local.3:row.A.local.2",
-          "col.I.local.0:row.A.local.3", "col.I.local.2:row.A.local.3",
-          "col.I.local.1:row.A.local.4", "col.I.local.0:row.A.local.4",
-          "col.I.local.0:row.A.long.3", "col.I.long.1:row.A.long.3", "col.I.long.2:row.A.long.3",
-          "col.I.long.2:row.A.local.5", "col.I.local.1:row.A.local.5", "col.I.local.2:row.A.local.5", "col.I.local.3:row.A.local.5", "col.I.local.4:row.A.local.5"];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+          ["col.I.local.4:row.A.long.2", [152, 4]], ["col.I.long.3:row.A.long.2", [153, 4]],
+          ["col.I.local.0:row.A.local.1", [-1, -1]], ["col.I.local.4:row.A.local.1", [151, 2]], ["col.I.long.3:row.A.local.1", [152, 2]],
+          ["col.I.local.0:row.A.local.2", [-1, -1]], ["col.I.local.3:row.A.local.2", [155, 4]],
+          ["col.I.local.0:row.A.local.3", [-1, -1]], ["col.I.local.2:row.A.local.3", [157, 4]],
+          ["col.I.local.1:row.A.local.4", [156, 4]], ["col.I.local.0:row.A.local.4", [-1, -1]],
+          ["col.I.local.0:row.A.long.3", [-1, -1]], ["col.I.long.1:row.A.long.3", [154, 2]], ["col.I.long.2:row.A.long.3", [153, 2]],
+          ["col.I.long.2:row.A.local.5", [-1, -1]], ["col.I.local.1:row.A.local.5", [-1, -1]], ["col.I.local.2:row.A.local.5", [-1, -1]],  ["col.I.local.3:row.A.local.5", [-1, -1]],  ["col.I.local.4:row.A.local.5", [-1, -1]]];
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
       } else if (x == 0 && y < 8) {
         // left
         var pips = [
-          "col.A.long.3:row.ROW.local.1",
-          "col.A.long.4:row.ROW.local.3",
-          "col.A.long.2:row.ROW.long.1", "col.A.local.1:row.ROW.long.1", "col.A.local.4:row.ROW.long.1", "col.A.long.3:row.ROW.long.1", "col.A.long.4:row.ROW.long.1"];
+          ["col.A.long.3:row.ROW.local.1", [9, 11]],
+          ["col.A.long.4:row.ROW.local.3", [11, 11]],
+          ["col.A.long.2:row.ROW.long.1", [5, 11]], ["col.A.local.1:row.ROW.long.1", [4, 11]], ["col.A.local.4:row.ROW.long.1", [17, 11]], ["col.A.long.3:row.ROW.long.1", [10, 11]], ["col.A.long.4:row.ROW.long.1", [15, 11]]];
         screenX -= 10;
         this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
         this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + 72 * (y - 1)])));
       } else if (x < 8 && y < 8) {
         // center
         var pips = [
-          "col.COL.local.5:row.ROW.local.0",
-          "col.COL.long.2:row.ROW.local.1",
-          "col.COL.local.5:row.ROW.local.3", "col.COL.local.6:row.ROW.local.3", "col.COL.long.1:row.ROW.local.3",
-          "col.COL.local.5:row.ROW.local.4", "col.COL.local.6:row.ROW.local.4", "col.COL.long.2:row.ROW.local.4",
-          "col.COL.long.1:row.ROW.local.5",
-          "col.COL.local.1:row.ROW.long.1", "col.COL.local.4:row.ROW.long.1"];
+          ["col.COL.local.5:row.ROW.local.0", [23, 11]],
+          ["col.COL.long.2:row.ROW.local.1", [32, 11]],
+          ["col.COL.local.5:row.ROW.local.3", [24, 11]], ["col.COL.local.6:row.ROW.local.3", [27, 11]], ["col.COL.long.1:row.ROW.local.3", [28, 11]],
+          ["col.COL.local.5:row.ROW.local.4", [25, 11]], ["col.COL.local.6:row.ROW.local.4", [26, 11]], ["col.COL.long.2:row.ROW.local.4", [33, 11]],
+          ["col.COL.long.1:row.ROW.local.5", [31, 11]],
+          ["col.COL.local.1:row.ROW.long.1", [22, 11]], ["col.COL.local.4:row.ROW.long.1", [35, 11]]];
         // Main part
         this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
         this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + 72 * (x - 1), pip[1][1] + 72 * (y - 1)])));
       } else if (y < 8) {
         // right
         var pips = [
-          "col.I.long.2:row.ROW.local.1",
-          "col.I.long.1:row.ROW.local.3",
-          "col.I.long.2:row.ROW.local.4",
-          "col.I.long.1:row.ROW.local.5",
-          "col.I.long.1:row.ROW.long.1", "col.I.long.2:row.ROW.long.1", "col.I.local.1:row.ROW.long.1", "col.I.local.4:row.ROW.long.1", "col.I.long.3:row.ROW.long.1"];
+          ["col.I.long.2:row.ROW.local.1", [159, 11]],
+          ["col.I.long.1:row.ROW.local.3", [153, 11]],
+          ["col.I.long.2:row.ROW.local.4", [153, 12]],
+          ["col.I.long.1:row.ROW.local.5", [154, 12]],
+          ["col.I.long.1:row.ROW.long.1", [154, 11]], ["col.I.long.2:row.ROW.long.1", [158, 11]], ["col.I.local.1:row.ROW.long.1", [155, 11]], ["col.I.local.4:row.ROW.long.1", [151, 11]], ["col.I.long.3:row.ROW.long.1", [152, 11]]];
         screenX += 24;
         this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
         this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + 72 * (y - 1)])));
       } else if (x == 0) {
         // bottom left
 
         var pips = [
-          "col.A.local.1:row.I.local.0", "col.A.local.2:row.I.local.0", "col.A.local.3:row.I.local.0", "col.A.local.4:row.I.local.0", "col.A.long.3:row.I.local.0",
-          "col.A.local.4:row.I.long.1", "col.A.long.3:row.I.long.1", "col.A.long.4:row.I.long.1", "col.A.local.5:row.I.long.1",
-          "col.A.local.4:row.I.local.1", "col.A.local.5:row.I.local.1",
-          "col.A.local.3:row.I.local.2", "col.A.long.4:row.I.local.2", "col.A.local.5:row.I.local.2",
-          "col.A.local.2:row.I.local.3", "col.A.local.5:row.I.local.3",
-          "col.A.long.2:row.I.local.4", "col.A.local.1:row.I.local.4", "col.A.local.5:row.I.local.4",
-          "col.A.long.2:row.I.long.2", "col.A.local.1:row.I.long.2", "col.A.long.3:row.I.long.2"];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+          ["col.A.local.1:row.I.local.0", [-1, -1]], ["col.A.local.2:row.I.local.0", [-1, -1]], ["col.A.local.3:row.I.local.0", [-1, -1]], ["col.A.local.4:row.I.local.0", [-1, -1]], ["col.A.long.3:row.I.local.0", [-1, -1]],
+          ["col.A.local.4:row.I.long.1", [20, 69]], ["col.A.long.3:row.I.long.1", [13, 67]], ["col.A.long.4:row.I.long.1", [16, 67]], ["col.A.local.5:row.I.long.1", [-1, -1]],
+          ["col.A.local.4:row.I.local.1", [20, 67]], ["col.A.local.5:row.I.local.1", [-1, -1]],
+          ["col.A.local.3:row.I.local.2", [14, 67]], ["col.A.long.4:row.I.local.2", [17, 70]], ["col.A.local.5:row.I.local.2", [-1, -1]],
+          ["col.A.local.2:row.I.local.3", [12, 67]], ["col.A.local.5:row.I.local.3", [-1, -1]],
+          ["col.A.long.2:row.I.local.4", [9, 67]], ["col.A.local.1:row.I.local.4", [8, 67]], ["col.A.local.5:row.I.local.4", [-1, -1]],
+          ["col.A.long.2:row.I.long.2", [6, 67]], ["col.A.local.1:row.I.long.2", [7, 67]], ["col.A.long.3:row.I.long.2", [12, 69]]];
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
       } else if (x < 8) {
         // bottom
 
         var pips = [
-          "col.COL.local.1:row.I.long.1", "col.COL.local.4:row.I.long.1", "col.COL.long.1:row.I.long.1", "col.COL.long.2:row.I.long.1",
-          "col.COL.long.1:row.I.local.1",
-          "col.COL.local.5:row.I.local.2", "col.COL.long.2:row.I.local.2",
-          "col.COL.local.5:row.I.local.3", "col.COL.long.1:row.I.local.3",
-          "col.COL.long.2:row.I.local.4",
-          "col.COL.long.1:row.I.long.2"];
+          ["col.COL.local.1:row.I.long.1", [23, 68]], ["col.COL.local.4:row.I.long.1", [38, 69]], ["col.COL.long.1:row.I.long.1", [32, 68]], ["col.COL.long.2:row.I.long.1", [32, 67]],
+          ["col.COL.long.1:row.I.local.1", [33, 68]],
+          ["col.COL.local.5:row.I.local.2", [29, 68]], ["col.COL.long.2:row.I.local.2", [35, 70]],
+          ["col.COL.local.5:row.I.local.3", [28, 67]], ["col.COL.long.1:row.I.local.3", [31, 68]],
+          ["col.COL.long.2:row.I.local.4", [33, 67]],
+          ["col.COL.long.1:row.I.long.2", [30, 69]]];
         screenY += 12;
         this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY + 8], [lcaPt[0] - 20, lcaPt[1] - 10], bitPt);
         this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY], [lcaPt[0] - 10, lcaPt[1] - 20], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + 72 * (x - 1), pip[1][1]])));
       } else {
         // bottom right
         var pips = [
-          "col.I.long.1:row.I.long.1", "col.I.long.2:row.I.long.1",
-          "col.I.local.1:row.I.local.1",
-          "col.I.local.2:row.I.local.2",
-          "col.I.local.3:row.I.local.3",
-          "col.I.local.4:row.I.local.4", "col.I.long.3:row.I.local.4",
-          "col.I.local.4:row.I.long.2", "col.I.long.3:row.I.long.2"];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip))));
+          ["col.I.long.1:row.I.long.1", [155, 67]], ["col.I.long.2:row.I.long.1", [158, 67]],
+          ["col.I.local.1:row.I.local.1", [156, 67]],
+          ["col.I.local.2:row.I.local.2", [157, 67]],
+          ["col.I.local.3:row.I.local.3", [154, 67]],
+          ["col.I.local.4:row.I.local.4", [151, 68]], ["col.I.long.3:row.I.local.4", [152, 67]],
+          ["col.I.local.4:row.I.long.2", [151, 67]], ["col.I.long.3:row.I.long.2", [153, 67]]];
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
       }
     }
 
@@ -642,12 +653,16 @@ function initNames() {
     }
   }
 
-  var canvasMode = 'wiring';
+  // Returns bitstream or layout
+  function canvasMode() {
+    return $("#mode").val();
+  }
+
   $("#canvas").mousemove(function(e) {
     var offset = $(this).offset();
     var x = e.pageX - offset.left;
     var y = e.pageY - offset.top;
-    if (canvasMode == 'bitstream') {
+    if (canvasMode() == 'bitstream') {
       bitstreamClick(x, y);
     }
   });
@@ -830,7 +845,7 @@ function initNames() {
 </head>
 <body>
 <div id="header">
-<select id="mode"><option name="layout" selected>Layout</select><option name="bitstream">Bitstream</option></select>
+<select id="mode"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
 </div>
 <div id="info"> </div>
 <div id="info2"> </div>
