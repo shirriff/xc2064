@@ -54,12 +54,14 @@ $(document).ready(function() {
   });
 
   var rbtstream = null;
-  var bitstream = null;
+  var diestream = null;
   /**
    * Handles the upload of a .RBT file, storing it into the variable bitstream, which has 160 lines of 71 '0'/'1' characters,
    * the contents of the .RBT file.
    */
   function rbtUpload(contents) {
+    rbtstream = null;
+    diestream = null;
     var lines = contents.split(/[\r\n]+/);
     var contents = [];
     var mode = 'header';
@@ -93,12 +95,15 @@ $(document).ready(function() {
     }
     rbtstream = contents;
     diestream = makeDiestream(rbtstream);
+    decode();
+    redraw();
   }
 
   function redraw() {
     if (canvasMode() == 'bitstream') {
-      displayStream(diestream);
-    } else {
+      drawBitstream(diestream);
+    } else if (canvasMode() == 'layout') {
+      drawLayout();
     }
   }
 
@@ -133,9 +138,11 @@ $(document).ready(function() {
   /**
    * Displays the bitstream data.
    */
-  function displayStream(diestream) {
-    canvasMode() = 'bitstream';
+  function drawBitstream(diestream) {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    if (diestream == null) {
+      return;
+    }
 
     // Draw labels
     ctx.canvas.height = 570;
@@ -218,6 +225,9 @@ $(document).ready(function() {
 
 
   function bitstreamClick(x, y) {
+    if (diestream == null) {
+      return;
+    }
     var xn = x / 8; // Convert to bit indices
     var yn = y / 8;
     var xinfo = findTileX(xn);
@@ -229,7 +239,7 @@ $(document).ready(function() {
     }
   }
 
-// From row name to [internal Y coordinate, screen X coordinate]
+// From row name to [internal Y coordinate, screen Y coordinate]
 var rowInfo = {
  "row.I.local.5": [0, 999],
  "row.I.long.2": [4, 646],
@@ -403,14 +413,43 @@ function initNames() {
       if (this.screenPt[0] == 999 || this.screenPt[1] == 999) {
         alert('Undefined coord ' + name);
       }
-      this.bitPt = bitPt
+      this.bitPt = bitPt;
+      if (bitPt[0] >= 160 || bitPt[1] >= 71) {
+        alert('Out of bounds bitstream index: ' + bitPt[0] + ',' + bitPt[1]);
+      }
+      this.state = 0;
+
     }
 
     draw() {
-      ctx.strokeStyle = "red";
+      if (this.bitPt[0] < 0 || this.state < 0) {
+        ctx.fillStyle = "black";
+        ctx.strokeStyle = "black";
+      } else if (this.state == 0) {
+        ctx.strokeStyle = "gray";
+        ctx.fillStyle = "white";
+      } else if (this.state == 1) {
+        ctx.strokeStyle = "red";
+        ctx.fillStyle = "red";
+      } else {
+        // Shouldn't happen
+        ctx.strokeStyle = "blue";
+        ctx.fillStyle = "blue";
+      }
+      ctx.translate(-0.5,- .5); // Prevent antialiasing
+      ctx.fillRect(this.screenPt[0] - 1, this.screenPt[1] - 1, 2, 2);
+      ctx.translate(0.5, .5); // Prevent antialiasing
       ctx.beginPath();
       ctx.rect(this.screenPt[0] - 1, this.screenPt[1] - 1, 2, 2);
       ctx.stroke();
+    }
+
+    decode() {
+      if (this.bitPt[0] < 0) {
+        this.state = -1;
+      } else {
+        this.state = diestream[this.bitPt[0]][this.bitPt[1]];
+      }
     }
   }
 
@@ -423,8 +462,6 @@ function initNames() {
       this.lcaPt = lcaPt;
       this.bitPt = bitPt;
       this.pips = [];
-      var screenX = screenPt[0] - 44;
-      var screenY = screenPt[1] - 28
       if (x < 8 && y < 8) {
         this.clb = new Clb(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20], bitPt);
       } else {
@@ -438,10 +475,20 @@ function initNames() {
         return pip.replace('ROW', row).replace('COL', col);
       }
 
+      // For a repeated tile, the pip location is relative to the origin for tile BB. The x and y will need to shift based on the row/column.
+      // (The pip location could be given relative to the start of tile BB, but it's not.)
+      // This shift is not constant because of the buffers.
+      // For non-repeated tiles, the pip does not need to be adjusted.
+      // 
+      var xoffset = xTileStarts[x] - xTileStarts[1]; // xoffset == 0 for tile B
+      var yoffset = yTileStarts[y] - yTileStarts[1]; // xoffset == 0 for tile B
+
+      this.switch1 = null;
+      this.switch2 = null;
       if (x == 0 && y == 0) {
         // Upper left
-        this.switch1 = null;
-        this.switch2 = null;
+        var screenX = screenPt[0] - 44;
+        var screenY = screenPt[1] - 28
         screenX -= 13;
         screenY -= 15;
 
@@ -463,10 +510,14 @@ function initNames() {
           ["col.COL.local.5:row.A.local.3", [29, 2]], ["col.COL.long.2:row.A.local.3", [35, 0]],
           ["col.COL.long.1:row.A.local.4", [33, 2]],
           ["col.COL.local.1:row.A.long.3", [23, 2]], ["col.COL.local.4:row.A.long.3", [38, 1]], ["col.COL.long.1:row.A.long.3", [32, 2]], ["col.COL.long.2:row.A.long.3", [32, 3]]];
+
+        var screenX = screenPt[0] - 44;
+        var screenY = screenPt[1] - 28
         screenY -= 12;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + 72 * (x - 1), pip[1][1]])));
+        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [27 + (x-1) * 20, 168], bitPt, 'top');
+        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [30 + (x-1) * 20, 165], bitPt, 'top');
+
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1]])));
       } else if (y == 0) {
         // upper right
 
@@ -485,10 +536,12 @@ function initNames() {
           ["col.A.long.3:row.ROW.local.1", [9, 11]],
           ["col.A.long.4:row.ROW.local.3", [11, 11]],
           ["col.A.long.2:row.ROW.long.1", [5, 11]], ["col.A.local.1:row.ROW.long.1", [4, 11]], ["col.A.local.4:row.ROW.long.1", [17, 11]], ["col.A.long.3:row.ROW.long.1", [10, 11]], ["col.A.long.4:row.ROW.long.1", [15, 11]]];
+        var screenX = screenPt[0] - 44;
+        var screenY = screenPt[1] - 28
         screenX -= 10;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + 72 * (y - 1)])));
+        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [5, 146 - (y-1) * 19], bitPt, 'left');
+        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [8, 143 - (y-1) * 19], bitPt, 'left');
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
       } else if (x < 8 && y < 8) {
         // center
         var pips = [
@@ -499,9 +552,11 @@ function initNames() {
           ["col.COL.long.1:row.ROW.local.5", [31, 11]],
           ["col.COL.local.1:row.ROW.long.1", [22, 11]], ["col.COL.local.4:row.ROW.long.1", [35, 11]]];
         // Main part
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + 72 * (x - 1), pip[1][1] + 72 * (y - 1)])));
+        var screenX = screenPt[0] - 44;
+        var screenY = screenPt[1] - 28
+        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [27 + (x-1) * 20, 146 - (y-1) * 19], bitPt);
+        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [30 + (x-1) * 20, 143 - (y-1) * 19], bitPt);
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1] + yoffset])));
       } else if (y < 8) {
         // right
         var pips = [
@@ -510,10 +565,12 @@ function initNames() {
           ["col.I.long.2:row.ROW.local.4", [153, 12]],
           ["col.I.long.1:row.ROW.local.5", [154, 12]],
           ["col.I.long.1:row.ROW.long.1", [154, 11]], ["col.I.long.2:row.ROW.long.1", [158, 11]], ["col.I.local.1:row.ROW.long.1", [155, 11]], ["col.I.local.4:row.ROW.long.1", [151, 11]], ["col.I.long.3:row.ROW.long.1", [152, 11]]];
+        var screenX = screenPt[0] - 44;
+        var screenY = screenPt[1] - 28
         screenX += 24;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [lcaPt[0] - 20, lcaPt[1] - 20], bitPt);
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [lcaPt[0] - 10, lcaPt[1] - 10], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + 72 * (y - 1)])));
+        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY], [172, 146 - (y-1) * 19], bitPt, 'right');
+        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY + 8], [175, 143 - (y-1) * 19], bitPt, 'right');
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
       } else if (x == 0) {
         // bottom left
 
@@ -536,10 +593,12 @@ function initNames() {
           ["col.COL.local.5:row.I.local.3", [28, 67]], ["col.COL.long.1:row.I.local.3", [31, 68]],
           ["col.COL.long.2:row.I.local.4", [33, 67]],
           ["col.COL.long.1:row.I.long.2", [30, 69]]];
+        var screenX = screenPt[0] - 44;
+        var screenY = screenPt[1] - 28
         screenY += 12;
-        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY + 8], [lcaPt[0] - 20, lcaPt[1] - 10], bitPt);
-        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY], [lcaPt[0] - 10, lcaPt[1] - 20], bitPt);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + 72 * (x - 1), pip[1][1]])));
+        this.switch1 = new Switch(this.name + '.8.1', 1, [screenX, screenY + 8], [30 + (x-1) * 20, 11], bitPt, 'bottom');
+        this.switch2 = new Switch(this.name + '.8.2', 2, [screenX + 8, screenY], [27 + (x-1) * 20, 8], bitPt, 'bottom');
+        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1]])));
       } else {
         // bottom right
         var pips = [
@@ -569,7 +628,7 @@ function initNames() {
      * Returns string.
      */
     decode() {
-      var result = [];
+      var result = ['tile info'];
       if (this.clb) {
         result.push(this.clb.decode());
       }
@@ -577,18 +636,54 @@ function initNames() {
         result.push(this.switch1.decode());
         result.push(this.switch2.decode());
       }
-      return result.join('<br/>');
+      this.pips.forEach(pip => result.push(pip.decode()));
+      return result;
     }
   }
 
+  /**
+   * A switch matrix.
+   * Coordinates: screenPt is the upper left corner of the box. lcaPt is the coordinate of pin 8.
+   */
   class Switch {
-    constructor(name, num, screenPt, lcaPt, bitPt) {
+    constructor(name, num, screenPt, lcaPt, bitPt, mode) {
       this.name = name;
       this.num = num; // 1 or 2
-      this.screenPt = screenPt;
-      this.lcaPt = lcaPt;
       this.wires = null;
       this.bitPt = bitPt;
+      this.mode = mode;
+
+      function check(x0, y0, x1, y1) {
+         var status = '';
+         if (lcaPt[0] == x0 && lcaPt[1] == y0 && screenPt[0] == x1 && screenPt[1] == y1) {
+           status = '';
+         } else {
+           status = '***';
+         }
+          console.log(status, 'switch', name, 'lca: ', lcaPt[0], lcaPt[1], x0, y0, 'screen:', screenPt[0], screenPt[1], x1, y1);
+      }
+
+      // The switch pair's upper left wires are local.1
+      var row = rowInfo['row.' + name[0] + '.local.1'];
+      var col = colInfo['col.' + name[1] + '.local.1'];
+      if (mode == 'bottom') {
+        // The bottom switches are mirror-imaged, inconveniently.
+        if (num == 1) {
+          this.lcaPt = [col[0] + 3, row[0] + 1];
+          this.screenPt = [col[1] - 2, row[1] + 6];
+        } else {
+          this.lcaPt = [col[0], row[0] - 2];
+          this.screenPt = [col[1] - 2 + 8, row[1] + 6 - 8];
+        }
+      } else {
+        if (num == 1) {
+          this.lcaPt =[col[0], row[0] + 1]
+          this.screenPt = [col[1] - 2, row[1] - 2];
+        } else {
+          this.lcaPt = [col[0] + 3, row[0] - 2];
+          this.screenPt = [col[1] - 2 + 8, row[1] - 2 + 8];
+        }
+      }
     }
 
     draw() {
@@ -598,21 +693,31 @@ function initNames() {
       var y0 = this.screenPt[1];
       ctx.rect(x0, y0, 8, 8);
       for (var i = 0; i < 8; i++) {
+        if (this.skip(i)) continue;
         ctx.moveTo(x0 + [2, 6, 9, 9, 6, 2, 0, 0][i], y0 + [0, 0, 2, 6, 9, 9, 6, 2][i]);
         ctx.lineTo(x0 + [2, 6, 10, 10, 6, 2, -2, -2][i], y0 + [-2, -2, 2, 6, 10, 10, 6, 2][i]);
       }
       ctx.stroke();
     }
 
+    // Helper to remove pins from switches along edges.
+    skip(pin) {
+      return ((this.mode == 'top' && (pin == 0 || pin == 1)) || (this.mode == 'bottom' && (pin == 4 || pin == 5)) ||
+          (this.mode == 'left' && (pin == 6 || pin == 7)) || (this.mode == 'right' && (pin == 2 || pin == 3)));
+    }
+
     decodeInt() {
+
       if (this.bitPt[0] == 151) {
         console.log('switch todo')
         this.wires = [];
         return;
       }
+
       var wires = [];
       if (this.num == 1) {
-        for (var x = 0; x < 9; x++) {
+        for (var x = 0; x < 8; x++) {
+          if (this.skip(x)) continue;
           if (diestream[this.bitPt[0] + x][this.bitPt[1] + 0] == 1) {
             wires.push([[6,0], [7,0], [2,6], [2,7], [4,0], [1,5], [1,2], [3,4], [3,5]][x]);
           }
@@ -627,7 +732,8 @@ function initNames() {
           wires.push([2,0]);
         }
       } else {
-        for (var x = 0; x < 9; x++) {
+        for (var x = 0; x < 8; x++) {
+          if (this.skip(x)) continue;
           if (diestream[this.bitPt[0] + x + 9][this.bitPt[1] + 0] == 1) {
             wires.push([[4,6], [5,6], [7,0], [4,0], [1,5], [2,7], [3,7], [1,2], [1,3]][x]);
           }
@@ -668,8 +774,6 @@ function initNames() {
   });
 
   var ctx = $("#canvas")[0].getContext("2d");
-  // Prevent antialiasing of lines
-  ctx.translate(0.5, 0.5);
   var ctx2 = $("#canvas2")[0].getContext("2d");
 
 
@@ -683,137 +787,156 @@ function initNames() {
     }
   }
 
-  function drawPin(name, x0, y0, style) {
-    ctx.strokeStyle = "red";
+  class Pin {
+    constructor(name, x0, y0, style) {
+      this.name = name;
+      this.x0 = x0;
+      this.y0 = y0;
+      this.style = style;
+    }
 
-    ctx.font = "10px arial";
-    ctx.fillStyle = "green";
-    ctx.beginPath();
+    draw() {
+      ctx.strokeStyle = "red";
 
-    if (style == "a") { // top
-      ctx.rect(x0, y0, 20, 12);
-      ctx.moveTo(x0 + 8, y0);
-      ctx.lineTo(x0 + 8, y0 - 2);
+      ctx.font = "10px arial";
+      ctx.fillStyle = "green";
+      ctx.beginPath();
 
-      ctx.moveTo(x0 + 8, y0+ 12);
-      ctx.lineTo(x0 + 8, y0 + 15);
-      ctx.moveTo(x0 + 12, y0+ 12);
-      ctx.lineTo(x0 + 12, y0 + 15);
-      ctx.moveTo(x0 + 16, y0+ 12);
-      ctx.lineTo(x0 + 16, y0 + 15);
-      ctx.stroke();
-      fillText(name, x0 + 1, y0 + 8);
-    } else if (style == "b") { // alternate top
-      ctx.rect(x0, y0, 20, 12);
-      ctx.moveTo(x0 + 4, y0);
-      ctx.lineTo(x0 + 4, y0 - 2);
+      if (this.style == "a") { // top
+        ctx.rect(this.x0, this.y0, 20, 12);
+        ctx.moveTo(this.x0 + 8, this.y0);
+        ctx.lineTo(this.x0 + 8, this.y0 - 2);
 
-      ctx.moveTo(x0 + 4, y0+ 12);
-      ctx.lineTo(x0 + 4, y0 + 15);
-      ctx.moveTo(x0 + 8, y0+ 12);
-      ctx.lineTo(x0 + 8, y0 + 15);
-      ctx.moveTo(x0 + 12, y0+ 12);
-      ctx.lineTo(x0 + 12, y0 + 15);
-      ctx.stroke();
-      fillText(name, x0 + 1, y0 + 8);
-    } else if (style == "c") { // left
-      ctx.rect(x0, y0, 12, 26);
-      ctx.moveTo(x0 - 2, y0 + 12);
-      ctx.lineTo(x0, y0 + 12);
+        ctx.moveTo(this.x0 + 8, this.y0+ 12);
+        ctx.lineTo(this.x0 + 8, this.y0 + 15);
+        ctx.moveTo(this.x0 + 12, this.y0+ 12);
+        ctx.lineTo(this.x0 + 12, this.y0 + 15);
+        ctx.moveTo(this.x0 + 16, this.y0+ 12);
+        ctx.lineTo(this.x0 + 16, this.y0 + 15);
+        ctx.stroke();
+        fillText(this.name, this.x0 + 1, this.y0 + 8);
+      } else if (this.style == "b") { // alternate top
+        ctx.rect(this.x0, this.y0, 20, 12);
+        ctx.moveTo(this.x0 + 4, this.y0);
+        ctx.lineTo(this.x0 + 4, this.y0 - 2);
 
-      ctx.moveTo(x0+ 12, y0 + 12);
-      ctx.lineTo(x0 + 15, y0 + 12);
-      ctx.moveTo(x0+ 12, y0 + 16);
-      ctx.lineTo(x0 + 15, y0 + 16);
-      ctx.moveTo(x0+ 12, y0 + 20);
-      ctx.lineTo(x0 + 15, y0 + 20);
-      ctx.stroke();
-      vtext(name, x0 + 1, y0 + 8);
-    } else if (style == "d") { // right
-      ctx.rect(x0, y0, 12, 26);
-      ctx.moveTo(x0+ 12, y0 + 12);
-      ctx.lineTo(x0 + 16,  y0 + 12);
+        ctx.moveTo(this.x0 + 4, this.y0+ 12);
+        ctx.lineTo(this.x0 + 4, this.y0 + 15);
+        ctx.moveTo(this.x0 + 8, this.y0+ 12);
+        ctx.lineTo(this.x0 + 8, this.y0 + 15);
+        ctx.moveTo(this.x0 + 12, this.y0+ 12);
+        ctx.lineTo(this.x0 + 12, this.y0 + 15);
+        ctx.stroke();
+        fillText(this.name, this.x0 + 1, this.y0 + 8);
+      } else if (this.style == "c") { // left
+        ctx.rect(this.x0, this.y0, 12, 26);
+        ctx.moveTo(this.x0 - 2, this.y0 + 12);
+        ctx.lineTo(this.x0, this.y0 + 12);
 
-      ctx.moveTo(x0 - 2, y0 + 12);
-      ctx.lineTo(x0, y0 + 12);
-      ctx.moveTo(x0 - 2, y0 + 16);
-      ctx.lineTo(x0, y0 + 16);
-      ctx.moveTo(x0 - 2, y0 + 20);
-      ctx.lineTo(x0, y0 + 20);
-      ctx.stroke();
-      vtext(name, x0 + 1, y0 + 8);
-    } else if (style == "e") { // bottom
-      ctx.rect(x0, y0, 20, 12);
-      ctx.moveTo(x0 + 8, y0 + 12);
-      ctx.lineTo(x0 + 8, y0 + 14);
+        ctx.moveTo(this.x0+ 12, this.y0 + 12);
+        ctx.lineTo(this.x0 + 15, this.y0 + 12);
+        ctx.moveTo(this.x0+ 12, this.y0 + 16);
+        ctx.lineTo(this.x0 + 15, this.y0 + 16);
+        ctx.moveTo(this.x0+ 12, this.y0 + 20);
+        ctx.lineTo(this.x0 + 15, this.y0 + 20);
+        ctx.stroke();
+        vtext(this.name, this.x0 + 1, this.y0 + 8);
+      } else if (this.style == "d") { // right
+        ctx.rect(this.x0, this.y0, 12, 26);
+        ctx.moveTo(this.x0+ 12, this.y0 + 12);
+        ctx.lineTo(this.x0 + 16,  this.y0 + 12);
 
-      ctx.moveTo(x0 + 8, y0 - 3);
-      ctx.lineTo(x0 + 8, y0);
-      ctx.moveTo(x0 + 12, y0 - 3);
-      ctx.lineTo(x0 + 12, y0);
-      ctx.moveTo(x0 + 16, y0 - 3);
-      ctx.lineTo(x0 + 16, y0);
-      ctx.stroke();
-      fillText(name, x0 + 1, y0 + 8);
-    } else if (style == "f") { // alternate bottom
-      ctx.rect(x0, y0, 20, 12);
-      ctx.moveTo(x0 + 4, y0 + 12);
-      ctx.lineTo(x0 + 4, y0 + 14);
+        ctx.moveTo(this.x0 - 2, this.y0 + 12);
+        ctx.lineTo(this.x0, this.y0 + 12);
+        ctx.moveTo(this.x0 - 2, this.y0 + 16);
+        ctx.lineTo(this.x0, this.y0 + 16);
+        ctx.moveTo(this.x0 - 2, this.y0 + 20);
+        ctx.lineTo(this.x0, this.y0 + 20);
+        ctx.stroke();
+        vtext(this.name, this.x0 + 1, this.y0 + 8);
+      } else if (this.style == "e") { // bottom
+        ctx.rect(this.x0, this.y0, 20, 12);
+        ctx.moveTo(this.x0 + 8, this.y0 + 12);
+        ctx.lineTo(this.x0 + 8, this.y0 + 14);
 
-      ctx.moveTo(x0 + 4, y0 - 3);
-      ctx.lineTo(x0 + 4, y0);
-      ctx.moveTo(x0 + 8, y0 - 3);
-      ctx.lineTo(x0 + 8, y0);
-      ctx.moveTo(x0 + 12, y0 - 3);
-      ctx.lineTo(x0 + 12, y0);
-      ctx.stroke();
-      fillText(name, x0 + 1, y0 + 8);
+        ctx.moveTo(this.x0 + 8, this.y0 - 3);
+        ctx.lineTo(this.x0 + 8, this.y0);
+        ctx.moveTo(this.x0 + 12, this.y0 - 3);
+        ctx.lineTo(this.x0 + 12, this.y0);
+        ctx.moveTo(this.x0 + 16, this.y0 - 3);
+        ctx.lineTo(this.x0 + 16, this.y0);
+        ctx.stroke();
+        fillText(this.name, this.x0 + 1, this.y0 + 8);
+      } else if (this.style == "f") { // alternate bottom
+        ctx.rect(this.x0, this.y0, 20, 12);
+        ctx.moveTo(this.x0 + 4, this.y0 + 12);
+        ctx.lineTo(this.x0 + 4, this.y0 + 14);
+
+        ctx.moveTo(this.x0 + 4, this.y0 - 3);
+        ctx.lineTo(this.x0 + 4, this.y0);
+        ctx.moveTo(this.x0 + 8, this.y0 - 3);
+        ctx.lineTo(this.x0 + 8, this.y0);
+        ctx.moveTo(this.x0 + 12, this.y0 - 3);
+        ctx.lineTo(this.x0 + 12, this.y0);
+        ctx.stroke();
+        fillText(this.name, this.x0 + 1, this.y0 + 8);
+      }
+    }
+
+    decode() {
+     // TODO
+     return [];
     }
   }
 
+  var objects = [];
   function initPins() {
-    drawPin("P9", 62, 6, "a");
-    drawPin("P8", 90, 6, "b");
-    drawPin("P7", 138, 6, "a");
-    drawPin("P6", 162, 6, "b");
-    drawPin("P5", 210, 6, "a");
-    drawPin("P4", 234, 6, "b");
-    drawPin("P3", 282, 6, "a");
-    drawPin("P2", 306, 6, "b");
-    drawPin("P68", 354, 6, "a");
-    drawPin("P67", 378, 6, "b");
-    drawPin("P66", 426, 6, "a");
-    drawPin("P65", 450, 6, "b");
-    drawPin("P64", 498, 6, "a");
-    drawPin("P63", 522, 6, "b");
-    drawPin("P62", 570, 6, "a");
-    drawPin("P61", 594, 6, "b");
+    function createPin(a, b, c, d) {
+      objects.push(new Pin(a, b, c, d));
+    };
 
-    drawPin("P27", 62, 656, "e");
-    drawPin("P28", 90, 656, "f");
-    drawPin("P29", 138, 656, "e");
-    drawPin("P30", 162, 656, "f");
-    drawPin("P31", 210, 656, "e");
-    drawPin("P32", 234, 656, "f");
-    drawPin("P33", 282, 656, "e");
-    drawPin("P34", 306, 656, "f");
-    drawPin("P36", 354, 656, "e");
-    drawPin("P37", 378, 656, "f");
-    drawPin("P38", 426, 656, "e");
-    drawPin("P39", 450, 656, "f");
-    drawPin("P40", 498, 656, "e");
-    drawPin("P41", 522, 656, "f");
-    drawPin("P42", 570, 656, "e");
-    drawPin("P43", 594, 656, "f");
+    createPin("P9", 62, 6, "a");
+    createPin("P8", 90, 6, "b");
+    createPin("P7", 138, 6, "a");
+    createPin("P6", 162, 6, "b");
+    createPin("P5", 210, 6, "a");
+    createPin("P4", 234, 6, "b");
+    createPin("P3", 282, 6, "a");
+    createPin("P2", 306, 6, "b");
+    createPin("P68", 354, 6, "a");
+    createPin("P67", 378, 6, "b");
+    createPin("P66", 426, 6, "a");
+    createPin("P65", 450, 6, "b");
+    createPin("P64", 498, 6, "a");
+    createPin("P63", 522, 6, "b");
+    createPin("P62", 570, 6, "a");
+    createPin("P61", 594, 6, "b");
+
+    createPin("P27", 62, 656, "e");
+    createPin("P28", 90, 656, "f");
+    createPin("P29", 138, 656, "e");
+    createPin("P30", 162, 656, "f");
+    createPin("P31", 210, 656, "e");
+    createPin("P32", 234, 656, "f");
+    createPin("P33", 282, 656, "e");
+    createPin("P34", 306, 656, "f");
+    createPin("P36", 354, 656, "e");
+    createPin("P37", 378, 656, "f");
+    createPin("P38", 426, 656, "e");
+    createPin("P39", 450, 656, "f");
+    createPin("P40", 498, 656, "e");
+    createPin("P41", 522, 656, "f");
+    createPin("P42", 570, 656, "e");
+    createPin("P43", 594, 656, "f");
 
     for (var i = 0; i < 14; i++) {
       if (i == 7) continue;
-      drawPin("P" + (11 + i), 6, 88 + 36 * i, "c");
+      createPin("P" + (11 + i), 6, 88 + 36 * i, "c");
     }
 
     for (var i = 0; i < 14; i++) {
       if (i == 7) continue;
-      drawPin("P" + (59 - i), 656, 88 + 36 * i, "d");
+      createPin("P" + (59 - i), 656, 88 + 36 * i, "d");
     }
   }
 
@@ -824,7 +947,7 @@ function initNames() {
       for (var y = 0; y < 9; y++) {
         var tile = new Tile(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20], [xTileStarts[x], yTileStarts[y]]);
         tiles[x][y] = tile;
-        tile.draw();
+        objects.push(tile);
       }
     }
   }
@@ -835,7 +958,25 @@ function initNames() {
     initTiles();
   }
 
+  function drawLayout() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
+    ctx.canvas.height = 680;
+    $("#container").css('height', '680px');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.translate(0.5, 0.5); // Prevent antialiasing
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'butt';
+    objects.forEach(o => o.draw());
+  }
+
+  function decode() {
+     var result = [];
+     objects.forEach(o => result.push(...o.decode()));
+     $("#info3").html(result.join('<br/>'));
+  }
+
   init();
+  drawLayout();
 
 
 });
@@ -851,7 +992,7 @@ function initNames() {
 <div id="info2"> </div>
 <div id="container" style="position: relative">
   <canvas style="position:absolute; z-index: 1" id="canvas" width=2000 height=2000></canvas>
-  <img id="img" style="position:absolute" src="pips.png" width=680 height=680></img>
+  <img style="display:none" id="img" style="position:absolute" src="pips.png" width=680 height=680></img>
 </div>
 <div id="info3"> </div>
 <canvas id="canvas2" width=300 height=300></canvas>
