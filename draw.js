@@ -106,12 +106,12 @@ function initNames() {
   
 
   class Clb {
-    constructor(x, y, screenPt, lcaPt, bitPt) {
+    constructor(x, y, screenPt, gPt, bitPt) {
       this.x = x;
       this.y = y;
       this.name = "ABCDEFGH"[y] + "ABCDEFGH"[x];
       this.screenPt = screenPt;
-      this.lcaPt = lcaPt;
+      this.gPt = gPt;
       this.bitPt = bitPt;
     }
 
@@ -284,17 +284,17 @@ function initNames() {
   }
 
   class Tile {
-    constructor(x, y, screenPt, lcaPt, bitPt) {
+    constructor(x, y) {
       this.x = x; // Index 0-8
       this.y = y;
       this.name = "ABCDEFGHI"[y] + "ABCDEFGHI"[x];
-      this.screenPt = screenPt;
-      this.lcaPt = lcaPt;
-      this.bitPt = bitPt;
+      this.screenPt = [x * 72 + 78, y * 72 + 68];
+      this.gPt = [x * 19, y * 20];
+      this.bitPt = [xTileStarts[x], yTileStarts[y]];
       this.pips = [];
       this.pins = [];
       if (x < 8 && y < 8) {
-        this.clb = new Clb(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20], bitPt);
+        this.clb = new Clb(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20], this.bitPt);
       } else {
         this.clb = null;
       }
@@ -318,10 +318,6 @@ function initNames() {
       this.switch1 = null;
       this.switch2 = null;
       if (this.type == TILE.ul) {
-        var screenX = screenPt[0] - 44;
-        var screenY = screenPt[1] - 28
-        screenX -= 13;
-        screenY -= 15;
 
         // Name of pip and corresponding bitmap entry
         var pips = [
@@ -341,9 +337,6 @@ function initNames() {
           ["col.COL.long.1:row.A.local.4", [33, 2]],
           ["col.COL.local.1:row.A.long.3", [23, 2]], ["col.COL.local.4:row.A.long.3", [38, 1]], ["col.COL.long.1:row.A.long.3", [32, 2]], ["col.COL.long.2:row.A.long.3", [32, 3]]];
 
-        var screenX = screenPt[0] - 44;
-        var screenY = screenPt[1] - 28
-        screenY -= 12;
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
 
@@ -368,9 +361,6 @@ function initNames() {
           ["col.A.long.3:row.ROW.local.1", [9, 11]],
           ["col.A.long.4:row.ROW.local.3", [11, 11]],
           ["col.A.long.2:row.ROW.long.1", [5, 11]], ["col.A.local.1:row.ROW.long.1", [4, 11]], ["col.A.local.4:row.ROW.long.1", [17, 11]], ["col.A.long.3:row.ROW.long.1", [10, 11]], ["col.A.long.4:row.ROW.long.1", [15, 11]]];
-        var screenX = screenPt[0] - 44;
-        var screenY = screenPt[1] - 28
-        screenX -= 10;
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
@@ -383,8 +373,6 @@ function initNames() {
           ["col.COL.long.1:row.ROW.local.5", [31, 11]],
           ["col.COL.local.1:row.ROW.long.1", [22, 11]], ["col.COL.local.4:row.ROW.long.1", [35, 11]]];
         // Main part
-        var screenX = screenPt[0] - 44;
-        var screenY = screenPt[1] - 28
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1] + yoffset])));
@@ -395,9 +383,6 @@ function initNames() {
           ["col.I.long.2:row.ROW.local.4", [153, 12]],
           ["col.I.long.1:row.ROW.local.5", [154, 12]],
           ["col.I.long.1:row.ROW.long.1", [154, 11]], ["col.I.long.2:row.ROW.long.1", [158, 11]], ["col.I.local.1:row.ROW.long.1", [155, 11]], ["col.I.local.4:row.ROW.long.1", [151, 11]], ["col.I.long.3:row.ROW.long.1", [152, 11]]];
-        var screenX = screenPt[0] - 44;
-        var screenY = screenPt[1] - 28
-        screenX += 24;
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
@@ -420,9 +405,6 @@ function initNames() {
           ["col.COL.local.5:row.I.local.3", [28, 67]], ["col.COL.long.1:row.I.local.3", [31, 68]],
           ["col.COL.long.2:row.I.local.4", [33, 67]],
           ["col.COL.long.1:row.I.long.2", [30, 69]]];
-        var screenX = screenPt[0] - 44;
-        var screenY = screenPt[1] - 28
-        screenY += 12;
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1]])));
@@ -472,7 +454,7 @@ function initNames() {
 
   /**
    * A switch matrix.
-   * Coordinates: screenPt is the upper left corner of the box. lcaPt is the coordinate of pin 8.
+   * Coordinates: screenPt is the upper left corner of the box. gPt is the coordinate of pin 8.
    */
   class Switch {
     constructor(tile, num) {
@@ -487,18 +469,18 @@ function initNames() {
       if (this.tile.type == TILE.bottom) {
         // The bottom switches are mirror-imaged, inconveniently.
         if (num == 1) {
-          this.lcaPt = [col[0] + 3, row[0] + 1];
+          this.gPt = [col[0] + 3, row[0] + 1];
           this.screenPt = [col[1] - 2, row[1] + 6];
         } else {
-          this.lcaPt = [col[0], row[0] - 2];
+          this.gPt = [col[0], row[0] - 2];
           this.screenPt = [col[1] - 2 + 8, row[1] + 6 - 8];
         }
       } else {
         if (num == 1) {
-          this.lcaPt =[col[0], row[0] + 1]
+          this.gPt =[col[0], row[0] + 1]
           this.screenPt = [col[1] - 2, row[1] - 2];
         } else {
-          this.lcaPt = [col[0] + 3, row[0] - 2];
+          this.gPt = [col[0] + 3, row[0] - 2];
           this.screenPt = [col[1] - 2 + 8, row[1] - 2 + 8];
         }
       }
@@ -852,7 +834,7 @@ function initNames() {
     for (var x = 0; x < 9; x++) {
       tiles[x] = new Array(9);
       for (var y = 0; y < 9; y++) {
-        var tile = new Tile(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20], [xTileStarts[x], yTileStarts[y]]);
+        var tile = new Tile(x, y);
         tiles[x][y] = tile;
         objects.push(tile);
       }

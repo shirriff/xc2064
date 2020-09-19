@@ -65,15 +65,15 @@
       assert.deepEqual(tiles[8][4].screenPt, [654, 356]);
       assert.deepEqual(tiles[8][8].screenPt, [654, 644]);
 
-      assert.deepEqual(tiles[0][0].lcaPt, [0, 0]);
-      assert.deepEqual(tiles[0][3].lcaPt, [0, 60]);
-      assert.deepEqual(tiles[0][8].lcaPt, [0, 160]);
-      assert.deepEqual(tiles[5][0].lcaPt, [95, 0]);
-      assert.deepEqual(tiles[5][7].lcaPt, [95, 140]);
-      assert.deepEqual(tiles[5][8].lcaPt, [95, 160]);
-      assert.deepEqual(tiles[8][0].lcaPt, [152, 0]);
-      assert.deepEqual(tiles[8][4].lcaPt, [152, 80]);
-      assert.deepEqual(tiles[8][8].lcaPt, [152, 160]);
+      assert.deepEqual(tiles[0][0].gPt, [0, 0]);
+      assert.deepEqual(tiles[0][3].gPt, [0, 60]);
+      assert.deepEqual(tiles[0][8].gPt, [0, 160]);
+      assert.deepEqual(tiles[5][0].gPt, [95, 0]);
+      assert.deepEqual(tiles[5][7].gPt, [95, 140]);
+      assert.deepEqual(tiles[5][8].gPt, [95, 160]);
+      assert.deepEqual(tiles[8][0].gPt, [152, 0]);
+      assert.deepEqual(tiles[8][4].gPt, [152, 80]);
+      assert.deepEqual(tiles[8][8].gPt, [152, 160]);
 
       assert.deepEqual(tiles[0][0].bitPt, [3, 1]);
       assert.deepEqual(tiles[0][3].bitPt, [3, 26]);
@@ -88,30 +88,19 @@
 
     // Reads all the SWn.RBT files and makes sure the appropriate Switch pins are connected.
     QUnit.test('switch files', function(assert) {
-      let filenames = [
-        'SW1', 'SW3', 'SW4', 'SW5', 'SW6', 'SW7', 'SW8', 'SW10', 'SW12', 'SW13',
-        'SW16', 'SW18', 'SW19', 'SW20', 'SW21', 'SW22', 'SW23', 'SW25', 'SW27', 'SW28',
-        'SW31', 'SW33', 'SW34', 'SW35', 'SW36', 'SW37', 'SW38', 'SW39', 'SW40', 'SW42',
-        'SW44', 'SW46', 'SW47', 'SW48', 'SW49', 'SW50', 'SW51', 'SW53', 'SW55', 'SW56',
-        'SW59', 'SW61', 'SW62', 'SW63', 'SW64', 'SW65', 'SW66', 'SW67', 'SW68', 'SW70',
-        'SW72', 'SW74', 'SW75', 'SW76', 'SW77', 'SW78', 'SW79', 'SW81', 'SW83', 'SW84',
-        'SW87', 'SW89', 'SW90', 'SW91', 'SW92', 'SW94', 'SW96', 'SW97', 'SW98', 'SW99',
-        'SW102', 'SW104', 'SW105', 'SW106', 'SW107', 'SW109', 'SW111', 'SW112', 'SW113', 'SW114',
-        'SW117', 'SW119', 'SW120', 'SW121', 'SW122', 'SW123', 'SW124', 'SW126', 'SW128', 'SW129',
-        'SW132', 'SW134', 'SW135', 'SW136', 'SW137', 'SW138', 'SW139', 'SW141', 'SW143', 'SW144',
-        'SW147', 'SW148', 'SW149', 'SW150', 'SW151', 'SW152', 'SW154', 'SW156', 'SW158', 'SW159',
-        'SW162', 'SW163', 'SW164', 'SW165', 'SW166', 'SW167', 'SW169', 'SW171', 'SW173', 'SW174'];
-      // These are all asynchronous because of the file fetching.
-      // done() must be called filenames.length times for the test to complete.
-      let done = assert.async(filenames.length);
-      filenames.forEach(name => testSwitchFile(name, assert, done));
+      let done = assert.async(120)
+      for (var i = 0; i < 120; i++) {
+        // These are all asynchronous because of the file fetching.
+        // done() must be called filenames.length times for the test to complete.
+        testSwitchFile('SWITCH' + i, assert, done);
+      }
     });
 
     // Test the named file.
     function testSwitchFile(name, assert, done) {
-      $.get( 'xact/' + name + '.RBT', function(rbt, status) {
+      $.get( 'testfiles/' + name + '.RBT', function(rbt, status) {
         assert.equal(status, "success");
-        $.get( 'xact/' + name + '.LCA', function(lca, status) {
+        $.get( 'testfiles/' + name + '.LCA', function(lca, status) {
           assert.equal(status, "success");
           // loaded rbt and lca
           let m = lca.match(/^;([^:]+):/)
@@ -122,7 +111,7 @@
           let x = sw.charCodeAt(1) - "A".charCodeAt(0);
           let y = sw.charCodeAt(0) - "A".charCodeAt(0);
 
-          let tile = new Tile(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20], [xTileStarts[x], yTileStarts[y]]);
+          let tile = new Tile(x, y);
           let bitstream = rbtParse(rbt);
           tile.decode(bitstream);
           if (sw[5] == 1) {
