@@ -158,6 +158,7 @@ function initNames() {
           nf |= 1 << [1, 0, 2, 3, 5, 4, 6, 7][bitnum]; // Ordering of LUT is irregular
         }
       }
+      this.configNf = nf;
       var fin1 = bitstream[x + 7][y + 6] ? 'A' : 'B';
       var fin2 = bitstream[x + 6][y + 6] ? 'B' : 'C';
       var fin3 = 'Q';
@@ -174,6 +175,7 @@ function initNames() {
           ng |= 1 << [7, 6, 4, 5, 3, 2, 0, 1][bitnum]; // Ordering of LUT is irregular
         }
       }
+      this.configNg = ng;
       var gin1 = bitstream[x + 11][y + 6] ? 'A' : 'B';
       var gin2 = bitstream[x + 12][y + 6] ? 'B' : 'C';
       var gin3 = 'Q';
@@ -186,15 +188,53 @@ function initNames() {
       var str;
       if (bitstream[x + 9][y + 7] != 1) {
         if (fin1 == gin1 && fin2 == gin2 && fin3 == gin3) {
+          this.configBase = 'F';
+          this.configF = fin1 + ':B:' + fin2 + ':' + fin3;
+          this.configG = '';
+          // F,G combined
           str = 'F = ' + formula4((nf << 8) | ng, fin1, fin2, fin3, 'B');
         } else {
+          // MUX
+          this.configBase = 'FGM';
+          this.configF = fin1 + ':' + fin2 + ':' + fin3;
+          this.configG = gin1 + ':' + gin2 + ':' + gin3;
           str = 'F = B*(' + formula3(nf, fin1, fin2, fin3) +
             ') + ~B*(' + formula3(ng, gin1, gin2, gin3) + ')';
         }
       } else {
+        // F, G separate
+        this.configBase = 'FG';
+        this.configF = fin1 + ':' + fin2 + ':' + fin3;
+        this.configG = gin1 + ':' + gin2 + ':' + gin3;
         str = 'F = ' + formula3(nf, fin1, fin2, fin3);
         str += '<br/>G = ' + formula3(ng, gin1, gin2, gin3);
       }
+
+      // Select one of four values based on two index bits
+      function choose4(bit1, bit0, [val0, val1, val2, val3]) {
+        if (bit1) {
+          return bit0 ? val3 : val2;
+        } else {
+          return bit0 ? val1 : val0;
+          }
+        }
+      
+      // Decode X input
+      this.configX = choose4(bitstream[x + 11][y + 5], bitstream[x + 10][y + 5], ['Q', 'F', 'G', 'UNDEF']);
+      this.configY = choose4(bitstream[x + 13][y + 5], bitstream[x + 12][y + 5], ['Q', 'G', 'F', 'UNDEF']);
+      this.configQ = bitstream[x + 9][y + 5] ? 'LATCH' : 'FF';
+      this.configSet = choose4(bitstream[x + 3][y + 5], bitstream[x + 2][y + 5], ['A', '', 'F', 'BOTH?']);
+      this.configRes = choose4(bitstream[x + 1][y + 5], bitstream[x + 0][y + 5], ['', 'G', 'D', 'D and G?']);
+      if (bitstream[x + 4][y + 4] == 0 &&  bitstream[x + 5][y + 4] == 0 &&  bitstream[x + 6][y + 4] == 0) {
+        this.configClk = '';
+      } else if (bitstream[x + 4][y + 4] == 0 &&  bitstream[x + 5][y + 4] == 1 &&  bitstream[x + 6][y + 4] == 1) {
+        this.configClk = 'K';
+      } else {
+        this.configClk = 'CLK' + bitstream[x + 4][y + 4] + bitstream[x + 5][y + 4] + bitstream[x + 6][y + 4];
+      }
+
+      this.configString = 'X:' + this.configX + ' Y:' + this.configY + ' F:' + this.configF + ' G:' + this.configG + ' Q:' + this.configQ +
+          ' SET:' + this.configSet + ' RES:' + this.configRes + ' CLK:' + this.configClk;
       return str;
     }
   }

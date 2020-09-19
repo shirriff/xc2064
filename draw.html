@@ -61,12 +61,12 @@ $(document).ready(function() {
   function rbtUpload(contents) {
     bitstream = rbtParse(contents);
     decode(bitstream);
-    draw(ctx);
+    redraw(ctx);
   }
 
   function redraw(ctx) {
     if (canvasMode() == 'bitstream') {
-      drawBitstream(diestream);
+      drawBitstream(bitstream);
     } else if (canvasMode() == 'layout') {
       drawLayout();
     }
@@ -76,9 +76,9 @@ $(document).ready(function() {
   /**
    * Displays the bitstream data.
    */
-  function drawBitstream(diestream) {
+  function drawBitstream(bitstream) {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    if (diestream == null) {
+    if (bitstream == null) {
       return;
     }
 
@@ -104,7 +104,7 @@ $(document).ready(function() {
         if (y == 3 || y == 6) {
           ypos += 1; // Skip buffer
         }
-        fillText("ABCDEFGH"[y] + "ABCDEFGH"[x], 30 + xpos * SIZE, 52 + ypos * SIZE);
+        fillText(ctx, "ABCDEFGH"[y] + "ABCDEFGH"[x], 30 + xpos * SIZE, 52 + ypos * SIZE);
         ctx.rect(xpos * SIZE, ypos * SIZE, 18 * SIZE, 8 * SIZE);
         ypos += 8; // 8 bits per tile
       }
@@ -118,7 +118,7 @@ $(document).ready(function() {
     ctx.fillStyle = "black";
     for (var x = 0; x < 160; x++) {
       for (var y = 0; y < 71; y++) {
-        fillText(diestream[x][y] == 0 ? ' ' : '1', 1 + x * SIZE, 7 + y * SIZE);
+        fillText(ctx, bitstream[x][y] == 0 ? ' ' : '1', 1 + x * SIZE, 7 + y * SIZE);
       }
     }
   }
@@ -126,7 +126,7 @@ $(document).ready(function() {
 
 
   function bitstreamClick(x, y) {
-    if (diestream == null) {
+    if (bitstream == null) {
       return;
     }
     var xn = x / 8; // Convert to bit indices
