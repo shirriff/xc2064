@@ -530,6 +530,7 @@ function initNames() {
       this.num = num; // 1 or 2
       this.name = tile.name + '.8.' + num;
       this.state = null;
+      this.wires = [];
 
       // The switch pair's upper left wires are local.1
       var row = rowInfo['row.' + this.tile.name[0] + '.local.1'];
@@ -565,11 +566,13 @@ function initNames() {
     /**
      * Draws the internal wire between pin1 and pin2.
      */
-    drawWires() {
+    drawWires(ctx) {
       ctx.beginPath();
-      this.wires.forEach(function(pin1, pin2) {
-        var coord1 = this.pinCoord(pin1);
-        var coord2 = this.pinCoord(pin2);
+      const self = this;
+      ctx.strokeStyle = 'blue';
+      this.wires.forEach(function([pin1, pin2]) {
+        var coord1 = self.pinCoord(pin1);
+        var coord2 = self.pinCoord(pin2);
         ctx.moveTo(coord1[0], coord1[1]);
         ctx.lineTo(coord2[0], coord2[1]);
       });
@@ -591,50 +594,13 @@ function initNames() {
         ctx.lineTo(coord[0] + [0, 0, 2, 2, 0, 0, -2, -2][i], coord[1] + [-2, -2, 0, 0, 2, 2, 0, 0][i]);
       }
       ctx.stroke();
+      this.drawWires(ctx);
     }
 
     // Helper to remove pins from switches along edges.
     skip(pin) {
       return ((this.tile.type == TILE.top && (pin == 0 || pin == 1)) || (this.tile.type == TILE.bottom && (pin == 4 || pin == 5)) ||
           (this.tile.type == TILE.left && (pin == 6 || pin == 7)) || (this.tile.type == TILE.right && (pin == 2 || pin == 3)));
-    }
-
-    decodeInt(bitstream) {
-      var wires = [];
-      if (this.num == 1) {
-        for (var x = 0; x < 8; x++) {
-          if (this.skip(x)) continue;
-          if (bitstream[this.bitPt[0] + x][this.bitPt[1] + 0] == 1) {
-            wires.push([[6,0], [7,0], [2,6], [2,7], [4,0], [1,5], [1,2], [3,4], [3,5]][x]);
-          }
-          if (bitstream[this.bitPt[0] + x][this.bitPt[1] + 1] == 1) {
-            wires.push([[5,6], [3,7], [3,6], [1,7], [4,6], [1,4], [1,3], [2,4], [5,0]][x]);
-          }
-        }
-        if (bitstream[this.bitPt[0] + 0][this.bitPt[1] + 2] == 1) {
-          wires.push([5,7]);
-        }
-        if (bitstream[this.bitPt[0] + 8][this.bitPt[1] + 2] == 1) {
-          wires.push([2,0]);
-        }
-      } else {
-        for (var x = 0; x < 8; x++) {
-          if (this.skip(x)) continue;
-          if (bitstream[this.bitPt[0] + x + 9][this.bitPt[1] + 0] == 1) {
-            wires.push([[4,6], [5,6], [7,0], [4,0], [1,5], [2,7], [3,7], [1,2], [1,3]][x]);
-          }
-          if (bitstream[this.bitPt[0] + x + 9][this.bitPt[1] + 1] == 1) {
-            wires.push([[1,4], [5,7], [6,8], [5,8], [3,5], [2,8], [3,6], [2,6], [3,4]][x]);
-          }
-        }
-        if (bitstream[this.bitPt[0] + 9][this.bitPt[1] + 2] == 1) {
-          wires.push([1,7]);
-        }
-        if (bitstream[this.bitPt[0] + 16][this.bitPt[1] + 2] == 1) {
-          wires.push([2,4]);
-        }
-      }
-      this.wires = wires;
     }
 
     decode(bitstream) {
