@@ -130,53 +130,87 @@
       });
     }
 
+    // The flip flop encoding of XACT doesn't entirely make sense.
+    // CLK:G and CLK:K:NOT have the exact same encoding, even though they are different.
+    // This seems like a bug in XACT since these have two different physical meanings.
+    // (I'm not sure from the hardware what actually happens in this case.)
+    //
+    // The cases Q: and CLK: (no output or no clock) yield an inoperative flip flop.
+    // However, they have encodings. CLK: is encoded by a separate bit, which makes sense.
+    // But Q: is the same as Q:LATCH with the clock inverted, which is a bit strange.
+    // In addition Q: (no definition) has the same encoding as Q:LATCH with the clock inverted.
+    //
+    // The point is that the bitstream is ambiguous at best.
+
     QUnit.test('test clb', function(assert) {
       let done = assert.async();
       $.get( 'testfiles/CLBTEST.RBT', function(rbt, status) {
         assert.equal(status, "success");
         initTiles();
         let bitstream = rbtParse(rbt);
-        // BB X:F, Y: G, Q: LATCH, SET: A, RES: D, CLK: K
-        // assert.deepEqual(tiles[1][1].clb.decode(), 'X:F Y:G F:B:C:D G:A:B:Q Q:LATCH SET:A RES:D CLK:K')
-        // assert.deepEqual(clbDecode, 'F = X:F Y:G F:B:C:D G:A:B:Q Q:LATCH SET:A RES:D CLK:K')
-        let clbBB = tiles[1][1].clb
-        clbBB.decode(bitstream);
-        assert.equal(clbBB.configString, 'X:F Y:G F:B:C:D G:A:B:Q Q:LATCH SET:A RES:D CLK:K')
-        assert.equal(clbBB.configBase, 'FG');
-        assert.equal(clbBB.configNf, 0xd2);
-        assert.equal(clbBB.configNg, 0x96);
 
-        // BC: no settings, default
-        let clbBC = tiles[2][1].clb
-        clbBC.decode(bitstream);
-        assert.equal(clbBC.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:LATCH SET: RES: CLK:');
-        assert.equal(clbBC.configBase, 'FG');
-        assert.equal(clbBC.configNf, 0);
-        assert.equal(clbBC.configNg, 0);
+        // Test the most reasonable Q/clk cases
+        let clb = tiles[1][2].clb;
+        assert.equal(clb.name, 'CB')
+        clb.decode(bitstream);
+        // TODO: strip out unused X, Y, F, G, 
+        assert.equal(clb.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:FF SET: RES: CLK:K');
+
+        clb = tiles[2][2].clb;
+        assert.equal(clb.name, 'CC')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:FF SET: RES: CLK:C');
+
+        clb = tiles[3][2].clb;
+        assert.equal(clb.name, 'CD')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:FF SET: RES: CLK:G');
+
+        clb = tiles[4][2].clb;
+        assert.equal(clb.name, 'CE')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:LATCH SET: RES: CLK:K');
+
+        clb = tiles[5][2].clb;
+        assert.equal(clb.name, 'CF')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:LATCH SET: RES: CLK:C');
+
+        clb = tiles[6][2].clb;
+        assert.equal(clb.name, 'CG')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:LATCH SET: RES: CLK:G');
+
+        // Now some miscellaneous tests
+
+        clb = tiles[1][1].clb;
+        assert.equal(clb.name, 'BB')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:F Y:G F:B:C:D G:A:B:Q Q:LATCH SET:A RES:D CLK:K')
+        assert.equal(clb.configBase, 'FG');
+        assert.equal(clb.configNf, 254);
+        assert.equal(clb.configNg, 254);
 
         // Base FG
         // Equate G = B+C
-        let clbBD = tiles[3][1].clb
-        clbBD.decode(bitstream);
-        // TODO: strip out unused variables from F and G
-        // assert.equal(clbBD.configString, 'X:Q Y:Q F: G:B:C Q:FF SET:F RES:G CLK:NOT');
-        assert.equal(clbBD.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:FF SET:F RES:G CLK:NOT');
-        assert.equal(clbBD.configBase, 'FG');
-        assert.equal(clbBD.configNf, 0xd2);
+        clb = tiles[3][1].clb;
+        assert.equal(clb.name, 'BD')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:Q Y:Q F:A:B:C G:B:C:Q Q:FF SET:F RES:G CLK:NOT');
+        assert.equal(clb.configBase, 'FG');
+        assert.equal(clb.configNf, 254);
+        assert.equal(clb.configNg, 254);
 
         // BE G F / / / C-NOT
-        let clbBE = tiles[4][1].clb
-        clbBE.decode(bitstream);
-        assert.equal(clbBE.configString, 'X:G Y:F F: G: Q: SET: RES: CLK:C:NOT');
-        assert.equal(clbBE.configBase, 'FG');
-        assert.equal(clbBE.configNf, 0xd2);
+        clb = tiles[4][1].clb;
+        assert.equal(clb.name, 'BE')
+        clb.decode(bitstream);
+        // TODO: strip out unused variables from F and G
+        // assert.equal(clb.configString, 'X:G Y:F F:B:C:Q G:B:C:Q Q: SET: RES: CLK:C:NOT');
+        assert.equal(clb.configBase, 'FG');
+        assert.equal(clb.configNf, 0);
+        assert.equal(clb.configNg, 0);
 
-        // BF G
-        let clbBF = tiles[5][1].clb
-        clbBF.decode(bitstream);
-        assert.equal(clbBF.configString, 'X: Y: F: G: Q: SET: RES: CLK:G');
-        assert.equal(clbBF.configBase, 'FG');
-        assert.equal(clbBF.configNf, 0xd2);
 
 
         // AA: all clear, "base F", F = A+B+C+D
@@ -185,12 +219,13 @@
         // Config X: Y: F:A:B:C:D Q: SET: RES: CLK: 
         // Equate F = A+B+C+D
         // 
-        let clbAA = tiles[0][0].clb;
-        clbAA.decode(bitstream);
-        assert.equal(clbAA.configString, 'X: Y: F:B:C:D G:A:B:Q Q: SET: RES: CLK:');
-        assert.equal(clbAA.configBase, 'F');
-        assert.equal(clbAA.configNf, 0);
-        assert.equal(clbAA.configNg, 0);
+        clb = tiles[0][0].clb;
+        assert.equal(clb.name, 'AA')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X: Y: F:B:C:D G:A:B:Q Q: SET: RES: CLK:');
+        assert.equal(clb.configBase, 'F');
+        assert.equal(clb.configNf, 255);
+        assert.equal(clb.configNg, 254);
 
         // AG: G/G/FF/A/D/G, F=A
         // 
@@ -198,12 +233,13 @@
         // Base FG
         // Config X:G Y:G F:A G: Q:FF SET:A RES:D CLK:G 
         // Equate F = A
-        let clbAG = tiles[6][0].clb;
-        clbAG.decode(bitstream);
-        assert.equal(clbAG.configString, 'X:G Y:G F:A G: Q:FF SET:A RES:D CLK:G')
-        assert.equal(clbAG.configBase, 'FG');
-        assert.equal(clbAG.configNf, 0xd2);
-        assert.equal(clbAG.configNg, 0x96);
+        clb = tiles[6][0].clb;
+        assert.equal(clb.name, 'AG')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X:G Y:G F:A G: Q:FF SET:A RES:D CLK:G')
+        assert.equal(clb.configBase, 'FG');
+        assert.equal(clb.configNf, 170);
+        assert.equal(clb.configNg, 0);
 
         // AH: F/F/LATCH/F/G/C, G=Q
         // Editblk AH
@@ -211,12 +247,13 @@
         // Config X:F Y:F F: G:Q Q:LATCH SET:F RES:G CLK:C 
         // Equate G = Q
         // 
-        let clbAH = tiles[7][0].clb;
-        clbAH.decode(bitstream);
-        assert.equal(clbAH.configString, 'X:F Y:F F: G:Q Q:LATCH SET:F RES:G CLK:C')
-        assert.equal(clbAH.configBase, 'FG');
-        assert.equal(clbAH.configNf, 0xd2);
-        assert.equal(clbAH.configNg, 0x96);
+        clb = tiles[7][0].clb;
+        assert.equal(clb.name, 'AH')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X:F Y:F F: G:Q Q:LATCH SET:F RES:G CLK:C')
+        assert.equal(clb.configBase, 'FG');
+        assert.equal(clb.configNf, 0);
+        assert.equal(clb.configNg, 240);
 
         // FA: F/G/FF/F/D/K-NOT, F=B, G=B
         // Editblk FA
@@ -224,12 +261,13 @@
         // Config X:F Y:G F:B G:B Q:FF SET:F RES:D CLK:K:NOT 
         // Equate F = B
         // Equate G = B
-        let clbFA = tiles[0][5].clb;
-        clbFA.decode(bitstream);
-        assert.equal(clbFA.configString, 'X:F Y:G F:B G:B Q:FF SET:F RES:D CLK:K:NOT')
-        assert.equal(clbFA.configBase, 'FG');
-        assert.equal(clbFA.configNf, 0xd2);
-        assert.equal(clbFA.configNg, 0x96);
+        clb = tiles[0][5].clb;
+        assert.equal(clb.name, 'FA')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X:F Y:G F:B G:B Q:FF SET:F RES:D CLK:K:NOT')
+        assert.equal(clb.configBase, 'FG');
+        assert.equal(clb.configNf, 170);
+        assert.equal(clb.configNg, 170);
 
         // FE: blanks/NOT, "base FGM", F=A, G=C
         // Editblk FE
@@ -237,12 +275,13 @@
         // Config X: Y: F:A G:C Q: SET: RES: CLK:NOT 
         // Equate F = A
         // Equate G = C
-        let clbFE = tiles[4][5].clb;
-        clbFE.decode(bitstream);
-        assert.equal(clbFE.configString, 'X: Y: F:A G:C Q: SET: RES: CLK:NOT')
-        assert.equal(clbFE.configBase, 'FGM');
-        assert.equal(clbFE.configNf, 0xd2);
-        assert.equal(clbFE.configNg, 0x96);
+        clb = tiles[4][5].clb;
+        assert.equal(clb.name, 'FE')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X: Y: F:A G:C Q: SET: RES: CLK:NOT')
+        assert.equal(clb.configBase, 'FGM');
+        assert.equal(clb.configNf, 170);
+        assert.equal(clb.configNg, 252);
 
         // FH: F/Q/FF/F/D/F-NOT, "base F", F=A@B@C@Q
         // Editblk FH
@@ -250,25 +289,27 @@
         // Config X:F Y:Q F:A:B:C:Q Q:FF SET:F RES:D CLK:F:NOT 
         // Equate F = A@B@C@Q
         // 
-        let clbFH = tiles[7][5].clb;
-        clbFH.decode(bitstream);
-        assert.equal(clbFH.configString, 'X:F Y:Q F:A:B:C:Q Q:FF SET:F RES:D CLK:F:NOT')
-        assert.equal(clbFH.configBase, 'F');
-        assert.equal(clbFH.configNf, 0xd2);
-        assert.equal(clbFH.configNg, 0x96);
+        clb = tiles[7][5].clb;
+        assert.equal(clb.name, 'FH')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X:F Y:Q F:A:B:C:Q Q:FF SET:F RES:D CLK:F:NOT')
+        assert.equal(clb.configBase, 'F');
+        assert.equal(clb.configNf, 105);
+        assert.equal(clb.configNg, 0x96);
 
         // HA: M/M/FF/M/M/M, F=A+B+~C, G=~A+B+C
         // Editblk HA
         // Base FGM
-        // Config X:M Y:M F:A:B:C G:A:B:C Q:FF SET:M RES:M CLK:M 
+        // Config X:M Y:M F:A:B:C G:A:B:D Q:FF SET:M RES:M CLK:M 
         // Equate F = A+B+~C
-        // Equate G = ~A+B+C
-        let clbHA = tiles[0][7].clb;
-        clbHA.decode(bitstream);
-        assert.equal(clbHA.configString, 'X:M Y:M F:A:B:C G:A:B:C Q:FF SET:M RES:M CLK:M')
-        assert.equal(clbHA.configBase, 'FGM');
-        assert.equal(clbHA.configNf, 0xd2);
-        assert.equal(clbHA.configNg, 0x96);
+        // Equate G = ~A+B+D
+        clb = tiles[0][7].clb;
+        assert.equal(clb.name, 'HA')
+        clb.decode(bitstream);
+        assert.equal(clb.configString, 'X:M Y:M F:A:B:C G:A:B:D Q:FF SET:M RES:M CLK:M')
+        assert.equal(clb.configBase, 'FGM');
+        assert.equal(clb.configNf, 239);
+        assert.equal(clb.configNg, 253);
 
         // HD: F/F/FF/F/F/F-not, F=A+~B+C*~D
         // Editblk HD
@@ -276,12 +317,13 @@
         // Config X:F Y:F F:A:B:C:D Q:FF SET:F RES:F CLK:F:NOT 
         // Equate F = A+~B+C*~D
         // 
-        let clbHD = tiles[3][7].clb;
-        clbHD.decode(bitstream);
-        assert.equal(clbHD.configString, 'X:F Y:F F:A:B:C:D Q:FF SET:F RES:F CLK:F:NOT')
-        assert.equal(clbHD.configBase, 'F');
-        assert.equal(clbHD.configNf, 0xd2);
-        assert.equal(clbHD.configNg, 0x96);
+        clb = tiles[3][7].clb;
+        assert.equal(clb.name, 'HD')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X:F Y:F F:A:B:C:D Q:FF SET:F RES:F CLK:F:NOT')
+        assert.equal(clb.configBase, 'F');
+        assert.equal(clb.configNf, 174);
+        assert.equal(clb.configNg, 255);
 
         // HH: Q/Q/LATCH/M/D/NOT M, "base FGM", F = A+B+C, G=B+C+Q
         // Editblk HH
@@ -290,13 +332,24 @@
         // Config X:Q Y:Q F:A:B:C G:B:C:Q Q:LATCH SET:M RES:D CLK:M:NOT 
         // Equate F = A+B+C
         // Equate G = B+C+Q
-        let clbHH = tiles[7][7].clb;
-        clbHH.decode(bitstream);
-        assert.equal(clbHH.configString, 'X:Q Y:Q F:A:B:C G:B:C:Q Q:LATCH SET:M RES:D CLK:M:NOT')
-        assert.equal(clbHH.configBase, 'FGM');
+        clb = tiles[7][7].clb;
+        assert.equal(clb.name, 'HH')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X:Q Y:Q F:A:B:C G:B:C:Q Q:LATCH SET:M RES:D CLK:M:NOT')
+        assert.equal(clb.configBase, 'FGM');
         // Config X: Y: F:A:B:C G:B:C:Q Q: SET: RES: CLK: 
-        assert.equal(clbHH.configNf, 0xd2);
-        assert.equal(clbHH.configNg, 0x96);
+        assert.equal(clb.configNf, 254);
+        assert.equal(clb.configNg, 254);
+
+        // BC: no settings, default
+        clb = tiles[2][1].clb;
+        assert.equal(clb.name, 'BC')
+        clb.decode(bitstream);
+        // assert.equal(clb.configString, 'X:Q Y:Q F:B:C:Q G:B:C:Q Q:LATCH SET: RES: CLK:');
+        assert.equal(clb.configBase, 'FG');
+        assert.equal(clb.configNf, 0);
+        assert.equal(clb.configNg, 0);
+
 
         done();
       });

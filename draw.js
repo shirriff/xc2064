@@ -186,6 +186,8 @@ function initNames() {
       }
 
       var str;
+      var fname = 'F'; // The F output used internally; renamed to M for Base FGM.
+      var gname = 'G';
       if (bitstream[x + 9][y + 7] != 1) {
         if (fin1 == gin1 && fin2 == gin2 && fin3 == gin3) {
           this.configBase = 'F';
@@ -198,6 +200,8 @@ function initNames() {
           this.configBase = 'FGM';
           this.configF = fin1 + ':' + fin2 + ':' + fin3;
           this.configG = gin1 + ':' + gin2 + ':' + gin3;
+          fname = 'M';
+          gname = 'M';
           str = 'F = B*(' + formula3(nf, fin1, fin2, fin3) +
             ') + ~B*(' + formula3(ng, gin1, gin2, gin3) + ')';
         }
@@ -220,18 +224,42 @@ function initNames() {
         }
       
       // Decode X input
-      this.configX = choose4(bitstream[x + 11][y + 5], bitstream[x + 10][y + 5], ['Q', 'F', 'G', 'UNDEF']);
-      this.configY = choose4(bitstream[x + 13][y + 5], bitstream[x + 12][y + 5], ['Q', 'G', 'F', 'UNDEF']);
-      this.configQ = bitstream[x + 9][y + 5] ? 'LATCH' : 'FF';
-      this.configSet = choose4(bitstream[x + 3][y + 5], bitstream[x + 2][y + 5], ['A', '', 'F', 'BOTH?']);
-      this.configRes = choose4(bitstream[x + 1][y + 5], bitstream[x + 0][y + 5], ['', 'G', 'D', 'D and G?']);
-      if (bitstream[x + 4][y + 4] == 0 &&  bitstream[x + 5][y + 4] == 0 &&  bitstream[x + 6][y + 4] == 0) {
-        this.configClk = '';
-      } else if (bitstream[x + 4][y + 4] == 0 &&  bitstream[x + 5][y + 4] == 1 &&  bitstream[x + 6][y + 4] == 1) {
-        this.configClk = 'K';
-      } else {
-        this.configClk = 'CLK' + bitstream[x + 4][y + 4] + bitstream[x + 5][y + 4] + bitstream[x + 6][y + 4];
+      this.configX = choose4(bitstream[x + 11][y + 5], bitstream[x + 10][y + 5], ['Q', fname, gname, 'UNDEF']);
+      this.configY = choose4(bitstream[x + 13][y + 5], bitstream[x + 12][y + 5], ['Q', gname, fname, 'UNDEF']);
+      this.configQ = bitstream[x + 9][y + 5] ? 'LATCH': 'FF';
+
+      // Figure out flip flop type and clock source. This seems a bit messed up.
+      let clkInvert = bitstream[x + 5][y + 4]; // Invert flag
+      if (bitstream[x + 9][y + 5]) {
+        clkInvert = !clkInvert; // LATCH flips the clock
       }
+      if (bitstream[x + 6][y + 4] == 0) {
+        // No clock
+        this.configClk = '';
+      } else {
+        if (bitstream[x + 4][y + 4] == 1) {
+          this.configClk = 'C';
+        } else {
+          // K or G inverted. This seems like a bug in XACT?
+          // Assume not inverted?
+          if (clkInvert) {
+            clkInvert = 0;
+            this.configClk = gname;
+          } else {
+            this.configClk = 'K';
+          }
+        }
+      }
+      if (clkInvert) { // Add NOT, maybe with colon separator.
+        if (this.configClk != '') {
+          this.configClk += ':NOT';
+        } else {
+          this.configClk += 'NOT';
+        }
+      }
+
+      this.configSet = choose4(bitstream[x + 3][y + 5], bitstream[x + 2][y + 5], ['A', '', fname, 'BOTH?']);
+      this.configRes = choose4(bitstream[x + 1][y + 5], bitstream[x + 0][y + 5], ['', 'G?', 'D', gname]);
 
       this.configString = 'X:' + this.configX + ' Y:' + this.configY + ' F:' + this.configF + ' G:' + this.configG + ' Q:' + this.configQ +
           ' SET:' + this.configSet + ' RES:' + this.configRes + ' CLK:' + this.configClk;
