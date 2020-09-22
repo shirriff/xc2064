@@ -113,6 +113,7 @@ function initNames() {
       this.screenPt = screenPt;
       this.gPt = gPt;
       this.bitPt = bitPt;
+      this.configString = '';
     }
 
     draw(ctx) {
@@ -260,10 +261,16 @@ function initNames() {
 
       this.configSet = choose4(bitstream[x + 3][y + 5], bitstream[x + 2][y + 5], ['A', '', fname, 'BOTH?']);
       this.configRes = choose4(bitstream[x + 1][y + 5], bitstream[x + 0][y + 5], ['', 'G?', 'D', gname]);
-
       this.configString = 'X:' + this.configX + ' Y:' + this.configY + ' F:' + this.configF + ' G:' + this.configG + ' Q:' + this.configQ +
           ' SET:' + this.configSet + ' RES:' + this.configRes + ' CLK:' + this.configClk;
-      return str;
+    }
+
+    config() {
+      return this.configString;
+    }
+
+    describe() {
+      return this.configString;
     }
   }
 
@@ -421,9 +428,9 @@ function initNames() {
           ["col.I.long.2:row.A.local.5", [-1, -1]], ["col.I.local.1:row.A.local.5", [-1, -1]], ["col.I.local.2:row.A.local.5", [-1, -1]],  ["col.I.local.3:row.A.local.5", [-1, -1]],  ["col.I.local.4:row.A.local.5", [-1, -1]]];
         pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
 
-        // pins.push(new Pin(11, 58, 'left'));
-        // pins.push(new Pin(9, 1, 'top'));
-        // pins.push(new Pin(8, 2, 'top'));
+        // pins.push(new Iob(11, 58, 'left'));
+        // pins.push(new Iob(9, 1, 'top'));
+        // pins.push(new Iob(8, 2, 'top'));
       } else if (this.type == TILE.left) {
         var pips = [
           ["col.A.long.3:row.ROW.local.1", [9, 11]],
@@ -710,7 +717,15 @@ function initNames() {
     return makeDiestream(contents);
   }
 
-  class Pin {
+  /**
+   * An I/O block.
+   * Each I/O block is associated with its neighboring tile.
+   * Some complications: I/O blocks are different on the top, bottom, left, and right.
+   * There are typically two I/O blocks per tile, so the bits are different for these two. They are also drawn differently.
+   * Tile AA has 3 I/O blocks. Tile EA has 1 I/O block; one is omitted.
+   * 
+   */
+  class Iob {
     constructor(name, x0, y0, style) {
       this.name = name;
       this.x0 = x0;
@@ -813,53 +828,53 @@ function initNames() {
   }
 
   var objects = [];
-  function initPins() {
-    function createPin(a, b, c, d) {
-      objects.push(new Pin(a, b, c, d));
+  function initIobs() {
+    function createIob(a, b, c, d) {
+      objects.push(new Iob(a, b, c, d));
     };
 
-    createPin("P9", 62, 6, "a");
-    createPin("P8", 90, 6, "b");
-    createPin("P7", 138, 6, "a");
-    createPin("P6", 162, 6, "b");
-    createPin("P5", 210, 6, "a");
-    createPin("P4", 234, 6, "b");
-    createPin("P3", 282, 6, "a");
-    createPin("P2", 306, 6, "b");
-    createPin("P68", 354, 6, "a");
-    createPin("P67", 378, 6, "b");
-    createPin("P66", 426, 6, "a");
-    createPin("P65", 450, 6, "b");
-    createPin("P64", 498, 6, "a");
-    createPin("P63", 522, 6, "b");
-    createPin("P62", 570, 6, "a");
-    createPin("P61", 594, 6, "b");
+    createIob("P9", 62, 6, "a");
+    createIob("P8", 90, 6, "b");
+    createIob("P7", 138, 6, "a");
+    createIob("P6", 162, 6, "b");
+    createIob("P5", 210, 6, "a");
+    createIob("P4", 234, 6, "b");
+    createIob("P3", 282, 6, "a");
+    createIob("P2", 306, 6, "b");
+    createIob("P68", 354, 6, "a");
+    createIob("P67", 378, 6, "b");
+    createIob("P66", 426, 6, "a");
+    createIob("P65", 450, 6, "b");
+    createIob("P64", 498, 6, "a");
+    createIob("P63", 522, 6, "b");
+    createIob("P62", 570, 6, "a");
+    createIob("P61", 594, 6, "b");
 
-    createPin("P27", 62, 656, "e");
-    createPin("P28", 90, 656, "f");
-    createPin("P29", 138, 656, "e");
-    createPin("P30", 162, 656, "f");
-    createPin("P31", 210, 656, "e");
-    createPin("P32", 234, 656, "f");
-    createPin("P33", 282, 656, "e");
-    createPin("P34", 306, 656, "f");
-    createPin("P36", 354, 656, "e");
-    createPin("P37", 378, 656, "f");
-    createPin("P38", 426, 656, "e");
-    createPin("P39", 450, 656, "f");
-    createPin("P40", 498, 656, "e");
-    createPin("P41", 522, 656, "f");
-    createPin("P42", 570, 656, "e");
-    createPin("P43", 594, 656, "f");
+    createIob("P27", 62, 656, "e");
+    createIob("P28", 90, 656, "f");
+    createIob("P29", 138, 656, "e");
+    createIob("P30", 162, 656, "f");
+    createIob("P31", 210, 656, "e");
+    createIob("P32", 234, 656, "f");
+    createIob("P33", 282, 656, "e");
+    createIob("P34", 306, 656, "f");
+    createIob("P36", 354, 656, "e");
+    createIob("P37", 378, 656, "f");
+    createIob("P38", 426, 656, "e");
+    createIob("P39", 450, 656, "f");
+    createIob("P40", 498, 656, "e");
+    createIob("P41", 522, 656, "f");
+    createIob("P42", 570, 656, "e");
+    createIob("P43", 594, 656, "f");
 
     for (var i = 0; i < 14; i++) {
       if (i == 7) continue;
-      createPin("P" + (11 + i), 6, 88 + 36 * i, "c");
+      createIob("P" + (11 + i), 6, 88 + 36 * i, "c");
     }
 
     for (var i = 0; i < 14; i++) {
       if (i == 7) continue;
-      createPin("P" + (59 - i), 656, 88 + 36 * i, "d");
+      createIob("P" + (59 - i), 656, 88 + 36 * i, "d");
     }
   }
 
@@ -877,7 +892,7 @@ function initNames() {
 
   function init() {
     initNames();
-    initPins();
+    initIobs();
     initTiles();
   }
 
@@ -891,4 +906,68 @@ function initNames() {
     }
   }
 
+  // Processes a click on the Layout image
+  function layoutClick(x, y) {
+    if (bitstream == null) {
+      // return;
+    }
+    const XOFF = 24;
+    const YOFF = 30;
+    const xmod = (x - XOFF) % 72;
+    const ymod = (y - YOFF) % 72;
+    let tilex = Math.floor((x - XOFF) / 72);
+    let tiley = Math.floor((y - YOFF) / 72);
+    tilex = Math.max(Math.min(tilex, 8), 0); // Clamp to range 0-8
+    tiley = Math.max(Math.min(tiley, 8), 0); // Clamp to range 0-8
+    const name = "ABCDEFGHI"[tiley] + "ABCDEFGHI"[tilex];
+    let prefix = '';
+    if (x < 20) {
+       prefix = 'pin';
+       // pins
+    } else if (x > 654) {
+       prefix = 'pin';
+       // pins
+    } else if (y < 20) {
+       prefix = 'pin';
+      // pins
+    } else if (y > 654) {
+       prefix = 'pin';
+      // pins
+    } else if (xmod > 54  && ymod >= 36 && tilex < 8 && tiley < 8 ) {
+      // inside clb
+      prefix = 'CLB: ';
+      if (tiles[tilex][tiley].clb) {
+        let text = tiles[tilex][tiley].clb.describe();
+        if (text != '') {
+          $("#info3").html(text);
+          return;
+          }
+        }
+    }
+    $("#info3").html(prefix + name + ' ' + x + ' ' + y + '; ' + tilex + ' ' + xmod + ', ' + tiley + ' ' + ymod);
+  }
 
+
+  function drawLayout(ctx) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
+    const HEIGHT = 680
+    const WIDTH = 680;
+    ctx.canvas.height = HEIGHT;
+    ctx.canvas.width = WIDTH;
+    $("#container").css('height', HEIGHT + 'px');
+    $("#container").css('width', WIDTH + 'px');
+    $("#info").css('margin-left', WIDTH + 'px');
+    $("#info3").css('margin-left', WIDTH + 'px');
+    $("#info3").css('clear', 'none');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.translate(0.5, 0.5); // Prevent antialiasing
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'butt';
+    objects.forEach(o => o.draw(ctx));
+  }
+
+  function decode(bitstream) {
+     var result = [];
+     objects.forEach(o => result.push(...o.decode(bitstream)));
+     $("#info3").html(result.join('<br/>'));
+  }

@@ -11,6 +11,7 @@
 <script src="draw.js"></script>
 <script src="data.js"></script>
 <script src="formula.js"></script>
+<script src="bitstreamDisplay.js"></script>
 
 <script>
 $(document).ready(function() {
@@ -66,79 +67,13 @@ $(document).ready(function() {
 
   function redraw(ctx) {
     if (canvasMode() == 'bitstream') {
-      drawBitstream(bitstream);
+      drawBitstream(ctx, bitstream);
     } else if (canvasMode() == 'layout') {
-      drawLayout();
+      drawLayout(ctx);
     }
   }
 
 
-  /**
-   * Displays the bitstream data.
-   */
-  function drawBitstream(bitstream) {
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    if (bitstream == null) {
-      return;
-    }
-
-    // Draw labels
-    ctx.canvas.height = 570;
-    $("#container").css('height', '570px');
-    ctx.font = "45pt arial";
-    ctx.fillStyle = "#ddf";
-    var SIZE = 8; // Each digit is a SIZE x SIZE block.
-    var xpos = 3; // 3 bits to first cell.
-    ctx.strokeStyle = "#ccc";
-    ctx.beginPath();
-    ctx.rect(0, 0, 160 * SIZE, 71 * SIZE);
-    ctx.stroke();
-    ctx.strokeStyle = "#fbb";
-    ctx.beginPath();
-    for (var x = 0; x < 8; x++) {
-      if (x == 3 || x == 6) {
-        xpos += 2; // Skip buffer
-      }
-      var ypos = 1; // 1 bit to first cell
-      for (var y = 0; y < 8; y++) {
-        if (y == 3 || y == 6) {
-          ypos += 1; // Skip buffer
-        }
-        fillText(ctx, "ABCDEFGH"[y] + "ABCDEFGH"[x], 30 + xpos * SIZE, 52 + ypos * SIZE);
-        ctx.rect(xpos * SIZE, ypos * SIZE, 18 * SIZE, 8 * SIZE);
-        ypos += 8; // 8 bits per tile
-      }
-      xpos += 18; // 18 bits per tile
-    }
-    ctx.stroke();
-
-    // Draw data
-    $("#img").css('opacity', 0);
-    ctx.font = "9px arial";
-    ctx.fillStyle = "black";
-    for (var x = 0; x < 160; x++) {
-      for (var y = 0; y < 71; y++) {
-        fillText(ctx, bitstream[x][y] == 0 ? ' ' : '1', 1 + x * SIZE, 7 + y * SIZE);
-      }
-    }
-  }
-
-
-
-  function bitstreamClick(x, y) {
-    if (bitstream == null) {
-      return;
-    }
-    var xn = x / 8; // Convert to bit indices
-    var yn = y / 8;
-    var xinfo = findTileX(xn);
-    var yinfo = findTileY(yn);
-    if (xinfo[2] >= 0 && yinfo[2] >= 0) {
-      $("#info3").html(tiles[xinfo[2]][yinfo[2]].decode(bitstream));
-    } else {
-      $("#info3").html(x + ' ' + y + ' ' + xinfo + ' ' + yinfo);
-    }
-  }
 
 
   // Returns bitstream or layout
@@ -152,6 +87,8 @@ $(document).ready(function() {
     var y = e.pageY - offset.top;
     if (canvasMode() == 'bitstream') {
       bitstreamClick(x, y);
+    } else {
+      layoutClick(x, y);
     }
   });
 
@@ -159,25 +96,9 @@ $(document).ready(function() {
   var ctx2 = $("#canvas2")[0].getContext("2d");
 
 
-  function drawLayout() {
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
-    ctx.canvas.height = 680;
-    $("#container").css('height', '680px');
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    ctx.translate(0.5, 0.5); // Prevent antialiasing
-    ctx.lineWidth = 1;
-    ctx.lineCap = 'butt';
-    objects.forEach(o => o.draw(ctx));
-  }
-
-  function decode(bitstream) {
-     var result = [];
-     objects.forEach(o => result.push(...o.decode(bitstream)));
-     $("#info3").html(result.join('<br/>'));
-  }
 
   init();
-  drawLayout();
+  drawLayout(ctx);
 
 
 });
@@ -189,10 +110,10 @@ $(document).ready(function() {
 <div id="header">
 <select id="mode"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
 </div>
-<div id="info"> </div>
+<div id="info"></div>
 <div id="info2"> </div>
-<div id="container" style="position: relative">
-  <canvas style="position:absolute; z-index: 1" id="canvas" width=2000 height=2000></canvas>
+<div id="container" style="position: relative; float: left;">
+  <canvas style="position:absolute; z-index: 1" id="canvas"></canvas>
   <img style="display:none" id="img" style="position:absolute" src="pips.png" width=680 height=680></img>
 </div>
 <div id="info3"> </div>
