@@ -150,11 +150,13 @@ function initNames() {
      * Decode this CLB from the bitstream.
      */
     decode(bitstream) {
+      this.bitTypes = []; // Fill this in as we go
       var x = this.bitPt[0];
       var y = this.bitPt[1];
       var nf = 0;
       for (var bitnum = 0; bitnum < 8; bitnum++) {
         var bit = bitstream[x + bitnum][y + 7];
+        this.bitTypes.push([x + bitnum, y + 7, BITTYPE.lut]);
         if (bit) {
           nf |= 1 << [1, 0, 2, 3, 5, 4, 6, 7][bitnum]; // Ordering of LUT is irregular
         }
@@ -168,10 +170,12 @@ function initNames() {
       } else if ( bitstream[x + 0][y + 6]) {
         fin3 = 'D';
       }
+      this.bitTypes.push([x + 7, y + 6, BITTYPE.clb], [x + 6, y + 6, BITTYPE.clb], [x + 1, y + 6, BITTYPE.clb], [x + 0, y + 6, BITTYPE.clb]);
 
       var ng = 0;
       for (var bitnum = 0; bitnum < 8; bitnum++) {
         bit = bitstream[x + bitnum + 10][y + 7];
+        this.bitTypes.push([x + bitnum + 10, y + 7, BITTYPE.lut]);
         if (bit) {
           ng |= 1 << [7, 6, 4, 5, 3, 2, 0, 1][bitnum]; // Ordering of LUT is irregular
         }
@@ -179,6 +183,7 @@ function initNames() {
       this.configNg = ng;
       var gin1 = bitstream[x + 11][y + 6] ? 'A' : 'B';
       var gin2 = bitstream[x + 12][y + 6] ? 'B' : 'C';
+      this.bitTypes.push([x + 11, y + 6, BITTYPE.clb], [x + 12, y + 6, BITTYPE.clb]);
       var gin3 = 'Q';
       if ( bitstream[x + 16][y + 6]) {
         gin3 = 'C';
@@ -189,6 +194,7 @@ function initNames() {
       var str;
       var fname = 'F'; // The F output used internally; renamed to M for Base FGM.
       var gname = 'G';
+      this.bitTypes.push([x + 9, y + 7, BITTYPE.clb]);
       if (bitstream[x + 9][y + 7] != 1) {
         if (fin1 == gin1 && fin2 == gin2 && fin3 == gin3) {
           this.configBase = 'F';
@@ -226,11 +232,15 @@ function initNames() {
       
       // Decode X input
       this.configX = choose4(bitstream[x + 11][y + 5], bitstream[x + 10][y + 5], ['Q', fname, gname, 'UNDEF']);
+      this.bitTypes.push([x + 11, y + 5, BITTYPE.clb], [x + 10, y + 5, BITTYPE.clb]);
       this.configY = choose4(bitstream[x + 13][y + 5], bitstream[x + 12][y + 5], ['Q', gname, fname, 'UNDEF']);
+      this.bitTypes.push([x + 13, y + 5, BITTYPE.clb], [x + 12, y + 5, BITTYPE.clb]);
       this.configQ = bitstream[x + 9][y + 5] ? 'LATCH': 'FF';
+      this.bitTypes.push([x + 9, y + 5, BITTYPE.clb]);
 
       // Figure out flip flop type and clock source. This seems a bit messed up.
       let clkInvert = bitstream[x + 5][y + 4]; // Invert flag
+      this.bitTypes.push([x + 5, y + 4, BITTYPE.clb]);
       if (bitstream[x + 9][y + 5]) {
         clkInvert = !clkInvert; // LATCH flips the clock
       }
@@ -251,6 +261,8 @@ function initNames() {
           }
         }
       }
+      this.bitTypes.push([x + 6, y + 4, BITTYPE.clb]);
+      this.bitTypes.push([x + 4, y + 4, BITTYPE.clb]);
       if (clkInvert) { // Add NOT, maybe with colon separator.
         if (this.configClk != '') {
           this.configClk += ':NOT';
@@ -260,7 +272,9 @@ function initNames() {
       }
 
       this.configSet = choose4(bitstream[x + 3][y + 5], bitstream[x + 2][y + 5], ['A', '', fname, 'BOTH?']);
+      this.bitTypes.push([x + 3, y + 5, BITTYPE.clb], [x + 2, y + 5, BITTYPE.clb]);
       this.configRes = choose4(bitstream[x + 1][y + 5], bitstream[x + 0][y + 5], ['', 'G?', 'D', gname]);
+      this.bitTypes.push([x + 1, y + 5, BITTYPE.clb], [x + 0, y + 5, BITTYPE.clb]);
       this.configString = 'X:' + this.configX + ' Y:' + this.configY + ' F:' + this.configF + ' G:' + this.configG + ' Q:' + this.configQ +
           ' SET:' + this.configSet + ' RES:' + this.configRes + ' CLK:' + this.configClk;
     }
@@ -271,6 +285,15 @@ function initNames() {
 
     describe() {
       return this.configString;
+    }
+
+    /**
+     * Returns the function of each (known) bit in the bitstream.
+     *
+     * Format: [[x, y, type], ...]
+     */
+    getBitTypes() {
+      return this.bitTypes;
     }
   }
 
@@ -322,6 +345,16 @@ function initNames() {
       } else {
         this.state = bitstream[this.bitPt[0]][this.bitPt[1]];
       }
+    }
+
+    /**
+     * Returns the function of each (known) bit in the bitstream.
+     *
+     * Format: [[x, y, type], ...]
+     */
+    getBitTypes() {
+      console.log('pip',[this.bitPt[0], this.bitPt[1], BITTYPE.pip]);
+      return [[this.bitPt[0], this.bitPt[1], BITTYPE.pip]];
     }
   }
 
@@ -525,6 +558,25 @@ function initNames() {
       this.pins.forEach(pin => result.push(pin.decode(bitstream)));
       return result;
     }
+
+    /**
+     * Returns the function of each (known) bit in the bitstream.
+     *
+     * Format: [[x, y, type], ...]
+     */
+    getBitTypes() {
+      let result = [];
+      if (this.clb) {
+        result.push(...this.clb.getBitTypes(bitstream));
+      }
+      if (this.switch1 != null) {
+        result.push(...this.switch1.getBitTypes(bitstream));
+        result.push(...this.switch2.getBitTypes(bitstream));
+      }
+      this.pips.forEach(pip => result.push(...pip.getBitTypes(bitstream)));
+      this.pins.forEach(pin => result.push(...pin.getBitTypes(bitstream)));
+      return result;
+    }
   }
 
   /**
@@ -638,12 +690,26 @@ function initNames() {
       }
 
       this.wires = [];
-      let self = this;
+      const self = this;
       bits.forEach(function([[btX, btY], wire]) {
         if (bitstream[self.tile.bitPt[0] + btX][self.tile.bitPt[1] + btY] == 1) {
           self.wires.push(wire);
         }
       });
+
+      this.bitTypes = []
+      bits.forEach(function([[btX, btY], wire]) {
+        self.bitTypes.push([self.tile.bitPt[0] + btX, self.tile.bitPt[1] + btY, BITTYPE.switch]);
+      });
+    }
+
+    /**
+     * Returns the function of each (known) bit in the bitstream.
+     *
+     * Format: [[x, y, type], ...]
+     */
+    getBitTypes() {
+      return this.bitTypes;
     }
   }
 
@@ -825,6 +891,15 @@ function initNames() {
      // TODO
      return [];
     }
+
+    /**
+     * Returns the function of each (known) bit in the bitstream.
+     *
+     * Format: [[x, y, type], ...]
+     */
+    getBitTypes() {
+      return [];
+    }
   }
 
   var objects = [];
@@ -970,4 +1045,20 @@ function initNames() {
      var result = [];
      objects.forEach(o => result.push(...o.decode(bitstream)));
      $("#info3").html(result.join('<br/>'));
+  }
+
+  const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6});
+  /**
+   * Returns the function of each (known) bit in the bitstream.
+   *
+   * Format: [[x, y, type], ...]
+   */
+
+  function getBitTypes() {
+    bitTypes = [];
+     objects.forEach(function(o) {
+       bitTypes.push(...o.getBitTypes(bitstream));
+       });
+    // objects.forEach(o => bitTypes.push(...o.getBitTypes(bitstream)));
+    return bitTypes;
   }

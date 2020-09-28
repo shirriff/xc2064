@@ -48,7 +48,7 @@ $(document).ready(function() {
   });
 
   function lcaUpload(contents) {
-    $("#info").html('LCA: ' + contents);
+    $("#info").html('Not implemented');
   }
 
   $('#mode').on('change', function() {
@@ -61,6 +61,7 @@ $(document).ready(function() {
    */
   function rbtUpload(contents) {
     bitstream = rbtParse(contents);
+    $('#mode').css('display', 'block'); // Show the dropdown
     decode(bitstream);
     redraw(ctx);
   }
@@ -71,6 +72,28 @@ $(document).ready(function() {
     } else if (canvasMode() == 'layout') {
       drawLayout(ctx);
     }
+  }
+
+  // Parse Geoff's data
+  function loadFile() {
+    let defs = new Array(160);
+    window.defs = defs;
+    for (let x = 0; x < 160; x++) {
+      defs[x] = new Array(71);
+    }
+    $.get('XC2064-def.txt', function(data) {
+      const lines = data.match(/[^\r\n]+/g);
+      lines.forEach(function(l) {
+        const m = l.match(/Bit:\s+(\S+) (.*)/);
+        if (m) {
+          const addr = parseInt(m[1], 16);
+          const val = m[2];
+          let x = 159 - Math.trunc(addr / 71);
+          let y = 70 - (addr % 71);
+          defs[x][y] = val;
+        }
+      });
+    }, 'text');
   }
 
 
@@ -95,8 +118,15 @@ $(document).ready(function() {
   var ctx = $("#canvas")[0].getContext("2d");
   var ctx2 = $("#canvas2")[0].getContext("2d");
 
+  $("#demo").click(function() {
+    bitstream = makeDemoBitstream();
+    $('#mode').css('display', 'block'); // Show the dropdown
+    decode(bitstream);
+    $("#mode").val("bitstream");
+    redraw(ctx);
+  });
 
-
+  loadFile();
   init();
   drawLayout(ctx);
 
@@ -108,7 +138,12 @@ $(document).ready(function() {
 </head>
 <body>
 <div id="header">
-<select id="mode"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
+<select id="mode" style="display:none"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
+<button id="demo">Demo</button>
+<span id="bitstreamSpan" style="display:none">
+<input type="checkbox" id="labels" value="Labels" checked>Labels</input>
+<input type="checkbox" id="colors" value="Colors">Colors</input>
+</span>
 </div>
 <div id="info"></div>
 <div id="info2"> </div>
