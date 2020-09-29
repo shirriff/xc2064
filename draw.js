@@ -1,4 +1,4 @@
-// From row name to [internal Y coordinate, screen Y coordinate]
+// From row name to [internal Y coordinate (G), screen Y coordinate]
 var rowInfo = {
  "row.I.local.5": [0, 999],
  "row.I.long.2": [4, 646],
@@ -17,6 +17,14 @@ var rowInfo = {
  "row.A.local.1": [167, 30],
  "row.A.long.2": [169, 26],
  "row.A.local.0": [173, 999],
+ "row.A.io6": [155, 72], // My invention, row near top of CLB
+ "row.A.b": [154, 80], // My invention, input b to CLB
+ "row.A.c": [153, 86], // My invention, input c to CLB
+ "row.A.k": [152, 92], // My invention, input k to CLB
+ "row.A.y": [151, 96], // My invention, input d to CLB
+ //"row.A.io1": [150, 104], // My invention, I/O below CLB
+ //"row.A.io2": [149, 108], // My invention, I/O below CLB
+ //"row.A.io3": [148, 112], // My invention, I/O below CLB
 }
 
 // From column name to [internal X coordinate, screen X coordinate]
@@ -29,7 +37,17 @@ var colInfo = {
  "col.A.local.4": [9, 38],
  "col.A.long.3": [11, 44],
  "col.A.long.4": [12, 48],
+ "col.A.clk": [13, 52], // My invention
  "col.A.local.5": [14, 56],
+ "col.A.io1": [15, 62], // My invention, three I/O verticals feeding to matrices
+ "col.A.io2": [16, 66], // My invention
+ "col.A.io3": [17, 70], // My invention
+ "col.A.x": [18, 74], // My invention, x input to CLB
+ "col.A.clbl1": [19, 84], // My invention, one column left of center of CLB.
+ "col.A.clb": [21, 88], // My invention, through center of CLB.
+ "col.A.clbr1": [22, 94], // My invention, one column right of center of CLB.
+ "col.A.clbr2": [23, 98], // My invention, two columns right of center of CLB.
+ "col.A.clbr3": [24, 102], // My invention, three columns right of center of CLB.
 
  "col.I.local.0": [167, 618],
  "col.I.long.1": [169, 626],
@@ -40,6 +58,7 @@ var colInfo = {
  "col.I.local.4": [176, 648],
  "col.I.long.3": [178, 652],
  "col.I.local.5": [181, 999],
+ "col.I.clb": [999, 999], // My invention
 }
 
 function initNames() {
@@ -53,17 +72,43 @@ function initNames() {
     colInfo['col.' + name + '.local.3'] = [cstart + 3, 116 + 72 * (i-1)];
     colInfo['col.' + name + '.local.4'] = [cstart + 4, 120 + 72 * (i-1)];
     colInfo['col.' + name + '.local.5'] = [cstart + 6, 126 + 72 * (i-1)];
-    colInfo['col.' + name + '.local.6'] = [cstart + 7, 130 + 72 * (i-1)];
+    colInfo['col.' + name + '.local.6'] = [cstart + 7, 130 + 72 * (i-1)]; // y connection
     colInfo['col.' + name + '.long.1'] = [cstart + 8, 134 + 72 * (i-1)];
     colInfo['col.' + name + '.long.2'] = [cstart + 9, 138 + 72 * (i-1)];
+    colInfo['col.' + name + '.clk'] = [cstart + 10, 142 + 72 * (i-1)]; // my invention
+    colInfo['col.' + name + '.x'] = [cstart + 11, 146 + 72 * (i-1)]; // my invention
+    colInfo['col.' + name + '.clbl2'] = [cstart + 12, 150 + 72 * (i-1)]; // My invention, two columns left of center of CLB.
+    colInfo['col.' + name + '.clbl1'] = [cstart + 13, 154 + 72 * (i-1)]; // My invention, one column left of center of CLB.
+    // col.X.clb is my name for the column running through the middle of the CLB
+    colInfo['col.' + name + '.clb'] = [cstart + 14, 160 + 72 * (i-1)];
+    colInfo['col.' + name + '.clbr1'] = [cstart + 15, 166 + 72 * (i-1)]; // My invention, one column right of center of CLB.
+    colInfo['col.' + name + '.clbr2'] = [cstart + 16, 170 + 72 * (i-1)]; // My invention, two columns right of center of CLB.
+    colInfo['col.' + name + '.clbr3'] = [cstart + 17, 174 + 72 * (i-1)]; // My invention, three columns right of center of CLB.
 
+    // Interpreting die file: row.B.local.1 = die file Y 28 = G 145, i.e. sum=173
     var rstart = 25 + 19 * (7 - i);
-    rowInfo['row.' + name + '.long.1'] = [rstart, 132 + 72 * (i-1)];
-    rowInfo['row.' + name + '.local.5'] = [rstart + 2, 126 + 72 * (i-1)];
-    rowInfo['row.' + name + '.local.4'] = [rstart + 3, 122 + 72 * (i-1)];
-    rowInfo['row.' + name + '.local.3'] = [rstart + 5, 118 + 72 * (i-1)];
-    rowInfo['row.' + name + '.local.1'] = [rstart + 6, 114 + 72 * (i-1)];
+    // row.X.io1 is my name for the I/O row below the CLB
+    rowInfo['row.' + name + '.io1'] = [rstart + 12, 100 + 72 * (i-1)];
+    rowInfo['row.' + name + '.io2'] = [rstart + 11, 104 + 72 * (i-1)];
+    rowInfo['row.' + name + '.io3'] = [rstart + 10, 108 + 72 * (i-1)];
     rowInfo['row.' + name + '.local.0'] = [rstart + 7, 112 + 72 * (i-1)];
+    rowInfo['row.' + name + '.local.1'] = [rstart + 6, 114 + 72 * (i-1)];
+    rowInfo['row.' + name + '.local.3'] = [rstart + 5, 118 + 72 * (i-1)];
+    rowInfo['row.' + name + '.local.4'] = [rstart + 3, 122 + 72 * (i-1)];
+    rowInfo['row.' + name + '.local.5'] = [rstart + 2, 126 + 72 * (i-1)];
+    rowInfo['row.' + name + '.long.1'] = [rstart, 132 + 72 * (i-1)];
+    // row.X.io6 is my name for the row near the top of the clb
+    // row.X.b is my name for the row through input b
+    // row.X.c is my name for the row running through the middle of the CLB, through input c, output y
+    // row.X.k is my name for the row through input k
+    // row.X.y is my name for the row through input b
+    rowInfo['row.' + name + '.io4'] = [rstart - 1, 136 + 72 * (i-1)];
+    rowInfo['row.' + name + '.io5'] = [rstart - 2, 140 + 72 * (i-1)];
+    rowInfo['row.' + name + '.io6'] = [rstart - 3, 144 + 72 * (i-1)];
+    rowInfo['row.' + name + '.b'] = [rstart - 4, 152 + 72 * (i-1)];
+    rowInfo['row.' + name + '.c'] = [rstart - 5, 158 + 72 * (i-1)];
+    rowInfo['row.' + name + '.k'] = [rstart - 6, 164 + 72 * (i-1)];
+    rowInfo['row.' + name + '.y'] = [rstart - 7, 168 + 72 * (i-1)];
   }
 }
 
@@ -110,7 +155,6 @@ function initNames() {
       this.x = x;
       this.y = y;
       this.name = "ABCDEFGH"[y] + "ABCDEFGH"[x];
-      this.screenPt = screenPt;
       this.gPt = gPt;
       this.bitPt = bitPt;
       this.configString = '';
@@ -119,8 +163,11 @@ function initNames() {
     draw(ctx) {
       ctx.strokeStyle = "red";
       ctx.beginPath();
-      var x0 = this.screenPt[0];
-      var y0 = this.screenPt[1];
+      // Screen coordinate center of the CLB
+      let xCenter = colInfo['col.' + this.name[1] + '.clb'][1];
+      let yCenter = rowInfo['row.' + this.name[0] + '.c'][1];
+      var x0 = xCenter - 10;
+      var y0 = yCenter - 18;
       ctx.rect(x0, y0, 20, 32);
       ctx.moveTo(x0 + 16, y0 - 2);
       ctx.lineTo(x0 + 16, y0);
@@ -144,6 +191,84 @@ function initNames() {
       ctx.font = "10px arial";
       ctx.fillStyle = "green";
       fillText(ctx, this.name, x0 + 1, y0 + 8);
+
+      this.drawNetwork(ctx);
+    }
+
+    // Returns screen position for e.g. 'local.1'
+    colPos(s) {
+      return colInfo['col.' + this.name[1] + '.' + s][1];
+    }
+
+    // Returns screen position for e.g. 'local.1'
+    rowPos(s) {
+      return rowInfo['row.' + this.name[0] + '.' + s][1];
+    }
+
+    // Draw the PIPs and network lines.
+    drawNetwork(ctx) {
+      let xCenter = this.colPos('clb');
+      let yCenter = this.rowPos('c');
+      ctx.beginPath();
+      ctx.strokeStyle = "black";
+      ctx.moveTo(this.colPos('long.2'), this.rowPos('c'));
+      ctx.lineTo(xCenter - 20, this.rowPos('c'));
+      ctx.lineTo(xCenter - 20, this.rowPos('c'));
+      ctx.stroke();
+      let cols;
+
+      if (this.name[1] == 'A') {
+        cols = [];
+      } else {
+        cols = ["local.2", "local.4", "long.1"];
+      }
+      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('io6') - 1, 2, 2));
+
+      if (this.name[1] == 'A') {
+        cols = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "long.4", "clk", "io3", "x"];
+      } else {
+        cols = ["local.1", "local.2", "local.3", "local.4", "local.5", "local.6", "long.1", "long.2", "clk", "x"];
+      }
+      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('b') - 1, 2, 2));
+
+      if (this.name[1] == 'A') {
+        cols = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "long.4", "x"];
+      } else {
+        cols = ["local.1", "local.2", "local.3", "local.4", "local.5", "long.1", "long.2", "x"];
+      }
+      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('c') - 1, 2, 2));
+
+      if (this.name[1] == 'A') {
+        cols = ["long.4", "clk"];
+      } else {
+        cols = ["long.2", "clk"];
+      }
+      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('k') - 1, 2, 2));
+
+      if (this.name[1] == 'A') {
+        cols = [];
+      } else {
+        cols = ["local.1", "local.3", "local.5", "long.2"];
+      }
+      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('y') - 1, 2, 2));
+
+      // Segments above: D inputs
+      let rows;
+      if (this.name[0] == 'A') {
+        rows = [];
+      } else {
+        rows = ["io3", "local.1", "local.3", "local.4", "local.5", "long.1"];
+      }
+      rows.forEach(s => ctx.fillRect(this.colPos("clb") - 1, this.rowPos(s) - 1, 2, 2));
+
+      // A inputs
+      if (this.name[0] == 'A') {
+        rows = [];
+      } else {
+        rows = ["local.1", "local.3", "local.4", "local.5", "long.1", "io4"];
+      }
+      rows.forEach(s => ctx.fillRect(this.colPos("clbr1") - 1, this.rowPos(s) - 1, 2, 2));
+
     }
 
     /**
