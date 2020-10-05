@@ -9,6 +9,7 @@
 -->
 <script src="jquery.min.js"></script>
 <script src="draw.js"></script>
+<script src="parse.js"></script>
 <script src="data.js"></script>
 <script src="formula.js"></script>
 <script src="bitstreamDisplay.js"></script>
@@ -21,80 +22,94 @@ $(document).ready(function() {
     return false;
   }
 
+  var ctx = $("#canvas")[0].getContext("2d");
+  var ctx2 = $("#canvas2")[0].getContext("2d");
+
   // https://makitweb.com/drag-and-drop-file-upload-with-jquery-and-ajax/
 
-  $("html").on("dragover", function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-  });
+  function initHandlers() {
+    $("html").on("dragover", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    });
 
-  $("html").on("drop", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    var files = e.originalEvent.dataTransfer.files;
+    $("html").on("drop", function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var files = e.originalEvent.dataTransfer.files;
 
-    if (files.length != 1) {
-      alert('Unexpected upload length ' + files.length);
-      return;
-    }
-    var ucname = files[0].name.toUpperCase();
-    if (ucname.endsWith('.LCA')) {
-      files[0].text().then(lcaUpload);
-    } else if (ucname.endsWith('.RBT')) {
-      files[0].text().then(rbtUpload);
-    } else {
-      alert('Need to upload a .RBT or .LCA file.');
-    }
-  });
+      if (files.length != 1) {
+        alert('Unexpected upload length ' + files.length);
+        return;
+      }
+      var ucname = files[0].name.toUpperCase();
+      if (ucname.endsWith('.LCA')) {
+        files[0].text().then(lcaUpload);
+      } else if (ucname.endsWith('.RBT')) {
+        files[0].text().then(rbtUpload);
+      } else {
+        alert('Need to upload a .RBT or .LCA file.');
+      }
+    });
+
+    $('#mode').on('change', function() {
+      redraw(ctx);
+    });
+
+    $('#labels').on('change', function() {
+      redraw(ctx);
+    });
+
+    $('#colors').on('change', function() {
+      redraw(ctx);
+    });
+
+    $("#canvas").mousemove(function(e) {
+      var offset = $(this).offset();
+      var x = e.pageX - offset.left;
+      var y = e.pageY - offset.top;
+      if (canvasMode() == 'bitstream') {
+        bitstreamClick(x, y);
+      } else {
+        layoutClick(x, y);
+      }
+    });
+
+
+    $("#demo").click(function() {
+      rawBitstream = makeDemoBitstream();
+      $('#mode').css('display', 'block'); // Show the dropdown
+      decode(rawBitstream, config);
+      $("#mode").val("bitstream");
+      redraw(ctx);
+    });
+  }
 
   function lcaUpload(contents) {
     $("#info").html('Not implemented');
   }
 
-  $('#mode').on('change', function() {
-    redraw(ctx);
-  });
 
   /**
    * Handles the upload of a .RBT file, storing it into the variable bitstream, which has 160 lines of 71 '0'/'1' characters,
    * the contents of the .RBT file.
    */
   function rbtUpload(contents) {
-    bitstream = rbtParse(contents);
+    rbtParse(contents); // Sets rawBitstream and bitstreamTable
     $('#mode').css('display', 'block'); // Show the dropdown
-    decode(bitstream);
+    decode(rawBitstream, config);
     redraw(ctx);
   }
 
   function redraw(ctx) {
     if (canvasMode() == 'bitstream') {
-      drawBitstream(ctx, bitstream);
+      drawBitstream(ctx, bitstreamTable);
     } else if (canvasMode() == 'layout') {
       drawLayout(ctx);
+      render(ctx);
     }
   }
 
-  // Parse Geoff's data
-  function loadFile() {
-    let defs = new Array(160);
-    window.defs = defs;
-    for (let x = 0; x < 160; x++) {
-      defs[x] = new Array(71);
-    }
-    $.get('XC2064-def.txt', function(data) {
-      const lines = data.match(/[^\r\n]+/g);
-      lines.forEach(function(l) {
-        const m = l.match(/Bit:\s+(\S+) (.*)/);
-        if (m) {
-          const addr = parseInt(m[1], 16);
-          const val = m[2];
-          let x = 159 - Math.trunc(addr / 71);
-          let y = 70 - (addr % 71);
-          defs[x][y] = val;
-        }
-      });
-    }, 'text');
-  }
 
 
 
@@ -104,31 +119,14 @@ $(document).ready(function() {
     return $("#mode").val();
   }
 
-  $("#canvas").mousemove(function(e) {
-    var offset = $(this).offset();
-    var x = e.pageX - offset.left;
-    var y = e.pageY - offset.top;
-    if (canvasMode() == 'bitstream') {
-      bitstreamClick(x, y);
-    } else {
-      layoutClick(x, y);
-    }
-  });
 
-  var ctx = $("#canvas")[0].getContext("2d");
-  var ctx2 = $("#canvas2")[0].getContext("2d");
+  loadConfig(initStuff);
 
-  $("#demo").click(function() {
-    bitstream = makeDemoBitstream();
-    $('#mode').css('display', 'block'); // Show the dropdown
-    decode(bitstream);
-    $("#mode").val("bitstream");
-    redraw(ctx);
-  });
-
-  loadFile();
-  init();
-  drawLayout(ctx);
+  function initStuff() {
+    initParser();
+    initHandlers();
+    drawLayout(ctx);
+  }
 
 
 });

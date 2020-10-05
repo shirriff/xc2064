@@ -9,18 +9,20 @@ var rowInfo = {
  "row.I.long.1": [12, 624],
  "row.I.local.0": [17, 604],
 
- "row.A.io3": [157, 64], // My invention, I/O above CLB
- "row.A.io2": [188, 60], // My invention, I/O above CLB
- "row.A.io1": [159, 56], // My invention, I/O above CLB
- "row.A.local.5": [160, 52], // Also I/O lines
- "row.A.long.3": [161, 48],
- "row.A.local.4": [163, 42],
- "row.A.local.3": [164, 38],
- "row.A.local.2": [166, 34],
- "row.A.local.1": [167, 30],
+ // "row.A.io2": [188, 60], // My invention, I/O above CLB
+ "row.A.local.0": [173, 2],
  "row.A.long.2": [169, 26],
- "row.A.local.0": [173, 999],
- "row.A.io6": [155, 72], // My invention, row near top of CLB
+ "row.A.local.1": [167, 30],
+ "row.A.local.2": [166, 34],
+ "row.A.local.3": [164, 38],
+ "row.A.local.4": [163, 42],
+ "row.A.long.3": [161, 48],
+ "row.A.local.5": [160, 52], // Also I/O lines, would be io1
+ "row.A.io2": [159, 56], // My invention, I/O above CLB
+ "row.A.io3": [158, 60], // My invention, row near top of CLB
+ "row.A.io4": [157, 64], // My invention, I/O above CLB
+ "row.A.io5": [156, 68], // My invention, I/O aligned with top of CLB
+ "row.A.io6": [155, 72], // My invention, I/O just below top of CLB
  "row.A.b": [154, 80], // My invention, input b to CLB
  "row.A.c": [153, 86], // My invention, input c to CLB
  "row.A.k": [152, 92], // My invention, input k to CLB
@@ -43,12 +45,18 @@ var colInfo = {
  "col.A.io2": [16, 66], // My invention
  "col.A.io3": [17, 70], // My invention
  "col.A.x": [18, 74], // My invention, x input to CLB
- "col.A.clbl1": [19, 84], // My invention, one column left of center of CLB.
+ "col.A.clbl1": [19, 78], // My invention, one column left of center of CLB.
  "col.A.clb": [21, 88], // My invention, through center of CLB.
  "col.A.clbr1": [22, 94], // My invention, one column right of center of CLB.
  "col.A.clbr2": [23, 98], // My invention, two columns right of center of CLB.
  "col.A.clbr3": [24, 102], // My invention, three columns right of center of CLB.
 
+// Note: clbw1-3 are wrapped around clbr1-3 from the neighboring tile.
+// E.g. AB.clbl3 is above AA
+// This makes assigning iobs to columns easier.
+ "col.I.clbw1": [162, 598],
+ "col.I.clbw2": [163, 602],
+ "col.I.clbw3": [164, 606],
  "col.I.local.0": [167, 618],
  "col.I.long.1": [169, 626],
  "col.I.long.2": [170, 630],
@@ -61,6 +69,9 @@ var colInfo = {
  "col.I.clb": [999, 999], // My invention
 }
 
+const rowFromG = {}; // Look up the row name from the G coordinate
+const colFromG = {}; // Look up the column name from the G coordinate
+
 function initNames() {
   // Generate formulaic row and column names (B through H)
   for (var i = 1; i < 8; i++) {
@@ -69,10 +80,10 @@ function initNames() {
 
     // Note: clbw1-3 are wrapped around clbr1-3 from the neighboring tile.
     // E.g. AB.clbl3 is above AA
-    // This makes assigning pins to columns easier.
-    colInfo['col.' + name + '.clbw1'] = [cstart - 5, 166 + 72 * (i-1)]; // My invention, one column right of center of CLB.
-    colInfo['col.' + name + '.clbw2'] = [cstart - 4, 170 + 72 * (i-1)]; // My invention, two columns right of center of CLB.
-    colInfo['col.' + name + '.clbw3'] = [cstart - 3, 174 + 72 * (i-1)]; // My invention, three columns right of center of CLB.
+    // This makes assigning iobs to columns easier.
+    colInfo['col.' + name + '.clbw1'] = [cstart - 5, 94 + 72 * (i-1)]; // My invention, one column right of center of CLB.
+    colInfo['col.' + name + '.clbw2'] = [cstart - 4, 98 + 72 * (i-1)]; // My invention, two columns right of center of CLB.
+    colInfo['col.' + name + '.clbw3'] = [cstart - 3, 102 + 72 * (i-1)]; // My invention, three columns right of center of CLB.
     colInfo['col.' + name + '.local.1'] = [cstart, 108 + 72 * (i-1)];
     colInfo['col.' + name + '.local.2'] = [cstart + 1, 112 + 72 * (i-1)];
     colInfo['col.' + name + '.local.3'] = [cstart + 3, 116 + 72 * (i-1)];
@@ -116,6 +127,10 @@ function initNames() {
     rowInfo['row.' + name + '.k'] = [rstart - 6, 164 + 72 * (i-1)];
     rowInfo['row.' + name + '.y'] = [rstart - 7, 168 + 72 * (i-1)];
   }
+
+  // Make reverse table
+  Object.entries(rowInfo).forEach(([key, val]) => rowFromG[val[0]] = key);
+  Object.entries(colInfo).forEach(([key, val]) => colFromG[val[0]] = key);
 }
 
   // Bit position starts for the tiles A through I. Note there is I/O before A and buffers between C-D and F-G.
@@ -203,12 +218,22 @@ function initNames() {
 
     // Returns screen position for e.g. 'local.1'
     colPos(s) {
-      return colInfo['col.' + this.name[1] + '.' + s][1];
+      const name = 'col.' + this.name[1] + '.' + s;
+      try {
+        return colInfo[name][1];
+      } catch {
+        throw "bad name " + name;
+      }
     }
 
     // Returns screen position for e.g. 'local.1'
     rowPos(s) {
-      return rowInfo['row.' + this.name[0] + '.' + s][1];
+      const name = 'row.' + this.name[0] + '.' + s;
+      try {
+        return rowInfo[name][1];
+      } catch {
+        throw "bad name " + name;
+      }
     }
 
     // Draw the PIPs and network lines.
@@ -228,7 +253,7 @@ function initNames() {
       } else {
         cols = ["local.2", "local.4", "long.1"];
       }
-      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('io6') - 1, 2, 2));
+      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('io2') - 1, 2, 2));
 
       if (this.name[1] == 'A') {
         cols = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "long.4", "clk", "io3", "x"];
@@ -269,163 +294,13 @@ function initNames() {
 
       // A inputs
       if (this.name[0] == 'A') {
-        rows = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "io1"];
+        rows = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "local.5"];
         rows.forEach(s => ctx.fillRect(this.colPos("clb") - 1, this.rowPos(s) - 1, 2, 2));
       } else {
         rows = ["local.1", "local.3", "local.4", "local.5", "long.1", "io4"];
         rows.forEach(s => ctx.fillRect(this.colPos("clbr1") - 1, this.rowPos(s) - 1, 2, 2));
       }
 
-    }
-
-    /**
-     * Decode this CLB from the bitstream.
-     */
-    decode(bitstream) {
-      this.bitTypes = []; // Fill this in as we go
-      var x = this.bitPt[0];
-      var y = this.bitPt[1];
-      var nf = 0;
-      for (var bitnum = 0; bitnum < 8; bitnum++) {
-        var bit = bitstream[x + bitnum][y + 7];
-        this.bitTypes.push([x + bitnum, y + 7, BITTYPE.lut]);
-        if (bit) {
-          nf |= 1 << [1, 0, 2, 3, 5, 4, 6, 7][bitnum]; // Ordering of LUT is irregular
-        }
-      }
-      this.configNf = nf;
-      var fin1 = bitstream[x + 7][y + 6] ? 'A' : 'B';
-      var fin2 = bitstream[x + 6][y + 6] ? 'B' : 'C';
-      var fin3 = 'Q';
-      if (bitstream[x + 1][y + 6]) {
-        fin3 = 'C';
-      } else if ( bitstream[x + 0][y + 6]) {
-        fin3 = 'D';
-      }
-      this.bitTypes.push([x + 7, y + 6, BITTYPE.clb], [x + 6, y + 6, BITTYPE.clb], [x + 1, y + 6, BITTYPE.clb], [x + 0, y + 6, BITTYPE.clb]);
-
-      var ng = 0;
-      for (var bitnum = 0; bitnum < 8; bitnum++) {
-        bit = bitstream[x + bitnum + 10][y + 7];
-        this.bitTypes.push([x + bitnum + 10, y + 7, BITTYPE.lut]);
-        if (bit) {
-          ng |= 1 << [7, 6, 4, 5, 3, 2, 0, 1][bitnum]; // Ordering of LUT is irregular
-        }
-      }
-      this.configNg = ng;
-      var gin1 = bitstream[x + 11][y + 6] ? 'A' : 'B';
-      var gin2 = bitstream[x + 12][y + 6] ? 'B' : 'C';
-      this.bitTypes.push([x + 11, y + 6, BITTYPE.clb], [x + 12, y + 6, BITTYPE.clb]);
-      var gin3 = 'Q';
-      if ( bitstream[x + 16][y + 6]) {
-        gin3 = 'C';
-      } else if ( bitstream[x + 17][y + 6]) {
-        gin3 = 'D';
-      }
-
-      var str;
-      var fname = 'F'; // The F output used internally; renamed to M for Base FGM.
-      var gname = 'G';
-      this.bitTypes.push([x + 9, y + 7, BITTYPE.clb]);
-      if (bitstream[x + 9][y + 7] != 1) {
-        if (fin1 == gin1 && fin2 == gin2 && fin3 == gin3) {
-          this.configBase = 'F';
-          this.configF = fin1 + ':B:' + fin2 + ':' + fin3;
-          this.configG = '';
-          // F,G combined
-          str = 'F = ' + formula4((nf << 8) | ng, fin1, fin2, fin3, 'B');
-        } else {
-          // MUX
-          this.configBase = 'FGM';
-          this.configF = fin1 + ':' + fin2 + ':' + fin3;
-          this.configG = gin1 + ':' + gin2 + ':' + gin3;
-          fname = 'M';
-          gname = 'M';
-          str = 'F = B*(' + formula3(nf, fin1, fin2, fin3) +
-            ') + ~B*(' + formula3(ng, gin1, gin2, gin3) + ')';
-        }
-      } else {
-        // F, G separate
-        this.configBase = 'FG';
-        this.configF = fin1 + ':' + fin2 + ':' + fin3;
-        this.configG = gin1 + ':' + gin2 + ':' + gin3;
-        str = 'F = ' + formula3(nf, fin1, fin2, fin3);
-        str += '<br/>G = ' + formula3(ng, gin1, gin2, gin3);
-      }
-
-      // Select one of four values based on two index bits
-      function choose4(bit1, bit0, [val0, val1, val2, val3]) {
-        if (bit1) {
-          return bit0 ? val3 : val2;
-        } else {
-          return bit0 ? val1 : val0;
-          }
-        }
-      
-      // Decode X input
-      this.configX = choose4(bitstream[x + 11][y + 5], bitstream[x + 10][y + 5], ['Q', fname, gname, 'UNDEF']);
-      this.bitTypes.push([x + 11, y + 5, BITTYPE.clb], [x + 10, y + 5, BITTYPE.clb]);
-      this.configY = choose4(bitstream[x + 13][y + 5], bitstream[x + 12][y + 5], ['Q', gname, fname, 'UNDEF']);
-      this.bitTypes.push([x + 13, y + 5, BITTYPE.clb], [x + 12, y + 5, BITTYPE.clb]);
-      this.configQ = bitstream[x + 9][y + 5] ? 'LATCH': 'FF';
-      this.bitTypes.push([x + 9, y + 5, BITTYPE.clb]);
-
-      // Figure out flip flop type and clock source. This seems a bit messed up.
-      let clkInvert = bitstream[x + 5][y + 4]; // Invert flag
-      this.bitTypes.push([x + 5, y + 4, BITTYPE.clb]);
-      if (bitstream[x + 9][y + 5]) {
-        clkInvert = !clkInvert; // LATCH flips the clock
-      }
-      if (bitstream[x + 6][y + 4] == 0) {
-        // No clock
-        this.configClk = '';
-      } else {
-        if (bitstream[x + 4][y + 4] == 1) {
-          this.configClk = 'C';
-        } else {
-          // K or G inverted. This seems like a bug in XACT?
-          // Assume not inverted?
-          if (clkInvert) {
-            clkInvert = 0;
-            this.configClk = gname;
-          } else {
-            this.configClk = 'K';
-          }
-        }
-      }
-      this.bitTypes.push([x + 6, y + 4, BITTYPE.clb]);
-      this.bitTypes.push([x + 4, y + 4, BITTYPE.clb]);
-      if (clkInvert) { // Add NOT, maybe with colon separator.
-        if (this.configClk != '') {
-          this.configClk += ':NOT';
-        } else {
-          this.configClk += 'NOT';
-        }
-      }
-
-      this.configSet = choose4(bitstream[x + 3][y + 5], bitstream[x + 2][y + 5], ['A', '', fname, 'BOTH?']);
-      this.bitTypes.push([x + 3, y + 5, BITTYPE.clb], [x + 2, y + 5, BITTYPE.clb]);
-      this.configRes = choose4(bitstream[x + 1][y + 5], bitstream[x + 0][y + 5], ['', 'G?', 'D', gname]);
-      this.bitTypes.push([x + 1, y + 5, BITTYPE.clb], [x + 0, y + 5, BITTYPE.clb]);
-      this.configString = 'X:' + this.configX + ' Y:' + this.configY + ' F:' + this.configF + ' G:' + this.configG + ' Q:' + this.configQ +
-          ' SET:' + this.configSet + ' RES:' + this.configRes + ' CLK:' + this.configClk;
-    }
-
-    config() {
-      return this.configString;
-    }
-
-    describe() {
-      return this.configString;
-    }
-
-    /**
-     * Returns the function of each (known) bit in the bitstream.
-     *
-     * Format: [[x, y, type], ...]
-     */
-    getBitTypes() {
-      return this.bitTypes;
     }
   }
 
@@ -470,57 +345,6 @@ function initNames() {
       ctx.rect(this.screenPt[0] - 1, this.screenPt[1] - 1, 2, 2);
       ctx.stroke();
     }
-
-    decode(bitstream) {
-      if (this.bitPt[0] < 0) {
-        this.state = -1;
-      } else {
-        this.state = bitstream[this.bitPt[0]][this.bitPt[1]];
-      }
-    }
-
-    /**
-     * Returns the function of each (known) bit in the bitstream.
-     *
-     * Format: [[x, y, type], ...]
-     */
-    getBitTypes() {
-      console.log('pip',[this.bitPt[0], this.bitPt[1], BITTYPE.pip]);
-      return [[this.bitPt[0], this.bitPt[1], BITTYPE.pip]];
-    }
-  }
-
-  // There are 9 types of tiles depending on if they are along an edge. (Think of a tic-tac-toe grid.) Most will be the center type.
-  // Maybe we could make 9 subclasses for everything, but for now I'll hardcode types in the code.
-  const TILE = Object.freeze({ul: 1, top: 2, ur: 3, left: 4, center: 5, right: 6, ll: 7, bottom: 8, lr: 9});
-
-  function tileType(x, y) {
-    if (y == 0) {
-      if (x == 0) {
-        return TILE.ul;
-      } else if (x < 8) {
-        return TILE.top;
-      } else if (x == 8) {
-        return TILE.ur;
-      }
-    } else if (y < 8) {
-      if (x == 0) {
-        return TILE.left;
-      } else if (x < 8) {
-        return TILE.center;
-      } else if (x == 8) {
-        return TILE.right;
-      }
-    } else if (y == 8) {
-      if (x == 0) {
-        return TILE.ll;
-      } else if (x < 8) {
-        return TILE.bottom;
-      } else if (x == 8) {
-        return TILE.lr;
-      }
-    }
-    throw "unexpected";
   }
 
   class Tile {
@@ -558,106 +382,24 @@ function initNames() {
       this.switch1 = null;
       this.switch2 = null;
       if (this.type == TILE.ul) {
-
-        // Name of pip and corresponding bitmap entry
-        var pips = [
-          ["col.A.long.2:row.A.long.2", [6, 3]], ["col.A.local.1:row.A.long.2", [7, 3]], ["col.A.long.3:row.A.long.2", [12, 1]],
-          ["col.A.long.2:row.A.local.1", [9, 3]], ["col.A.local.1:row.A.local.1", [8, 3]],
-          ["col.A.local.2:row.A.local.2", [12, 3]],
-          ["col.A.local.3:row.A.local.3", [14, 3]], ["col.A.long.4:row.A.local.3", [17, 0]],
-          ["col.A.local.4:row.A.local.4", [20, 3]],
-          ["col.A.local.4:row.A.long.3", [20, 1]], ["col.A.long.3:row.A.long.3", [13, 3]], ["col.A.long.4:row.A.long.3", [16, 3]]];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
-      } else if (this.type == TILE.top) {
-        var pips = [
-          ["col.COL.long.1:row.A.long.2", [30, 1]],
-          ["col.COL.long.2:row.A.local.1", [33, 3]],
-          ["col.COL.local.5:row.A.local.2", [28, 3]], ["col.COL.long.1:row.A.local.2", [31, 2]],
-          ["col.COL.local.5:row.A.local.3", [29, 2]], ["col.COL.long.2:row.A.local.3", [35, 0]],
-          ["col.COL.long.1:row.A.local.4", [33, 2]],
-          ["col.COL.local.1:row.A.long.3", [23, 2]], ["col.COL.local.4:row.A.long.3", [38, 1]], ["col.COL.long.1:row.A.long.3", [32, 2]], ["col.COL.long.2:row.A.long.3", [32, 3]]];
-
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
-
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1]])));
-
       } else if (this.type == TILE.ur) {
-        var pips = [
-          ["col.I.local.4:row.A.long.2", [152, 4]], ["col.I.long.3:row.A.long.2", [153, 4]],
-          ["col.I.local.0:row.A.local.1", [-1, -1]], ["col.I.local.4:row.A.local.1", [151, 2]], ["col.I.long.3:row.A.local.1", [152, 2]],
-          ["col.I.local.0:row.A.local.2", [-1, -1]], ["col.I.local.3:row.A.local.2", [155, 4]],
-          ["col.I.local.0:row.A.local.3", [-1, -1]], ["col.I.local.2:row.A.local.3", [157, 4]],
-          ["col.I.local.1:row.A.local.4", [156, 4]], ["col.I.local.0:row.A.local.4", [-1, -1]],
-          ["col.I.local.0:row.A.long.3", [-1, -1]], ["col.I.long.1:row.A.long.3", [154, 2]], ["col.I.long.2:row.A.long.3", [153, 2]],
-          ["col.I.long.2:row.A.local.5", [-1, -1]], ["col.I.local.1:row.A.local.5", [-1, -1]], ["col.I.local.2:row.A.local.5", [-1, -1]],  ["col.I.local.3:row.A.local.5", [-1, -1]],  ["col.I.local.4:row.A.local.5", [-1, -1]]];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
-
-        // pins.push(new Iob(11, 58, 'left'));
-        // pins.push(new Iob(9, 1, 'top'));
-        // pins.push(new Iob(8, 2, 'top'));
-      } else if (this.type == TILE.left) {
-        var pips = [
-          ["col.A.long.3:row.ROW.local.1", [9, 11]],
-          ["col.A.long.4:row.ROW.local.3", [11, 11]],
-          ["col.A.long.2:row.ROW.long.1", [5, 11]], ["col.A.local.1:row.ROW.long.1", [4, 11]], ["col.A.local.4:row.ROW.long.1", [17, 11]], ["col.A.long.3:row.ROW.long.1", [10, 11]], ["col.A.long.4:row.ROW.long.1", [15, 11]]];
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
       } else if (this.type == TILE.center) {
-        var pips = [
-          ["col.COL.local.5:row.ROW.local.0", [23, 11]],
-          ["col.COL.long.2:row.ROW.local.1", [32, 11]],
-          ["col.COL.local.5:row.ROW.local.3", [24, 11]], ["col.COL.local.6:row.ROW.local.3", [27, 11]], ["col.COL.long.1:row.ROW.local.3", [28, 11]],
-          ["col.COL.local.5:row.ROW.local.4", [25, 11]], ["col.COL.local.6:row.ROW.local.4", [26, 11]], ["col.COL.long.2:row.ROW.local.4", [33, 11]],
-          ["col.COL.long.1:row.ROW.local.5", [31, 11]],
-          ["col.COL.local.1:row.ROW.long.1", [22, 11]], ["col.COL.local.4:row.ROW.long.1", [35, 11]]];
         // Main part
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1] + yoffset])));
       } else if (this.type == TILE.right) {
-        var pips = [
-          ["col.I.long.2:row.ROW.local.1", [159, 11]],
-          ["col.I.long.1:row.ROW.local.3", [153, 11]],
-          ["col.I.long.2:row.ROW.local.4", [153, 12]],
-          ["col.I.long.1:row.ROW.local.5", [154, 12]],
-          ["col.I.long.1:row.ROW.long.1", [154, 11]], ["col.I.long.2:row.ROW.long.1", [158, 11]], ["col.I.local.1:row.ROW.long.1", [155, 11]], ["col.I.local.4:row.ROW.long.1", [151, 11]], ["col.I.long.3:row.ROW.long.1", [152, 11]]];
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0], pip[1][1] + yoffset])));
       } else if (this.type == TILE.ll) {
         // bottom left
-        var pips = [
-          ["col.A.local.1:row.I.local.0", [-1, -1]], ["col.A.local.2:row.I.local.0", [-1, -1]], ["col.A.local.3:row.I.local.0", [-1, -1]], ["col.A.local.4:row.I.local.0", [-1, -1]], ["col.A.long.3:row.I.local.0", [-1, -1]],
-          ["col.A.local.4:row.I.long.1", [20, 69]], ["col.A.long.3:row.I.long.1", [13, 67]], ["col.A.long.4:row.I.long.1", [16, 67]], ["col.A.local.5:row.I.long.1", [-1, -1]],
-          ["col.A.local.4:row.I.local.1", [20, 67]], ["col.A.local.5:row.I.local.1", [-1, -1]],
-          ["col.A.local.3:row.I.local.2", [14, 67]], ["col.A.long.4:row.I.local.2", [17, 70]], ["col.A.local.5:row.I.local.2", [-1, -1]],
-          ["col.A.local.2:row.I.local.3", [12, 67]], ["col.A.local.5:row.I.local.3", [-1, -1]],
-          ["col.A.long.2:row.I.local.4", [9, 67]], ["col.A.local.1:row.I.local.4", [8, 67]], ["col.A.local.5:row.I.local.4", [-1, -1]],
-          ["col.A.long.2:row.I.long.2", [6, 67]], ["col.A.local.1:row.I.long.2", [7, 67]], ["col.A.long.3:row.I.long.2", [12, 69]]];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
-      } else if (this.type == TILE.bottom) {
-        var pips = [
-          ["col.COL.local.1:row.I.long.1", [23, 68]], ["col.COL.local.4:row.I.long.1", [38, 69]], ["col.COL.long.1:row.I.long.1", [32, 68]], ["col.COL.long.2:row.I.long.1", [32, 67]],
-          ["col.COL.long.1:row.I.local.1", [33, 68]],
-          ["col.COL.local.5:row.I.local.2", [29, 68]], ["col.COL.long.2:row.I.local.2", [35, 70]],
-          ["col.COL.local.5:row.I.local.3", [28, 67]], ["col.COL.long.1:row.I.local.3", [31, 68]],
-          ["col.COL.long.2:row.I.local.4", [33, 67]],
-          ["col.COL.long.1:row.I.long.2", [30, 69]]];
         this.switch1 = new Switch(this, 1);
         this.switch2 = new Switch(this, 2);
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), [pip[1][0] + xoffset, pip[1][1]])));
       } else if (this.type == TILE.lr) {
         // bottom right
-        var pips = [
-          ["col.I.long.1:row.I.long.1", [155, 67]], ["col.I.long.2:row.I.long.1", [158, 67]],
-          ["col.I.local.1:row.I.local.1", [156, 67]],
-          ["col.I.local.2:row.I.local.2", [157, 67]],
-          ["col.I.local.3:row.I.local.3", [154, 67]],
-          ["col.I.local.4:row.I.local.4", [151, 68]], ["col.I.long.3:row.I.local.4", [152, 67]],
-          ["col.I.local.4:row.I.long.2", [151, 67]], ["col.I.long.3:row.I.long.2", [153, 67]]];
-        pips.forEach(pip => this.pips.push(new Pip(rename(pip[0]), pip[1])));
       }
     }
 
@@ -671,43 +413,6 @@ function initNames() {
       }
       this.pips.forEach(pip => pip.draw(ctx));
       this.pins.forEach(pin => pin.draw(ctx));
-    }
-
-    /**
-     * Decode this tile from the bitstream.
-     * Returns string.
-     */
-    decode(bitstream) {
-      var result = ['tile info'];
-      if (this.clb) {
-        result.push(this.clb.decode(bitstream));
-      }
-      if (this.switch1 != null) {
-        result.push(this.switch1.decode(bitstream));
-        result.push(this.switch2.decode(bitstream));
-      }
-      this.pips.forEach(pip => result.push(pip.decode(bitstream)));
-      this.pins.forEach(pin => result.push(pin.decode(bitstream)));
-      return result;
-    }
-
-    /**
-     * Returns the function of each (known) bit in the bitstream.
-     *
-     * Format: [[x, y, type], ...]
-     */
-    getBitTypes() {
-      let result = [];
-      if (this.clb) {
-        result.push(...this.clb.getBitTypes(bitstream));
-      }
-      if (this.switch1 != null) {
-        result.push(...this.switch1.getBitTypes(bitstream));
-        result.push(...this.switch2.getBitTypes(bitstream));
-      }
-      this.pips.forEach(pip => result.push(...pip.getBitTypes(bitstream)));
-      this.pins.forEach(pin => result.push(...pin.getBitTypes(bitstream)));
-      return result;
     }
   }
 
@@ -793,56 +498,6 @@ function initNames() {
       return ((this.tile.type == TILE.top && (pin == 0 || pin == 1)) || (this.tile.type == TILE.bottom && (pin == 4 || pin == 5)) ||
           (this.tile.type == TILE.left && (pin == 6 || pin == 7)) || (this.tile.type == TILE.right && (pin == 2 || pin == 3)));
     }
-
-    decode(bitstream) {
-
-      // bits is a list of [[bitstream x, bitstream y], [pin 1, pin 2]], where the bitstream coordinates are relative to the tile edge.
-      if (this.tile.type == TILE.top && this.num == 1) {
-        var bits = [[[0, 1], [3, 7]], [[1, 1], [5, 6]], [[3, 1], [2, 7]], [[4, 1], [2, 6]], [[5, 1], [2, 4]], [[0, 2], [5, 7]], [[1, 2], [3, 6]], [[2, 2], [3, 5]], [[4, 2], [4, 6]], [[5, 2], [3, 4]]];
-      } else if (this.tile.type == TILE.top && this.num == 2) {
-        var bits = [[[13, 2], [3, 7]], [[14, 2], [3, 6]], [[15, 2], [3, 5]], [[16, 2], [4, 6]], [[17, 2], [2, 4]], [[13, 1], [5, 7]], [[14, 1], [5, 6]], [[15, 1], [2, 7]], [[16, 1], [2, 6]], [[17, 1], [3, 4]]];
-      } else if (this.tile.type == TILE.left && this.num == 1) {
-        var bits = [[[1, 0], [0, 5]], [[2, 0], [3, 5]], [[3, 0], [1, 5]], [[4, 0], [0, 4]], [[5, 0], [1, 4]], [[6, 0], [1, 2]], [[7, 0], [2, 4]], [[8, 0], [3, 4]], [[9, 0], [1, 3]], [[3, 2], [0, 2]]];
-      } else if (this.tile.type == TILE.left && this.num == 2) {
-        var bits = [[[9, 2], [1, 3]], [[16, 2], [0, 4]], [[14, 0], [1, 5]], [[15, 0], [2, 4]], [[16, 0], [0, 5]], [[17, 0], [3, 5]], [[14, 1], [1, 2]], [[15, 1], [1, 4]], [[16, 1], [0, 2]], [[17, 1], [3, 4]]];
-      } else if (this.tile.type == TILE.center && this.num == 1) {
-        var bits = [[[0, 0], [0, 6]], [[1, 0], [0, 7]], [[2, 0], [2, 6]], [[3, 0], [2, 7]], [[4, 0], [0, 4]], [[5, 0], [1, 5]], [[6, 0], [1, 2]], [[7, 0], [3, 4]], [[8, 0], [3, 5]], [[0, 1], [5, 6]], [[1, 1], [3, 7]], [[2, 1], [3, 6]], [[3, 1], [1, 7]], [[4, 1], [4, 6]], [[5, 1], [1, 4]], [[6, 1], [1, 3]], [[7, 1], [2, 4]], [[8, 1], [0, 5]], [[0, 2], [5, 7]], [[8, 2], [0, 2]]];
-      } else if (this.tile.type == TILE.center && this.num == 2) {
-        var bits = [[[9, 0], [4, 6]], [[10, 0], [5, 6]], [[11, 0], [0, 7]], [[12, 0], [0, 4]], [[13, 0], [1, 5]], [[14, 0], [2, 7]], [[15, 0], [3, 7]], [[16, 0], [1, 2]], [[17, 0], [1, 3]], [[9, 1], [1, 4]], [[10, 1], [5, 7]], [[11, 1], [0, 6]], [[12, 1], [0, 5]], [[13, 1], [3, 5]], [[14, 1], [0, 2]], [[15, 1], [3, 6]], [[16, 1], [2, 6]], [[17, 1], [3, 4]], [[9, 2], [1, 7]], [[16, 2], [2, 4]]];
-      } else if (this.tile.type == TILE.right && this.num == 1) {
-        var bits = [[[5, 0], [1, 5]], [[6, 0], [0, 4]], [[7, 0], [1, 7]], [[8, 0], [4, 6]], [[5, 1], [0, 5]], [[6, 1], [1, 4]], [[7, 1], [0, 7]], [[8, 1], [0, 6]], [[5, 2], [5, 6]], [[6, 2], [5, 7]]];
-      } else if (this.tile.type == TILE.right && this.num == 2) {
-        var bits = [[[0, 0], [1, 7]], [[1, 0], [0, 4]], [[2, 0], [0, 7]], [[3, 0], [0, 5]], [[4, 0], [0, 6]], [[0, 1], [1, 4]], [[1, 1], [4, 6]], [[2, 1], [5, 7]], [[3, 1], [1, 5]], [[4, 1], [5, 6]]];
-      } else if (this.tile.type == TILE.bottom && this.num == 1) {
-        var bits = [[[0, 0], [0, 6]], [[1, 0], [2, 7]], [[2, 0], [0, 2]], [[4, 0], [1, 7]], [[5, 0], [1, 2]], [[0, 1], [2, 6]], [[1, 1], [0, 7]], [[3, 1], [3, 6]], [[4, 1], [3, 7]], [[5, 1], [1, 3]]];
-      } else if (this.tile.type == TILE.bottom && this.num == 2) {
-        var bits = [[[13, 0], [2, 6]], [[14, 0], [2, 7]], [[15, 0], [0, 2]], [[16, 0], [1, 7]], [[17, 0], [1, 3]], [[13, 1], [0, 6]], [[14, 1], [0, 7]], [[15, 1], [3, 6]], [[16, 1], [3, 7]], [[17, 1], [1, 2]]];
-      } else {
-        throw "Bad switch";
-      }
-
-      this.wires = [];
-      const self = this;
-      bits.forEach(function([[btX, btY], wire]) {
-        if (bitstream[self.tile.bitPt[0] + btX][self.tile.bitPt[1] + btY] == 1) {
-          self.wires.push(wire);
-        }
-      });
-
-      this.bitTypes = []
-      bits.forEach(function([[btX, btY], wire]) {
-        self.bitTypes.push([self.tile.bitPt[0] + btX, self.tile.bitPt[1] + btY, BITTYPE.switch]);
-      });
-    }
-
-    /**
-     * Returns the function of each (known) bit in the bitstream.
-     *
-     * Format: [[x, y, type], ...]
-     */
-    getBitTypes() {
-      return this.bitTypes;
-    }
   }
 
   /**
@@ -873,48 +528,6 @@ function initNames() {
     return bitstream;
   }
 
-  var bitstream = null;
-  /**
-   * Handles the upload of a .RBT file, storing it into the variable bitstream, which has 160 lines of 71 '0'/'1' characters,
-   * the contents of the .RBT file.
-   */
-  function rbtParse(contents) {
-    rbtstream = null;
-    bitstream = null;
-    var lines = contents.split(/[\r\n]+/);
-    var contents = [];
-    var mode = 'header';
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i]
-      if (mode == 'header') {
-        if (line.startsWith('0') && line.endsWith('111')) {
-          mode = 'data';
-        }
-      }
-      if (mode == 'data') {
-        if (line.startsWith('1111')) {
-          mode = 'done';
-        } else if (line.startsWith('0') && line.endsWith('111')) {
-          mode = 'data';
-          var data = line.slice(1, -3);
-          if (data.length != 71) {
-            alert('Bad line length ' + data.length + ' in .RBT file');
-            return;
-          }
-          contents.push(data);
-        } else {
-          alert('Bad data line in .RBT file');
-          return;
-        }
-      }
-    }
-    if (contents.length != 160) {
-      alert('Wrong number of data lines' + contents.length + ' in .RBT file');
-      return;
-    }
-    return makeDiestream(contents);
-  }
-
   /**
    * An I/O block.
    * Each I/O block is associated with its neighboring tile.
@@ -925,27 +538,31 @@ function initNames() {
    */
   class Iob {
     constructor(name, tilename, x0, y0, style) {
-      this.name = tilename;
+      this.name = name;
       this.tilename = tilename;
       this.x0 = x0;
       this.y0 = y0;
       this.style = style;
     }
 
-    // Inconveniently, some pin wires cross from one tile into another.
-    // This shifts the name by the offset
-    shiftName(name, offset) {
-      return String.fromCharCode(name.charCodeAt(0) + offset);
-    }
-
     // Returns screen position for e.g. 'local.1'
-    colPos(s, offset=0) {
-      return colInfo['col.' + this.shiftName(this.name[1], offset) + '.' + s][1];
+    colPos(s) {
+      const name = 'col.' + this.tilename[1] + '.' + s;
+      try {
+        return colInfo[name][1];
+      } catch {
+        throw "bad name " + name;
+      }
     }
 
     // Returns screen position for e.g. 'local.1'
     rowPos(s) {
-      return rowInfo['row.' + this.name[0] + '.' + s][1];
+      const name = 'row.' + this.tilename[0] + '.' + s;
+      try {
+        return rowInfo[name][1];
+      } catch {
+        throw "bad name " + name;
+      }
     }
 
     draw(ctx) {
@@ -955,49 +572,150 @@ function initNames() {
       ctx.fillStyle = "green";
       ctx.beginPath();
 
-      if (this.style == "topleft") { // top
-        
-        ctx.rect(this.x0, this.y0, 20, 12);
-        ctx.moveTo(this.x0 + 8, this.y0);
-        ctx.lineTo(this.x0 + 8, this.y0 - 2);
-
-        ctx.moveTo(this.x0 + 8, this.y0+ 12);
-        ctx.lineTo(this.x0 + 8, this.y0 + 15);
-        ctx.moveTo(this.x0 + 12, this.y0+ 12);
-        ctx.lineTo(this.x0 + 12, this.y0 + 15);
-        ctx.moveTo(this.x0 + 16, this.y0+ 12);
-        ctx.lineTo(this.x0 + 16, this.y0 + 15);
-        ctx.stroke();
-        fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "topright") { // alternate top
-        let rows = ["local.1", "local.3", "long.3"];
-        rows.forEach(s => ctx.fillRect(this.colPos("clbr1") - 1, this.rowPos(s) - 1, 2, 2));
-        let cols;
-        if (this.name[1] == "H") {
-          cols = ["local.2", "local.4", "long.2", "long.3"];
+      if (this.style == "topleft") { // top, left of pair
+        ctx.beginPath();
+        const W = 20;
+        const H = 12;
+        if (this.tilename[1] == "A") {
+          this.x0 = this.colPos("io3") - 8; // Left edge of box
         } else {
-          cols = ["local.2", "local.4", "long.2", "local.5"];
-          ctx.fillRect(this.colPos("clbr3") - 1, this.rowPos("io1") - 1, 2, 2);
+          this.x0 = this.colPos("x") - 8; // Left edge of box
         }
-        ctx.fillStyle = "yellow";
-        cols.forEach(s => ctx.fillRect(this.colPos(s, 1) - 1, this.rowPos("io1") - 1, 2, 2));
-        ctx.fillStyle = "green";
+        this.y0 = this.rowPos("local.0") + 4; // Top edge of box
+        ctx.rect(this.x0, this.y0, W, H);
+        ctx.stroke();
 
+        // pin.O vertical
+        let cols;
+        // pin O
+        ctx.beginPath();
+        ctx.strokeStyle = 'white';
+        let row;
+        let col;
+        let col2;
+        if (this.tilename[1] == "A") {
+          row = "local.5";
+          col = "io3";
+          col2 = "long.2";
+        } else {
+          row = "io3";
+          col = "x";
+          col2 = "local.1";
+        }
+        ctx.moveTo(this.colPos(col), this.y0 + H);
+        ctx.lineTo(this.colPos(col), this.y0 + H + 3);
+        ctx.moveTo(this.colPos(col), this.y0 + 12);
+        ctx.lineTo(this.colPos(col), this.rowPos(row));
+        ctx.lineTo(this.colPos(col2), this.rowPos(row));
+
+        // pin.I
+        if (this.tilename[1] == "A") {
+          col = "x";
+          row = "io5";
+          col2 = "long.2";
+        } else {
+          col = "clbl2";
+          row = "io4";
+          col2 = "local.2";
+        }
+        ctx.moveTo(this.colPos(col), this.y0 + 12);
+        ctx.lineTo(this.colPos(col), this.y0 + 15);
+        ctx.moveTo(this.colPos(col), this.y0 + 12);
+        ctx.lineTo(this.colPos(col), this.rowPos(row));
+        ctx.lineTo(this.colPos(col2), this.rowPos(row));
+
+        // pin.T
+        if (this.tilename[1] == "A") {
+          col = 'clbl1';
+        } else {
+          col = 'clbl1';
+        }
+        ctx.moveTo(this.colPos(col), this.y0 + 12);
+        ctx.lineTo(this.colPos(col), this.y0 + 15);
+        ctx.lineTo(this.colPos(col), this.rowPos("long.3"));
+
+        // K pin
+        if (this.tilename[1] == "A") {
+          col = "io3";
+        } else {
+          col = "x";
+        }
+        ctx.moveTo(this.colPos(col), this.y0);
+        ctx.lineTo(this.colPos(col), this.y0 - 2);
+        ctx.stroke();
+
+        fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
+      } else if (this.style == "topright") { // IOB on top, with wires to right
+        ctx.beginPath();
+        const W = 20;
+        const H = 12;
+        this.x0 = this.colPos("clbw1") - 4; // Left edge of box
+        this.y0 = this.rowPos("local.0") + 4; // Top edge of box
+        ctx.rect(this.x0, this.y0, W, H);
+        ctx.stroke();
+
+        // pin.O vertical
+        let rows = ["local.1", "local.3", "long.3"];
+        ctx.fillStyle = 'purple';
+        rows.forEach(s => ctx.fillRect(this.colPos("clbw1") - 1, this.rowPos(s) - 1, 2, 2));
+        let cols;
+        // pin O
+        ctx.beginPath();
+        ctx.moveTo(this.colPos('clbw1'), this.y0 + H);
+        ctx.lineTo(this.colPos('clbw1'), this.y0 + H + 3);
+        let row;
+        let col;
+        if (this.tilename[1] == "I") {
+          row = "io3";
+          col = "long.3";
+        } else {
+          row = "io2";
+          col = "long.2";
+        }
+        ctx.moveTo(this.colPos('clbw1'), this.y0 + 12);
+        ctx.lineTo(this.colPos('clbw1'), this.rowPos(row));
+        ctx.lineTo(this.colPos(col), this.rowPos(row));
+
+        // pin.I
+        ctx.moveTo(this.colPos('clbw2'), this.y0 + 12);
+        ctx.lineTo(this.colPos('clbw2'), this.y0 + 15);
+
+        ctx.fillStyle = 'yellow';
         rows = ["local.2", "local.4", "long.2"];
-        rows.forEach(s => ctx.fillRect(this.colPos("clbr2") - 1, this.rowPos(s) - 1, 2, 2));
+        rows.forEach(s => ctx.fillRect(this.colPos("clbw2") - 1, this.rowPos(s) - 1, 2, 2));
+        // pin.I horizontal PIPs
+        if (this.tilename[1] == "I") {
+          cols = ["local.2", "local.4", "long.2", "long.3"];
+          row = "io2";
+        } else {
+          cols = ["local.1", "local.3", "long.1"];
+          row = "local.5";
+        }
+        cols.forEach(s => ctx.fillRect(this.colPos(s, 1) - 1, this.rowPos("local.5") - 1, 2, 2));
+        ctx.moveTo(this.colPos("clbw2"), this.y0 + 12);
+        ctx.lineTo(this.colPos("clbw2"), this.rowPos(row));
+        ctx.lineTo(this.colPos(cols.pop()), this.rowPos(row));
+        ctx.stroke();
+
+        // pin.T
+        if (this.tilename[1] == "I") {
+          row = 'clbw3';
+        } else {
+          row = 'clbw3';
+        }
+        ctx.moveTo(this.colPos(row), this.y0 + 12);
+        ctx.lineTo(this.colPos(row), this.y0 + 15);
+        ctx.lineTo(this.colPos(row), this.rowPos('long.3'));
+        ctx.fillStyle = 'brown';
         rows = ["long.2", "local.1", "local.3", "long.3"];
-        rows.forEach(s => ctx.fillRect(this.colPos("clbr3") - 1, this.rowPos(s) - 1, 2, 2));
-        ctx.rect(this.x0, this.y0, 20, 12);
+        rows.forEach(s => ctx.fillRect(this.colPos(row) - 1, this.rowPos(s) - 1, 2, 2));
+
+        // K pin
         ctx.moveTo(this.x0 + 4, this.y0);
         ctx.lineTo(this.x0 + 4, this.y0 - 2);
-
-        ctx.moveTo(this.x0 + 4, this.y0+ 12);
-        ctx.lineTo(this.x0 + 4, this.y0 + 15);
-        ctx.moveTo(this.x0 + 8, this.y0+ 12);
-        ctx.lineTo(this.x0 + 8, this.y0 + 15);
-        ctx.moveTo(this.x0 + 12, this.y0+ 12);
-        ctx.lineTo(this.x0 + 12, this.y0 + 15);
         ctx.stroke();
+        ctx.fillRect(this.colPos("clbw1") - 1, this.rowPos("local.0") - 1, 2, 2);
+
         fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
       } else if (this.style == "leftdown") { // left
         ctx.rect(this.x0, this.y0, 12, 26);
@@ -1079,61 +797,48 @@ function initNames() {
         fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
       }
     }
-
-    decode(bitstream) {
-     // TODO
-     return [];
-    }
-
-    /**
-     * Returns the function of each (known) bit in the bitstream.
-     *
-     * Format: [[x, y, type], ...]
-     */
-    getBitTypes() {
-      return [];
-    }
   }
 
   var objects = [];
   function initIobs() {
-    function createIob(a, b, c, d, e) {
-      objects.push(new Iob(a, b, c, d, e));
+    function createIob(a, b, c, d, e, f) {
+      objects.push(new Iob(a, b, c, d, e, f));
     };
 
-    createIob("P9", "AA", 62, 6, "topleft");
-    createIob("P8", "AA", 90, 6, "topright");
-    createIob("P7", "AB", 138, 6, "topleft");
-    createIob("P6", "AB", 162, 6, "topright");
-    createIob("P5", "AC", 210, 6, "topleft");
-    createIob("P4", "AC", 234, 6, "topright");
-    createIob("P3", "AD", 282, 6, "topleft");
-    createIob("P2", "AD", 306, 6, "topright");
-    createIob("P68", "AE", 354, 6, "topleft");
-    createIob("P67", "AE", 378, 6, "topright");
-    createIob("P66", "AF", 426, 6, "topleft");
-    createIob("P65", "AF", 450, 6, "topright");
-    createIob("P64", "AG", 498, 6, "topleft");
-    createIob("P63", "AG", 522, 6, "topright");
-    createIob("P62", "AH", 570, 6, "topleft");
-    createIob("P61", "AH", 594, 6, "topright");
+    createIob("P9", "AA", 62, 6, "topleft", "PAD1");
+    createIob("P8", "AB", 90, 6, "topright", "PAD2");
+    createIob("P7", "AB", 138, 6, "topleft", "PAD3");
+    createIob("P6", "AC", 162, 6, "topright", "PAD4");
+    createIob("P5", "AC", 210, 6, "topleft", "PAD5");
+    createIob("P4", "AD", 234, 6, "topright", "PAD6");
+    createIob("P3", "AD", 282, 6, "topleft", "PAD7");
+    createIob("P2", "AE", 306, 6, "topright", "PAD8");
+    createIob("P68", "AE", 354, 6, "topleft", "PAD9");
+    createIob("P67", "AF", 378, 6, "topright", "PAD10");
+    createIob("P66", "AF", 426, 6, "topleft", "PAD11");
+    createIob("P65", "AG", 450, 6, "topright", "PAD12");
+    createIob("P64", "AG", 498, 6, "topleft", "PAD13");
+    createIob("P63", "AH", 522, 6, "topright", "PAD14");
+    createIob("P62", "AH", 570, 6, "topleft", "PAD15");
+    createIob("P61", "AI", 594, 6, "topright", "PAD16");
+    return;
 
     createIob("P27", "HA", 62, 656, "bottomleft");
-    createIob("P28", "HA", 90, 656, "bottomright");
+    createIob("P28", "HB", 90, 656, "bottomright");
     createIob("P29", "HB", 138, 656, "bottomleft");
-    createIob("P30", "HB", 162, 656, "bottomright");
+    createIob("P30", "HC", 162, 656, "bottomright");
     createIob("P31", "HC", 210, 656, "bottomleft");
-    createIob("P32", "HC", 234, 656, "bottomright");
+    createIob("P32", "HD", 234, 656, "bottomright");
     createIob("P33", "HD", 282, 656, "bottomleft");
-    createIob("P34", "HD", 306, 656, "bottomright");
+    createIob("P34", "HE", 306, 656, "bottomright");
     createIob("P36", "HE", 354, 656, "bottomleft");
-    createIob("P37", "HE", 378, 656, "bottomright");
+    createIob("P37", "HF", 378, 656, "bottomright");
     createIob("P38", "HF", 426, 656, "bottomleft");
-    createIob("P39", "HF", 450, 656, "bottomright");
+    createIob("P39", "HG", 450, 656, "bottomright");
     createIob("P40", "HG", 498, 656, "bottomleft");
-    createIob("P41", "HG", 522, 656, "bottomright");
+    createIob("P41", "HH", 522, 656, "bottomright");
     createIob("P42", "HH", 570, 656, "bottomleft");
-    createIob("P43", "HH", 594, 656, "bottomright");
+    createIob("P43", "HI", 594, 656, "bottomright");
 
     for (var i = 0; i < 14; i += 2) {
       if (i == 7) continue;
@@ -1243,24 +948,32 @@ function initNames() {
     objects.forEach(o => o.draw(ctx));
   }
 
-  function decode(bitstream) {
-     var result = [];
-     objects.forEach(o => result.push(...o.decode(bitstream)));
-     $("#info3").html(result.join('<br/>'));
+function pipRender(ctx, pipDecoder) {
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  $("#img").css("display", "none");
+  for (const [name, bit] of Object.entries(pipDecoder.entries)) {
+    const parts = name.split('G');
+    const row = rowFromG[parts[1]];
+    const col = colFromG[parts[0]];
+    if (row == undefined) {
+      console.log('Undefined row', name, parts[1]);
+      continue;
+    }
+    if (col == undefined) {
+      console.log('Undefined col', name, parts[0]);
+      continue;
+    }
+    const x = colInfo[col][1];
+    const y = rowInfo[row][1];
+    if (bit) {
+      ctx.fillStyle = "gray";
+    } else {
+      ctx.fillStyle = "red";
+    }
+    ctx.fillRect(x-1, y-1, 3, 3);
   }
+}
 
-  const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6});
-  /**
-   * Returns the function of each (known) bit in the bitstream.
-   *
-   * Format: [[x, y, type], ...]
-   */
-
-  function getBitTypes() {
-    bitTypes = [];
-     objects.forEach(function(o) {
-       bitTypes.push(...o.getBitTypes(bitstream));
-       });
-    // objects.forEach(o => bitTypes.push(...o.getBitTypes(bitstream)));
-    return bitTypes;
-  }
+function render(ctx) {
+  decoders.forEach(d => d.render(ctx));
+}

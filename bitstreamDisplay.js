@@ -61,7 +61,7 @@ const YSIZE = 9;
     ctx.fillStyle = "black";
     for (var x = 0; x < 160; x++) {
       for (var y = 0; y < 71; y++) {
-        if (getDefaultBit(x, y) == bitstream[x][y]) {
+        if (getDefaultBit(x, y) != bitstream[x][y]) {
           ctx.fillStyle = '#ccc';
           fillText(ctx, bitstream[x][y] == 0 ? ' ' : '1', 1 + x * XSIZE, 7 + y * YSIZE);
         } else {
@@ -76,9 +76,13 @@ const YSIZE = 9;
    * Color the background of the bit display according to function.
    */
   function drawBg(ctx) {
-    const bitTypes = getBitTypes();
-    bitTypes.forEach(function([x, y, type]) {
-      if (type == BITTYPE.lut) {
+    for (let i = 0; i < 160 * 71; i++) {
+      let type = bitTypes[i];
+      let y = 70 - (i % 71);
+      let x = 159 - Math.floor(i / 71);
+      if (type == undefined) {
+        continue;
+      } else if (type == BITTYPE.lut) {
         ctx.fillStyle = '#f88';
       } else if (type == BITTYPE.clb) {
         ctx.fillStyle = '#cfc';
@@ -90,27 +94,22 @@ const YSIZE = 9;
         ctx.fillStyle = '#fcf';
       } else if (type == BITTYPE.iob) {
         ctx.fillStyle = '#ffc';
+      } else if (type == BITTYPE.other) {
+        ctx.fillStyle = '#ccc';
       }
       ctx.fillRect(x * XSIZE, y * YSIZE, XSIZE, YSIZE);
-    });
+    }
   }
 
   // Processes a click on the bitstream image
   function bitstreamClick(x, y) {
-    if (bitstream == null) {
+    if (config == null) {
       return;
     }
-    var xn = Math.trunc(x / XSIZE); // Convert to bit indices
-    var yn = Math.trunc(y / YSIZE);
-    var xinfo = findTileX(xn);
-    var yinfo = findTileY(yn);
-    if (xn >= 0 && xn < 160 && yn >= 0 && yn < 71) {
-      if (xinfo[2] >= 0 && yinfo[2] >= 0) {
-        $("#info3").html(tiles[xinfo[2]][yinfo[2]].decode(bitstream) + '<p>' + xn + ' ' + yn + ' ' + defs[xn][yn]);
-      } else {
-        $("#info3").html(x + ' ' + y + ' ' + xinfo + ' ' + yinfo + '<p>' + xn + ' ' + yn + ' ' + defs[xn][yn]);
-      }
-    }
+    const xn = Math.trunc(x / XSIZE); // Convert to bit indices
+    const yn = Math.trunc(y / YSIZE);
+    const n = (159 - xn) * 71 + (70 - yn);
+    $("#info3").html(xn + ' ' + yn + 'Bit ' + n + ' = ' + rawBitstream[n] + ": " + config[n]);
   }
 
 // Default bitstream for an empty configuration, encoded as 32-bit ints for compactness
@@ -125,15 +124,15 @@ function getDemoBit(x, y) {
 }
 
 function makeDemoBitstream() {
-  var bitstream = new Array(160);
   for (var x = 0; x < 160; x++) {
-    bitstream[x] = new Array(71);
     for (var y = 0; y < 71; y++) {
-      bitstream[x][y] = getDemoBit(x, y);
+      const n = (159 - x) * 71 + (70 - y);
+      rawBitstream[n] = 1 - getDemoBit(x, y);
       
     }
   }
-  return bitstream;
+  bitstreamTable = makeBitstreamTable(rawBitstream);
+  return rawBitstream;
 }
 
 // Hardcoded sample file from TimeWarp board.
