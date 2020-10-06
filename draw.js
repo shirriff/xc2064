@@ -1,13 +1,5 @@
 // From row name to [internal Y coordinate (G), screen Y coordinate]
 var rowInfo = {
- "row.I.local.5": [0, 999],
- "row.I.long.2": [4, 646],
- "row.I.local.4": [6, 642],
- "row.I.local.3": [7, 638],
- "row.I.local.2": [9, 634],
- "row.I.local.1": [10, 630],
- "row.I.long.1": [12, 624],
- "row.I.local.0": [17, 604],
 
  // "row.A.io2": [188, 60], // My invention, I/O above CLB
  "row.A.local.0": [173, 2],
@@ -27,6 +19,20 @@ var rowInfo = {
  "row.A.c": [153, 86], // My invention, input c to CLB
  "row.A.k": [152, 92], // My invention, input k to CLB
  "row.A.y": [151, 96], // My invention, input d to CLB
+
+ "row.I.local.0": [17, 604],
+ "row.I.io1": [16, 608], // My invention
+ "row.I.io2": [15, 612], // My invention
+ "row.I.io3": [14, 616], // My invention
+ "row.I.io4": [13, 620], // My invention
+ "row.I.long.1": [12, 624],
+ "row.I.local.1": [10, 630],
+ "row.I.local.2": [9, 634],
+ "row.I.local.3": [7, 638],
+ "row.I.local.4": [6, 642],
+ "row.I.long.2": [4, 646],
+ "row.I.clk": [3, 652], // My invention
+ "row.I.local.5": [0, 672],
 }
 
 // From column name to [internal X coordinate, screen X coordinate]
@@ -57,7 +63,9 @@ var colInfo = {
  "col.I.clbw1": [162, 598],
  "col.I.clbw2": [163, 602],
  "col.I.clbw3": [164, 606],
+ "col.I.io1": [165, 614], // My invention, the column used just for I/O pins
  "col.I.local.0": [167, 618],
+ "col.I.io2": [168, 622], // My invention, the column used just for I/O pins
  "col.I.long.1": [169, 626],
  "col.I.long.2": [170, 630],
  "col.I.local.1": [172, 636],
@@ -65,7 +73,7 @@ var colInfo = {
  "col.I.local.3": [175, 644],
  "col.I.local.4": [176, 648],
  "col.I.long.3": [178, 652],
- "col.I.local.5": [181, 999],
+ "col.I.local.5": [181, 672],
  "col.I.clb": [999, 999], // My invention
 }
 
@@ -105,9 +113,9 @@ function initNames() {
     // Interpreting die file: row.B.local.1 = die file Y 28 = G 145, i.e. sum=173
     var rstart = 25 + 19 * (7 - i);
     // row.X.io1 is my name for the I/O row below the CLB
-    rowInfo['row.' + name + '.io1'] = [rstart + 12, 100 + 72 * (i-1)];
-    rowInfo['row.' + name + '.io2'] = [rstart + 11, 104 + 72 * (i-1)];
-    rowInfo['row.' + name + '.io3'] = [rstart + 10, 108 + 72 * (i-1)];
+    rowInfo['row.' + name + '.io1'] = [rstart + 11, 100 + 72 * (i-1)];
+    rowInfo['row.' + name + '.io2'] = [rstart + 10, 104 + 72 * (i-1)];
+    rowInfo['row.' + name + '.io3'] = [rstart + 9, 108 + 72 * (i-1)];
     rowInfo['row.' + name + '.local.0'] = [rstart + 7, 112 + 72 * (i-1)];
     rowInfo['row.' + name + '.local.1'] = [rstart + 6, 114 + 72 * (i-1)];
     rowInfo['row.' + name + '.local.3'] = [rstart + 5, 118 + 72 * (i-1)];
@@ -213,7 +221,7 @@ function initNames() {
       ctx.fillStyle = "green";
       fillText(ctx, this.name, x0 + 1, y0 + 8);
 
-      this.drawNetwork(ctx);
+      // this.drawNetwork(ctx);
     }
 
     // Returns screen position for e.g. 'local.1'
@@ -950,7 +958,6 @@ function initNames() {
 
 function pipRender(ctx, pipDecoder) {
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  $("#img").css("display", "none");
   for (const [name, bit] of Object.entries(pipDecoder.entries)) {
     const parts = name.split('G');
     const row = rowFromG[parts[1]];

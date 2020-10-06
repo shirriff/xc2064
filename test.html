@@ -11,6 +11,7 @@
     <div id="qunit-fixture"></div>
     <script src="https://code.jquery.com/qunit/qunit-2.11.2.js"></script>
     <script src="draw.js"></script>
+    <script src="parse.js"></script>
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
     <div id="result"></div>
 </body>
@@ -38,18 +39,6 @@
 
     QUnit.test('test initNames', function(assert) {
       assert.deepEqual(colInfo['col.A.local.1'], [5, 26], 'col.A.local.1');
-    });
-
-    QUnit.test('test pip', function(assert) {
-      bitstream = mkBitstream();
-      let pip = new Pip('col.A.long.2:row.A.local.5', [100, 50]);
-      bitstream[100][50] = 1;
-      pip.decode(bitstream);
-      assert.deepEqual(pip.state, 1);
-
-      bitstream[100][50] = 0;
-      pip.decode(bitstream);
-      assert.deepEqual(pip.state, 0);
     });
 
     QUnit.test('validate tile coords', function(assert) {
@@ -87,7 +76,7 @@
     });
 
     // Reads all the SWn.RBT files and makes sure the appropriate Switch pins are connected.
-    QUnit.test('switch files', function(assert) {
+    QUnit.skip('switch files', function(assert) {
       let done = assert.async(120)
       for (var i = 0; i < 120; i++) {
         // These are all asynchronous because of the file fetching.
@@ -142,7 +131,7 @@
     //
     // The point is that the bitstream is ambiguous at best.
 
-    QUnit.test('test clb', function(assert) {
+    QUnit.skip('test clb', function(assert) {
       let done = assert.async();
       $.get( 'testfiles/CLBTEST.RBT', function(rbt, status) {
         assert.equal(status, "success");

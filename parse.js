@@ -314,15 +314,90 @@ class ClbDecoders {
   }
 }
 
+const muxB = [
+["col.X.local.2:XX.B", "CLK.AA.O:XX.B", "1"],
+["col.X.long.1:XX.B", "col.X.long.2:XX.B", "2"],
+["col.X.local.5:XX.B", "col.X.local.4:XX.B", "3"],
+["XW.X:XX.B", "col.X.local.1:XX.B", "4"],
+["WX.X:XX.B", "col.X.local.3:XX.B", "!5"],
+"0"];
+
+// This implements a mux tree. The XC2064 uses a mux to select
+// Controls: MuxBit: 0-N
+// Input: [["pip0", "pip1", "0"], ["pip2", "pip3", "!1"], ["pip4", "pip5", "2"]], "3"
+// The idea is that MuxBit 0 selects pip0 and pip1, MuxBit 1 low selects pip2 and pip3. Muxbit 3 selects the first (low) or second (high)
+// of the selected pair.
+// Output: list of Pips with correct one activated
+class Mux {
+  constructor(inputs, selector) {
+    this.inputs = inputs;
+    this.selector = selector;
+    this.data = {};
+    this.pips = {};
+  }
+
+  add(bitnum, bit) {
+    this.data[bitnum] = bit;
+    this.data["!" + bitnum] = 1 - bit; // Inverted bit
+  }
+
+  decode() {
+    this.pips = {};
+    inputs.forEach(function([entry0, entry1, muxbit]) {
+      if (this.data[muxbit]) { // This group of two is selected.
+        if (this.data[this.selector]) { // Select between the two
+          // entry1 is active;
+        } else {
+          // entry0 is active
+        }
+      }
+      // Neither is active
+      
+    });
+  }
+}
+
+  /**
+   * Fills in the blanks in a mux entry.
+   * The current tile is represented as XX so the tile to the left is XW and the tile above is WX.
+   */
+
+  function fillInMuxEntries(name, inputs) {
+    const result = [];
+    const col = 'col.' + name[0];
+    const row = 'row.' + name[1];
+    const xx = name;
+    const xw = name[0] + String.fromCharCode(name.charCodeAt(1) - 1);
+    const wx = String.fromCharCode(name.charCodeAt(0) - 1) + name[1];
+    // Substitute one string.
+    function fill(str) {
+      return str.replace('col.X', col).replace('row.X', row).replace('XX', xx).replace('XW', xw).replace('WX', wx);
+    }
+    inputs.forEach(function([entry0, entry1, muxbit]) {
+      result.push([fill(entry0), fill(entry1), muxbit]);
+    });
+    return result;
+  }
+
 class ClbDecoder {
   constructor(name) {
     this.name = name;
+    this.muxs = {};
   }
 
   add(str, bit) {
+    m = str.match(/\.([A-H] MuxBit: (\d)/);
+    if (m) {
+      this.muxs[m[1]].add(m[2], bit);
+    }
+  }
+
+  // Decoded the received data
+  decode() {
   }
 
   render(ctx) {
+    this.decode();
   }
 }
 
