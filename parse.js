@@ -235,7 +235,7 @@ class PipDecoder {
   // or to fold it into one class?
   // For now, separate functions, but called from inside the class.
   render(ctx) {
-    pipRender(ctx, this);
+    pipRender(ctx, this.entries);
   }
 }
 
@@ -329,11 +329,11 @@ const muxB = [
 // of the selected pair.
 // Output: list of Pips with correct one activated
 class Mux {
-  constructor(inputs, selector) {
-    this.inputs = inputs;
-    this.selector = selector;
+  constructor(config) {
+    this.selector = config.pop();
+    this.inputs = config;
     this.data = {};
-    this.pips = {};
+    this.pips = [];
   }
 
   add(bitnum, bit) {
@@ -342,26 +342,68 @@ class Mux {
   }
 
   decode() {
-    this.pips = {};
-    inputs.forEach(function([entry0, entry1, muxbit]) {
-      if (this.data[muxbit]) { // This group of two is selected.
-        if (this.data[this.selector]) { // Select between the two
+    this.pips = [];
+    const self = this;
+    this.inputs.forEach(function([entry0, entry1, muxbit]) {
+      if (self.data[muxbit] == 0) { // This group of two is selected, active low.
+        if (self.data[self.selector]) { // Select between the two
           // entry1 is active;
+          self.pips.push([entry0, 1]);
+          self.pips.push([entry1, 0]); // Active-low
         } else {
           // entry0 is active
+          self.pips.push([entry0, 0]); // Active-low
+          self.pips.push([entry1, 1]);
         }
+      } else {
+        // Neither is active
+        self.pips.push([entry0, 1]);
+        self.pips.push([entry1, 1]);
       }
-      // Neither is active
-      
     });
   }
+
+  render(ctx) {
+    pipRender(ctx, this.pips);
+  }
 }
+
+  /**
+   * Converts a symbolic name to G coordinates.
+   */
+  function nameToG(str) {
+    const m = str.match(/([A-I][A-I])\.8\.(\d)\.(\d)$/);
+    if (str.match(/([A-I][A-I])\.8\.(\d)\.(\d)$/)) {
+      return getSwitchCoords(str)[0];
+    }
+    const parts = str.split(':');
+    const col = colInfo[parts[0]];
+    const row = rowInfo[parts[1]];
+    if (col == undefined || row == undefined) {
+      // console.log("Couldn't convert name", str);
+      return;
+    }
+    return col[0] + "G" + row[0];
+  }
+
+  /**
+   * Converts G coordinates to a symbolic name.
+   */
+  function gToName(str) {
+    const parts = str.split('G');
+    const col = colFromG[parts[0]];
+    const row = rowFromG[parts[1]];
+    if (col == undefined || row == undefined) {
+      // console.log("Couldn't convert name", str);
+      return;
+    }
+    return col + ":" + row;
+  }
 
   /**
    * Fills in the blanks in a mux entry.
    * The current tile is represented as XX so the tile to the left is XW and the tile above is WX.
    */
-
   function fillInMuxEntries(name, inputs) {
     const result = [];
     const col = 'col.' + name[0];
@@ -371,11 +413,13 @@ class Mux {
     const wx = String.fromCharCode(name.charCodeAt(0) - 1) + name[1];
     // Substitute one string.
     function fill(str) {
+      // The string with the XX replaced by the current tile name
       return str.replace('col.X', col).replace('row.X', row).replace('XX', xx).replace('XW', xw).replace('WX', wx);
     }
-    inputs.forEach(function([entry0, entry1, muxbit]) {
-      result.push([fill(entry0), fill(entry1), muxbit]);
-    });
+    for (let i = 0; i < inputs.length - 1; i++) {
+      result.push([nameToG(fill(inputs[i][0])), nameToG(fill(inputs[i][1])), inputs[i][2]]);
+    }
+    result.push(inputs[inputs.length - 1]); // Last entry is a bitNum, not wires.
     return result;
   }
 
@@ -383,21 +427,28 @@ class ClbDecoder {
   constructor(name) {
     this.name = name;
     this.muxs = {};
+    this.muxs['B'] = new Mux(fillInMuxEntries(this.name, muxB));
   }
 
   add(str, bit) {
-    m = str.match(/\.([A-H] MuxBit: (\d)/);
+    const m = str.match(/\.([A-H]) MuxBit: (\d)/);
     if (m) {
-      this.muxs[m[1]].add(m[2], bit);
+      if (this.muxs[m[1]]) {
+        this.muxs[m[1]].add(m[2], bit);
+      } else {
+        console.log('Need to create mux', m[1]);
+      }
     }
   }
 
   // Decoded the received data
   decode() {
+    Object.entries(this.muxs).forEach(([name, mux]) => mux.decode());
   }
 
   render(ctx) {
     this.decode();
+    Object.entries(this.muxs).forEach(([name, mux]) => mux.render(ctx));
   }
 }
 

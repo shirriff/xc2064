@@ -126,7 +126,7 @@ function initNames() {
     // row.X.b is my name for the row through input b
     // row.X.c is my name for the row running through the middle of the CLB, through input c, output y
     // row.X.k is my name for the row through input k
-    // row.X.y is my name for the row through input b
+    // row.X.y is my name for the row through input y
     rowInfo['row.' + name + '.io4'] = [rstart - 1, 136 + 72 * (i-1)];
     rowInfo['row.' + name + '.io5'] = [rstart - 2, 140 + 72 * (i-1)];
     rowInfo['row.' + name + '.io6'] = [rstart - 3, 144 + 72 * (i-1)];
@@ -136,10 +136,108 @@ function initNames() {
     rowInfo['row.' + name + '.y'] = [rstart - 7, 168 + 72 * (i-1)];
   }
 
+  // The e.g. DE.B entries
+  for (let col = 0; col < 8; col++) {
+    for (let row = 0; row < 8; row++) {
+      const fullname = "ABCDEFGH"[row] + "ABCDEFGH"[col];
+      rowInfo[fullname + '.B'] = rowInfo['row.' + "ABCDEFGH"[row] + ".b"];
+      rowInfo[fullname + '.C'] = rowInfo['row.' + "ABCDEFGH"[row] + ".c"];
+      rowInfo[fullname + '.K'] = rowInfo['row.' + "ABCDEFGH"[row] + ".k"];
+      rowInfo[fullname + '.X'] = rowInfo['row.' + "ABCDEFGH"[row] + ".io6"];
+      rowInfo[fullname + '.Y'] = rowInfo['row.' + "ABCDEFGH"[row] + ".y"];
+      // colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[col] + ".clb"];
+    }
+  }
+
   // Make reverse table
   Object.entries(rowInfo).forEach(([key, val]) => rowFromG[val[0]] = key);
   Object.entries(colInfo).forEach(([key, val]) => colFromG[val[0]] = key);
 }
+
+   const pads = [
+
+    ["P9", "AA", "topleft", "PAD1"],
+    ["P8", "AB", "topright", "PAD2"],
+    ["P7", "AB", "topleft", "PAD3"],
+    ["P6", "AC", "topright", "PAD4"],
+    ["P5", "AC", "topleft", "PAD5"],
+    ["P4", "AD", "topright", "PAD6"],
+    ["P3", "AD", "topleft", "PAD7"],
+    ["P2", "AE", "topright", "PAD8"],
+    ["P68", "AE", "topleft", "PAD9"],
+    ["P67", "AF", "topright", "PAD10"],
+    ["P66", "AF", "topleft", "PAD11"],
+    ["P65", "AG", "topright", "PAD12"],
+    ["P64", "AG", "topleft", "PAD13"],
+    ["P63", "AH", "topright", "PAD14"],
+    ["P62", "AH", "topleft", "PAD15"],
+    ["P61", "AI", "topright", "PAD16"],
+
+    ["P59", "AI", "rightlower", "PAD17"],
+    ["P58", "BI", "rightupper", "PAD18"],
+    ["P57", "BI", "rightlower", "PAD19"],
+    ["P56", "CI", "rightupper", "PAD20"],
+    ["P55", "CI", "rightlower", "PAD21"],
+    ["P54", "DI", "rightupper", "PAD22"],
+    ["P53", "DI", "rightlower", "PAD23"],
+    ["P51", "EI", "rightlower", "PAD24"],
+    ["P50", "FI", "rightupper", "PAD25"],
+    ["P49", "FI", "rightlower", "PAD26"],
+    ["P48", "GI", "rightupper", "PAD27"],
+    ["P47", "GI", "rightlower", "PAD28"],
+    ["P46", "HI", "rightupper", "PAD29"],
+
+    ["P43", "HI", "bottomright", "PAD30"],
+    ["P42", "HH", "bottomleft", "PAD31"],
+    ["P41", "HH", "bottomright", "PAD32"],
+    ["P40", "HG", "bottomleft", "PAD33"],
+    ["P39", "HG", "bottomright", "PAD34"],
+    ["P38", "HF", "bottomleft", "PAD35"],
+    ["P37", "HF", "bottomright", "PAD36"],
+    ["P36", "HE", "bottomleft", "PAD37"],
+    ["P34", "HE", "bottomright", "PAD38"],
+    ["P33", "HD", "bottomleft", "PAD39"],
+    ["P32", "HD", "bottomright", "PAD40"],
+    ["P31", "HC", "bottomleft", "PAD41"],
+    ["P30", "HC", "bottomright", "PAD42"],
+    ["P29", "HB", "bottomleft", "PAD43"],
+    ["P28", "HB", "bottomright", "PAD44"],
+    ["P27", "HA", "bottomleft", "PAD45"],
+
+    ["P24", "HA", "leftupper", "PAD46"],
+    ["P23", "GA", "leftlower", "PAD47"],
+    ["P22", "GA", "leftupper", "PAD48"],
+    ["P21", "FA", "leftlower", "PAD49"],
+    ["P20", "FA", "leftupper", "PAD50"],
+    ["P19", "EA", "leftlower", "PAD51"],
+    ["P17", "DA", "leftlower", "PAD52"],
+    ["P16", "DA", "leftupper", "PAD53"],
+    ["P15", "CA", "leftlower", "PAD54"],
+    ["P14", "CA", "leftupper", "PAD55"],
+    ["P13", "BA", "leftlower", "PAD56"],
+    ["P12", "CA", "leftupper", "PAD57"],
+    ["P11", "CA", "leftlower", "PAD58"],
+    ];
+
+  /*
+  function generate IoPips(pads) {
+    pads.forEach(function([pin, tile, direction, pad]) {
+      if (direction == "topleft") {
+      K, row.A.local.0
+      O:
+        row.A.local.1:PAD2.O vs col.C.long.2:row.A.local.1
+        row.A.local.3:PAD2.O vs col.C.long.2:row.A.local.3
+        row.A.long.1:PAD2.O vs col.C.long.2:row.A.local.3
+        col.E.local.2:PAD8.O
+      T:
+        row.A.long.2:PAD2.T vs row.A.long.2:row.R.clbw3 
+        row.A.local.1:PAD2.T vs row.A.local.1:row.R.clbw3 
+        row.A.local.3:PAD2.T vs row.A.local.3:row.R.clbw3 
+        row.A.long.3:PAD2.T vs row.A.long.3:row.R.clbw3 
+      }
+    });
+  }
+  */
 
   // Bit position starts for the tiles A through I. Note there is I/O before A and buffers between C-D and F-G.
   var xTileStarts = [3, 21, 39, 59, 77, 95, 115, 133, 151];
@@ -466,46 +564,88 @@ function initNames() {
         return [this.screenPt[0] + [2, 6, 9, 9, 6, 2, 0, 0][pin],
                 this.screenPt[1] + [0, 0, 2, 6, 9, 9, 6, 2][pin]];
     }
+   /**
+    * Draws the internal wire between pin1 and pin2.
+    */
+   drawWires(ctx) {
+     ctx.beginPath();
+     const self = this;
+     ctx.strokeStyle = 'blue';
+     this.wires.forEach(function([pin1, pin2]) {
+       var coord1 = self.pinCoord(pin1);
+       var coord2 = self.pinCoord(pin2);
+       ctx.moveTo(coord1[0], coord1[1]);
+       ctx.lineTo(coord2[0], coord2[1]);
+     });
+     ctx.stroke();
+   }
 
-    /**
-     * Draws the internal wire between pin1 and pin2.
-     */
-    drawWires(ctx) {
-      ctx.beginPath();
-      const self = this;
-      ctx.strokeStyle = 'blue';
-      this.wires.forEach(function([pin1, pin2]) {
-        var coord1 = self.pinCoord(pin1);
-        var coord2 = self.pinCoord(pin2);
-        ctx.moveTo(coord1[0], coord1[1]);
-        ctx.lineTo(coord2[0], coord2[1]);
-      });
-      ctx.stroke();
-      
+   draw(ctx) {
+     ctx.strokeStyle = "red";
+     ctx.beginPath();
+     var x0 = this.screenPt[0];
+     var y0 = this.screenPt[1];
+     ctx.rect(x0, y0, 8, 8);
+     // Draw the pins
+     for (var i = 0; i < 8; i++) {
+       if (this.skip(i)) continue;
+       var coord = this.pinCoord(i);
+       ctx.moveTo(coord[0], coord[1]);
+       ctx.lineTo(coord[0] + [0, 0, 2, 2, 0, 0, -2, -2][i], coord[1] + [-2, -2, 0, 0, 2, 2, 0, 0][i]);
+     }
+     ctx.stroke();
+     this.drawWires(ctx);
+   }
+ 
+   // Helper to remove pins from switches along edges.
+   skip(pin) {
+     return ((this.tile.type == TILE.top && (pin == 0 || pin == 1)) || (this.tile.type == TILE.bottom && (pin == 4 || pin == 5)) ||
+         (this.tile.type == TILE.left && (pin == 6 || pin == 7)) || (this.tile.type == TILE.right && (pin == 2 || pin == 3)));
+   }
+ }
+
+  /**
+   * Returns switch matrix point info: G coordinate and screen coordinate.
+   * Name = e.g. HB.8.1.4
+   * Returns e.g. ["28G29", 123, 234]
+   */
+  function getSwitchCoords(name) {
+    const m = name.match(/([A-I][A-I])\.8\.(\d)\.(\d)$/);
+    if (m == undefined) {
+      throw "Bad name " + name;
     }
-
-    draw(ctx) {
-      ctx.strokeStyle = "red";
-      ctx.beginPath();
-      var x0 = this.screenPt[0];
-      var y0 = this.screenPt[1];
-      ctx.rect(x0, y0, 8, 8);
-      // Draw the pins
-      for (var i = 0; i < 8; i++) {
-        if (this.skip(i)) continue;
-        var coord = this.pinCoord(i);
-        ctx.moveTo(coord[0], coord[1]);
-        ctx.lineTo(coord[0] + [0, 0, 2, 2, 0, 0, -2, -2][i], coord[1] + [-2, -2, 0, 0, 2, 2, 0, 0][i]);
+    const tilename = m[1];
+    let switchNum = parseInt(m[2], 10);
+    const pinNum = parseInt(m[3], 10);
+    // The switch pair's upper left wires are local.1
+    var row = rowInfo['row.' + tilename[0] + '.local.1'];
+    var col = colInfo['col.' + tilename[1] + '.local.1'];
+    let gPt; // G coordinate of the switch
+    let screenPt // screen coordinate of the switch
+    if (tilename[0] == "I") {
+      // The bottom switches are mirror-imaged, inconveniently. So the Y values are swapped.
+      if (switchNum == 1) {
+        gPt =[col[0], row[0] - 2]
+        screenPt = [col[1] - 2, row[1] - 2 + 8];
+      } else {
+        gPt = [col[0] + 3, row[0] + 1];
+        screenPt = [col[1] - 2 + 8, row[1] - 2];
       }
-      ctx.stroke();
-      this.drawWires(ctx);
+    } else {
+      if (switchNum == 1) {
+        gPt =[col[0], row[0] + 1]
+        screenPt = [col[1] - 2, row[1] - 2];
+      } else {
+        gPt = [col[0] + 3, row[0] - 2];
+        screenPt = [col[1] - 2 + 8, row[1] - 2 + 8];
+      }
     }
+    // Calculate pin coords from the switch coords.
+    const pinGpt = (gPt[0] + [0, 1, 2, 2, 1, 0, -1, -1][pinNum]) + "G" +
+        (gPt[1] + [0, 0, -1, -2, -3, -3, -2, -1][pinNum]);
 
-    // Helper to remove pins from switches along edges.
-    skip(pin) {
-      return ((this.tile.type == TILE.top && (pin == 0 || pin == 1)) || (this.tile.type == TILE.bottom && (pin == 4 || pin == 5)) ||
-          (this.tile.type == TILE.left && (pin == 6 || pin == 7)) || (this.tile.type == TILE.right && (pin == 2 || pin == 3)));
-    }
+    return [pinGpt, screenPt[0] + [2, 6, 9, 9, 6, 2, 0, 0][pinNum],
+            screenPt[1] + [0, 0, 2, 6, 9, 9, 6, 2][pinNum]];
   }
 
   /**
@@ -829,21 +969,20 @@ function initNames() {
     createIob("P63", "AH", 522, 6, "topright", "PAD14");
     createIob("P62", "AH", 570, 6, "topleft", "PAD15");
     createIob("P61", "AI", 594, 6, "topright", "PAD16");
-    return;
 
-    createIob("P27", "HA", 62, 656, "bottomleft");
-    createIob("P28", "HB", 90, 656, "bottomright");
-    createIob("P29", "HB", 138, 656, "bottomleft");
-    createIob("P30", "HC", 162, 656, "bottomright");
-    createIob("P31", "HC", 210, 656, "bottomleft");
-    createIob("P32", "HD", 234, 656, "bottomright");
-    createIob("P33", "HD", 282, 656, "bottomleft");
-    createIob("P34", "HE", 306, 656, "bottomright");
-    createIob("P36", "HE", 354, 656, "bottomleft");
-    createIob("P37", "HF", 378, 656, "bottomright");
-    createIob("P38", "HF", 426, 656, "bottomleft");
-    createIob("P39", "HG", 450, 656, "bottomright");
-    createIob("P40", "HG", 498, 656, "bottomleft");
+    createIob("P27", "HA", 62, 656, "bottomleft", "PAD17");
+    createIob("P28", "HB", 90, 656, "bottomright", "PAD18");
+    createIob("P29", "HB", 138, 656, "bottomleft", "PAD19");
+    createIob("P30", "HC", 162, 656, "bottomright", "PAD20");
+    createIob("P31", "HC", 210, 656, "bottomleft", "PAD21");
+    createIob("P32", "HD", 234, 656, "bottomright", "PAD22");
+    createIob("P33", "HD", 282, 656, "bottomleft", "PAD23");
+    createIob("P34", "HE", 306, 656, "bottomright", "PAD24");
+    createIob("P36", "HE", 354, 656, "bottomleft", "PAD25");
+    createIob("P37", "HF", 378, 656, "bottomright", "PAD26");
+    createIob("P38", "HF", 426, 656, "bottomleft", "PAD27");
+    createIob("P39", "HG", 450, 656, "bottomright", "PAD28");
+    createIob("P40", "HG", 498, 656, "bottomleft", "PAD29");
     createIob("P41", "HH", 522, 656, "bottomright");
     createIob("P42", "HH", 570, 656, "bottomleft");
     createIob("P43", "HI", 594, 656, "bottomright");
@@ -956,9 +1095,11 @@ function initNames() {
     objects.forEach(o => o.draw(ctx));
   }
 
-function pipRender(ctx, pipDecoder) {
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  for (const [name, bit] of Object.entries(pipDecoder.entries)) {
+/**
+ * Renders a set of pips, specified in entries. Each entry is {"nGn": 0/1}.
+ */
+function pipRender(ctx, entries) {
+  for (const [name, bit] of Object.entries(entries)) {
     const parts = name.split('G');
     const row = rowFromG[parts[1]];
     const col = colFromG[parts[0]];
