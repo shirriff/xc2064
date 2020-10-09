@@ -3,6 +3,7 @@ var rowInfo = {
 
  // "row.A.io2": [188, 60], // My invention, I/O above CLB
  "row.A.local.0": [173, 2],
+ "CLK.AA.O": [170, 22],
  "row.A.long.2": [169, 26],
  "row.A.local.1": [167, 30],
  "row.A.local.2": [166, 34],
@@ -37,7 +38,7 @@ var rowInfo = {
 
 // From column name to [internal X coordinate, screen X coordinate]
 var colInfo = {
- "col.A.local.0": [0, 999],
+ "col.A.local.0": [0, 2],
  "col.A.long.2": [3, 22],
  "col.A.local.1": [5, 26],
  "col.A.local.2": [6, 30],
@@ -215,29 +216,151 @@ function initNames() {
     ["P15", "CA", "leftlower", "PAD54"],
     ["P14", "CA", "leftupper", "PAD55"],
     ["P13", "BA", "leftlower", "PAD56"],
-    ["P12", "CA", "leftupper", "PAD57"],
-    ["P11", "CA", "leftlower", "PAD58"],
+    ["P12", "BA", "leftupper", "PAD57"],
+    ["P11", "AA", "leftlower", "PAD58"],
     ];
 
-  /*
-  function generate IoPips(pads) {
-    pads.forEach(function([pin, tile, direction, pad]) {
-      if (direction == "topleft") {
-      K, row.A.local.0
-      O:
-        row.A.local.1:PAD2.O vs col.C.long.2:row.A.local.1
-        row.A.local.3:PAD2.O vs col.C.long.2:row.A.local.3
-        row.A.long.1:PAD2.O vs col.C.long.2:row.A.local.3
-        col.E.local.2:PAD8.O
-      T:
-        row.A.long.2:PAD2.T vs row.A.long.2:row.R.clbw3 
-        row.A.local.1:PAD2.T vs row.A.local.1:row.R.clbw3 
-        row.A.local.3:PAD2.T vs row.A.local.3:row.R.clbw3 
-        row.A.long.3:PAD2.T vs row.A.long.3:row.R.clbw3 
-      }
-    });
+  let ioPips = [];
+  const gToIob = {};
+  /**
+   * Draw the specified pip.
+   * The name row and column are substituted into the pip.
+   * Returns G coordinate, screen X coordinate, screen Y
+   */
+  function processIoPip(ctx, pip, name, pad) {
+    let parts = pip.split(':');
+    let pipname;
+    if (parts[0].includes('?')) {
+      parts[0] = parts[0].replace('col.?', 'col.' + name[1]);
+      pipname = parts[1] + ':' + pad;
+    } else if (parts[1].includes('?')) {
+      parts[1] = parts[1].replace('row.?', 'row.' + name[0]);
+      pipname = parts[0] + ':' + pad;
+    } else {
+      console.log('No variable in pip name', pip);
+    }
+    let col = colInfo[parts[0]];
+    let row = rowInfo[parts[1]];
+    if (col == undefined || row == undefined) {
+      console.log('Bad Iob pip', pip, name);
+      return;
+    }
+    ctx.fillRect(col[1] - 1, row[1] - 1, 3, 3);
+    gCoord = col[0] + "G" + row[0];
+    console.log(parts[0], parts[1], gCoord, col, row, pipname);
+    gToIob[gCoord] = pipname;
+    return [gCoord, col, row, pipname];
   }
-  */
+
+  function generateIobPips(ctx, pads) {
+    pads.forEach(function([pin, tile, direction, pad]) {
+      console.log(pin, tile, direction, pad);
+      let k = [];
+      let o = [];
+      let i = [];
+      let t = [];
+      if (direction == "topleft" && tile == 'AA') {
+        k = ["col.?.io3:row.A.local.0"];
+        o = [ "col.?.io3:CLK.AA.O",
+              "col.?.io3:row.A.long.2",
+              "col.?.io3:row.A.local.2",
+              "col.?.io3:row.A.local.4",
+              "col.A.long.3:row.?.local.5",
+              "col.A.local.3:row.?.local.5",
+              "col.A.local.1:row.?.local.5",
+              "col.A.long.2:row.?.local.5"];
+        i = ["col.?.x:row.A.local.1", "col.?.x:row.A.local.3", "col.?.x:row.A.long.3",
+          "col.A.io2:row.?.io5", "col.A.long.4:row.?.io5",
+          "col.A.local.4:row.?.io5", "col.A.local.2:row.?.io5",
+          "col.A.long.2:row.?.io5" ];
+        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
+      } else if (direction == "topleft") {
+        k = ["col.?.x:row.A.local.0"];
+        o = ["col.?.x:row.A.long.2", "col.?.x:row.A.local.2",
+              "col.?.x:row.A.local.4",
+              "col.?.long.1:row.A.io3",
+              "col.?.local.3:row.A.io3",
+              "col.?.local.1:row.A.io3"];
+        i = ["col.?.clbl2:row.A.local.1", "col.?.clbl2:row.A.local.3", "col.?.clbl2:row.A.long.3",
+              "col.?.long.2:row.A.io4", "col.?.local.5:row.A.io4", "col.?.local.4:row.A.io4",
+              "col.?.local.2:row.A.io4"];
+        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
+      } else if (direction == "topright" && tile == "AI") {
+        k = ["col.?.clbw1:row.A.local.0"];
+        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
+              "col.H.clbr3:row.A.io3", "col.I.long.1:row.A.io3", "col.I.local.1:row.A.io3", "col.I.local.3:row.A.io3", "col.I.long.3:row.A.io3",];
+        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
+              "col.I.long.2:row.A.io2", "col.I.local.2:row.A.io2", "col.I.local.4:row.A.io2", "col.I.long.3:row.A.io2"];
+        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
+      } else if (direction == "topright") {
+        k = ["col.?.clbw1:row.A.local.0"];
+        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
+              "col.?.clbw3:row.A.io2", "col.?.local.2:row.A.io2", "col.?.local.4:row.A.io2", "col.?.local.5:row.A.io2",
+              "col.?.long.2:row.A.io2"];
+        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
+"col.?.local.1:row.A.local.5", "col.?.local.3:row.A.local.5", "col.?.long.1:row.A.local.5",];
+        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
+      } else if (direction == "rightlower") {
+        k = [ "col.I.local.5:row.?.io1"];
+        t = [ "col.I.local.5:row.?.io1", "col.I.long.3:row.?.io1", "col.I.local.4:row.?.io1",
+"col.I.local.2:row.?.io1", "col.I.long.2:row.?.io1"];
+        i = [ "col.I.long.3:row.?.io2", "col.I.local.3:row.?.io2", "col.I.local.1:row.?.io2",
+"col.I.long.1:row.?.io2", "undefined:row.?.local.3", "undefined:row.?.local.5"];
+        o = [ "col.I.local.4:row.?.io3", "col.I.local.2:row.?.io3", "col.I.long.2:row.?.io3",
+"col.I.io1:row.?.local.1", "col.I.io1:row.?.local.4", "col.I.io1:row.?.long.1"];
+      } else if (direction == "rightupper") {
+        k = [ "col.I.local.5:row.?.io4"];
+        t = [ "col.I.long.3:row.?.io4", "col.I.local.4:row.?.io4", "col.I.local.2:row.?.io4", "col.I.long.2:row.?.io4",];
+        i = [ "col.I.local.4:row.?.io5", "col.I.local.2:row.?.io5", "col.I.long.2:row.?.io5", "col.I.io2:row.?.long.1", "col.I.io2:row.?.local.4", "col.I.io2:row.?.local.1",];
+        o = [ "col.I.long.3:?H.X", "col.I.local.3:?H.X", "col.I.local.1:?H.X", "col.I.long.1:?H.X", "col.I.local.0:row.?.local.5", "col.I.local.0:row.?.local.3",]
+      } else if (direction == "bottomright" && tile == "HI") {
+        k = [ "col.H.clbr1:row.I.local.5"];
+        o = [ "col.H.clbr1:row.I.clk", "col.H.clbr1:row.I.local.4", "col.H.clbr1:row.I.local.2", "col.H.clbr1:row.I.long.1", "col.H.clbr3:row.I.io2", "col.I.long.2:row.I.io2", "col.I.local.2:row.I.io2", "col.I.local.4:row.I.io2", "col.I.long.3:row.I.io2",];
+        i = [ "col.H.clbr2:row.I.long.2", "col.H.clbr2:row.I.local.3", "col.H.clbr2:row.I.local.1", "undefined:row.I.io3", "col.I.long.1:row.I.io3", "col.I.local.1:row.I.io3", "col.I.local.3:row.I.io3", "col.I.long.3:row.I.io3",];
+        t = [ "col.H.clbr3:row.I.long.2", "col.H.clbr3:row.I.local.4", "col.H.clbr3:row.I.local.2", "col.H.clbr3:row.I.long.1",];
+      } else if (direction == "bottomright") {
+        k = [ "col.?.clbw1:row.I.local.5"];
+        o = [ "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1", "col.?.clbw3:row.I.io3", "col.?.local.2:row.I.io3", "col.?.local.4:row.I.io3", "col.?.local.5:row.I.io3", "col.?.long.2:row.I.io3",];
+"",
+        i = [ "col.?.clbw2:row.I.long.2", "col.?.clbw2:row.I.local.3", "col.?.clbw2:row.I.local.1", "col.?.local.1:row.I.io4", "col.?.local.3:row.I.io4", "col.?.long.1:row.I.io4",];
+"",
+        t = [ "col.?.clbw3:row.I.long.2", "col.?.clbw3:row.I.local.4", "col.?.clbw3:row.I.local.2", "col.?.clbw3:row.I.long.1",];
+      } else if (direction == "bottomleft" && tile == "HA") {
+        k = [ "col.A.io3:row.I.local.5",];
+        o = [ "col.A.io3:row.I.long.2", "col.A.io3:row.I.local.3", "col.A.io3:row.I.local.1", "col.A.long.3:row.I.io2",
+          "col.A.local.3:row.I.io2", "col.A.local.1:row.I.io2", "col.A.long.2:row.I.io2",];
+        i = [ "col.A.x:row.I.local.4", "col.A.x:row.I.local.2", "col.A.x:row.I.long.1", "col.A.long.4:row.I.io1", "col.A.local.4:row.I.io1", "col.A.local.2:row.I.io1", "col.A.long.2:row.I.io1",];
+        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
+      } else if (direction == "bottomleft") {
+        k = [ "col.?.x:row.I.local.5",];
+        o = [ "col.?.x:row.I.long.2", "col.?.x:row.I.local.3", "col.?.x:row.I.local.1", "col.?.long.1:row.I.io2", "col.?.local.3:row.I.io2", "col.?.local.1:row.I.io2",];
+        i = [ "col.?.clbl2:row.I.local.4", "col.?.clbl2:row.I.local.2", "col.?.clbl2:row.I.long.1",
+        "col.?.long.2:row.I.io1", "col.?.local.5:row.I.io1", "col.?.local.4:row.I.io1", "col.?.local.2:row.I.io1"];
+        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
+      } else if (direction == "leftupper") {
+        k = [ "col.A.local.0:row.?.io4",];
+        t = [ "col.A.long.2:row.?.io4", "col.A.local.1:row.?.io4", "col.A.local.3:row.?.io4", "col.A.long.3:row.?.io4",];
+        i = [ "col.A.long.2:row.?.io5", "col.A.local.1:row.?.io5", "col.A.local.3:row.?.io5", "col.A.long.3:row.?.io5", "col.A.local.5:row.?.local.5",];
+        o = [ "col.A.local.2:?H.X", "col.A.local.4:?H.X", "col.A.long.4:?H.X", "col.A.io1:row.?.long.1", "col.A.io1:row.?.local.4", "col.A.io1:row.?.local.1",];
+      } else if (direction == "leftlower") { 
+        k = [ "col.A.local.0:row.?.io1",];
+        t = [ "col.A.long.2:row.?.io1", "col.A.local.1:row.?.io1", "col.A.local.3:row.?.io1", "col.A.long.3:row.?.io1",];
+        i = [ "col.A.local.2:row.?.io2", "col.A.local.4:row.?.io2", "col.A.long.4:row.?.io2", "col.A.io3:row.?.local.4", "col.A.io3:row.?.long.1",];
+        o = [ "col.A.long.2:row.?.io3", "col.A.local.1:row.?.io3", "col.A.local.3:row.?.io3", "col.A.long.3:row.?.io3", "col.A.io2:row.?.local.3",];
+      } else { 
+        return;
+      }
+      ctx.fillStyle = "red";
+      k.forEach(p => processIoPip(ctx, p, tile, pad + ".K"));
+      ctx.fillStyle = "green";
+      o.forEach(p => processIoPip(ctx, p, tile, pad + ".O"));
+      ctx.fillStyle = "blue";
+      i.forEach(p => processIoPip(ctx, p, tile, pad + ".I"));
+      ctx.fillStyle = "yellow";
+      t.forEach(p => processIoPip(ctx, p, tile, pad + ".T"));
+    });
+    return ioPips;
+  }
 
   // Bit position starts for the tiles A through I. Note there is I/O before A and buffers between C-D and F-G.
   var xTileStarts = [3, 21, 39, 59, 77, 95, 115, 133, 151];
@@ -952,6 +1075,7 @@ function initNames() {
     function createIob(a, b, c, d, e, f) {
       objects.push(new Iob(a, b, c, d, e, f));
     };
+    return;
 
     createIob("P9", "AA", 62, 6, "topleft", "PAD1");
     createIob("P8", "AB", 90, 6, "topright", "PAD2");
@@ -1019,12 +1143,6 @@ function initNames() {
     }
   }
 
-  function init() {
-    initNames();
-    initIobs();
-    initTiles();
-  }
-
   function fillText(ctx, text, x, y) {
     ctx.fillText(text, x + 0.5, y + 0.5);
   }
@@ -1035,52 +1153,12 @@ function initNames() {
     }
   }
 
-  // Processes a click on the Layout image
-  function layoutClick(x, y) {
-    if (bitstream == null) {
-      // return;
-    }
-    const XOFF = 24;
-    const YOFF = 30;
-    const xmod = (x - XOFF) % 72;
-    const ymod = (y - YOFF) % 72;
-    let tilex = Math.floor((x - XOFF) / 72);
-    let tiley = Math.floor((y - YOFF) / 72);
-    tilex = Math.max(Math.min(tilex, 8), 0); // Clamp to range 0-8
-    tiley = Math.max(Math.min(tiley, 8), 0); // Clamp to range 0-8
-    const name = "ABCDEFGHI"[tiley] + "ABCDEFGHI"[tilex];
-    let prefix = '';
-    if (x < 20) {
-       prefix = 'pin';
-       // pins
-    } else if (x > 654) {
-       prefix = 'pin';
-       // pins
-    } else if (y < 20) {
-       prefix = 'pin';
-      // pins
-    } else if (y > 654) {
-       prefix = 'pin';
-      // pins
-    } else if (xmod > 54  && ymod >= 36 && tilex < 8 && tiley < 8 ) {
-      // inside clb
-      prefix = 'CLB: ';
-      if (tiles[tilex][tiley].clb) {
-        let text = tiles[tilex][tiley].clb.describe();
-        if (text != '') {
-          $("#info3").html(text);
-          return;
-          }
-        }
-    }
-    $("#info3").html(prefix + name + ' ' + x + ' ' + y + '; ' + tilex + ' ' + xmod + ', ' + tiley + ' ' + ymod);
-  }
-
+const SCALE = 2;
 
   function drawLayout(ctx) {
     ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
-    const HEIGHT = 680
-    const WIDTH = 680;
+    const HEIGHT = 680 * SCALE;
+    const WIDTH = 680 * SCALE;
     ctx.canvas.height = HEIGHT;
     ctx.canvas.width = WIDTH;
     $("#container").css('height', HEIGHT + 'px');
@@ -1090,9 +1168,13 @@ function initNames() {
     $("#info3").css('clear', 'none');
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.translate(0.5, 0.5); // Prevent antialiasing
+    ctx.scale(SCALE, SCALE);
+    $("#img").width(WIDTH);
+    $("#img").height(HEIGHT);
     ctx.lineWidth = 1;
     ctx.lineCap = 'butt';
     objects.forEach(o => o.draw(ctx));
+    ioPips = generateIobPips(ctx, pads);
   }
 
 /**
@@ -1125,3 +1207,4 @@ function pipRender(ctx, entries) {
 function render(ctx) {
   decoders.forEach(d => d.render(ctx));
 }
+

@@ -390,6 +390,9 @@ class Mux {
    * Converts G coordinates to a symbolic name.
    */
   function gToName(str) {
+    if (gToIob[str]) {
+      return gToIob[str];
+    }
     const parts = str.split('G');
     const col = colFromG[parts[0]];
     const row = rowFromG[parts[1]];
@@ -1057,21 +1060,13 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     initTiles();
   }
 
-  function fillText(ctx, text, x, y) {
-    ctx.fillText(text, x + 0.5, y + 0.5);
-  }
-
-  function vtext(ctx, text, x, y) {
-    for (var i = 0 ; i < text.length; i++) {
-      fillText(ctx, text[i], x, y + 8 * i);
-    }
-  }
-
   // Processes a click on the Layout image
   function layoutClick(x, y) {
     if (bitstreamTable == null) {
       // return;
     }
+    x = Math.floor(x / SCALE);
+    y = Math.floor(y / SCALE);
     const XOFF = 24;
     const YOFF = 30;
     const xmod = (x - XOFF) % 72;
@@ -1112,3 +1107,21 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     $("#info3").html(prefix + name + ' ' + x + ' ' + y + '; ' + tilex + ' ' + xmod + ', ' + tiley + ' ' + ymod);
   }
 
+function layoutClickInfo(x, y) {
+  x = Math.floor(x / SCALE);
+  y = Math.floor(y / SCALE);
+  let col;
+  let row;
+  Object.entries(colInfo).forEach(function([k, v]) {
+    if (Math.abs(v[1] - x) < 3) {
+      col = k;
+    }
+  });
+  Object.entries(rowInfo).forEach(function([k, v]) {
+    if (Math.abs(v[1] - y) < 3) {
+      row = k;
+    }
+  });
+  $("#info0").html(x + ' ' + y + ' ' + col + ' ' + row);
+  console.log(col + ':' + row);
+}

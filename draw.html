@@ -75,6 +75,14 @@ $(document).ready(function() {
       }
     });
 
+    $("#canvas").click(function(e) {
+      var offset = $(this).offset();
+      var x = e.pageX - offset.left;
+      var y = e.pageY - offset.top;
+      if (canvasMode() == 'layout') {
+        layoutClickInfo(x, y);
+      }
+    });
 
     $("#demo").click(function() {
       rawBitstream = makeDemoBitstream();
@@ -142,6 +150,7 @@ $(document).ready(function() {
 <input type="checkbox" id="labels" value="Labels" checked>Labels</input>
 <input type="checkbox" id="colors" value="Colors">Colors</input>
 </span>
+<div id="info0"></div>
 </div>
 <div id="info"></div>
 <div id="info2"> </div>
