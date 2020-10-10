@@ -174,18 +174,18 @@ function initNames() {
     ["P62", "AH", "topleft", "PAD15"],
     ["P61", "AI", "topright", "PAD16"],
 
-    ["P59", "AI", "rightlower", "PAD17"],
+    ["P59", "BI", "rightlower", "PAD17"],
     ["P58", "BI", "rightupper", "PAD18"],
-    ["P57", "BI", "rightlower", "PAD19"],
+    ["P57", "CI", "rightlower", "PAD19"],
     ["P56", "CI", "rightupper", "PAD20"],
-    ["P55", "CI", "rightlower", "PAD21"],
+    ["P55", "DI", "rightlower", "PAD21"],
     ["P54", "DI", "rightupper", "PAD22"],
-    ["P53", "DI", "rightlower", "PAD23"],
-    ["P51", "EI", "rightlower", "PAD24"],
+    ["P53", "EI", "rightlower", "PAD23"],
+    ["P51", "FI", "rightlower", "PAD24"],
     ["P50", "FI", "rightupper", "PAD25"],
-    ["P49", "FI", "rightlower", "PAD26"],
+    ["P49", "GI", "rightlower", "PAD26"],
     ["P48", "GI", "rightupper", "PAD27"],
-    ["P47", "GI", "rightlower", "PAD28"],
+    ["P47", "HI", "rightlower", "PAD28"],
     ["P46", "HI", "rightupper", "PAD29"],
 
     ["P43", "HI", "bottomright", "PAD30"],
@@ -206,161 +206,21 @@ function initNames() {
     ["P27", "HA", "bottomleft", "PAD45"],
 
     ["P24", "HA", "leftupper", "PAD46"],
-    ["P23", "GA", "leftlower", "PAD47"],
+    ["P23", "HA", "leftlower", "PAD47"],
     ["P22", "GA", "leftupper", "PAD48"],
-    ["P21", "FA", "leftlower", "PAD49"],
+    ["P21", "GA", "leftlower", "PAD49"],
     ["P20", "FA", "leftupper", "PAD50"],
-    ["P19", "EA", "leftlower", "PAD51"],
-    ["P17", "DA", "leftlower", "PAD52"],
+    ["P19", "FA", "leftlower", "PAD51"],
+    ["P17", "EA", "leftlower", "PAD52"],
     ["P16", "DA", "leftupper", "PAD53"],
-    ["P15", "CA", "leftlower", "PAD54"],
+    ["P15", "DA", "leftlower", "PAD54"],
     ["P14", "CA", "leftupper", "PAD55"],
-    ["P13", "BA", "leftlower", "PAD56"],
+    ["P13", "CA", "leftlower", "PAD56"],
     ["P12", "BA", "leftupper", "PAD57"],
-    ["P11", "AA", "leftlower", "PAD58"],
+    ["P11", "BA", "leftlower", "PAD58"],
     ];
 
-  let ioPips = [];
-  const gToIob = {};
-  /**
-   * Draw the specified pip.
-   * The name row and column are substituted into the pip.
-   * Returns G coordinate, screen X coordinate, screen Y
-   */
-  function processIoPip(ctx, pip, name, pad) {
-    let parts = pip.split(':');
-    let pipname;
-    if (parts[0].includes('?')) {
-      parts[0] = parts[0].replace('col.?', 'col.' + name[1]);
-      pipname = parts[1] + ':' + pad;
-    } else if (parts[1].includes('?')) {
-      parts[1] = parts[1].replace('row.?', 'row.' + name[0]);
-      pipname = parts[0] + ':' + pad;
-    } else {
-      console.log('No variable in pip name', pip);
-    }
-    let col = colInfo[parts[0]];
-    let row = rowInfo[parts[1]];
-    if (col == undefined || row == undefined) {
-      console.log('Bad Iob pip', pip, name);
-      return;
-    }
-    ctx.fillRect(col[1] - 1, row[1] - 1, 3, 3);
-    gCoord = col[0] + "G" + row[0];
-    console.log(parts[0], parts[1], gCoord, col, row, pipname);
-    gToIob[gCoord] = pipname;
-    return [gCoord, col, row, pipname];
-  }
 
-  function generateIobPips(ctx, pads) {
-    pads.forEach(function([pin, tile, direction, pad]) {
-      console.log(pin, tile, direction, pad);
-      let k = [];
-      let o = [];
-      let i = [];
-      let t = [];
-      if (direction == "topleft" && tile == 'AA') {
-        k = ["col.?.io3:row.A.local.0"];
-        o = [ "col.?.io3:CLK.AA.O",
-              "col.?.io3:row.A.long.2",
-              "col.?.io3:row.A.local.2",
-              "col.?.io3:row.A.local.4",
-              "col.A.long.3:row.?.local.5",
-              "col.A.local.3:row.?.local.5",
-              "col.A.local.1:row.?.local.5",
-              "col.A.long.2:row.?.local.5"];
-        i = ["col.?.x:row.A.local.1", "col.?.x:row.A.local.3", "col.?.x:row.A.long.3",
-          "col.A.io2:row.?.io5", "col.A.long.4:row.?.io5",
-          "col.A.local.4:row.?.io5", "col.A.local.2:row.?.io5",
-          "col.A.long.2:row.?.io5" ];
-        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
-      } else if (direction == "topleft") {
-        k = ["col.?.x:row.A.local.0"];
-        o = ["col.?.x:row.A.long.2", "col.?.x:row.A.local.2",
-              "col.?.x:row.A.local.4",
-              "col.?.long.1:row.A.io3",
-              "col.?.local.3:row.A.io3",
-              "col.?.local.1:row.A.io3"];
-        i = ["col.?.clbl2:row.A.local.1", "col.?.clbl2:row.A.local.3", "col.?.clbl2:row.A.long.3",
-              "col.?.long.2:row.A.io4", "col.?.local.5:row.A.io4", "col.?.local.4:row.A.io4",
-              "col.?.local.2:row.A.io4"];
-        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
-      } else if (direction == "topright" && tile == "AI") {
-        k = ["col.?.clbw1:row.A.local.0"];
-        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
-              "col.H.clbr3:row.A.io3", "col.I.long.1:row.A.io3", "col.I.local.1:row.A.io3", "col.I.local.3:row.A.io3", "col.I.long.3:row.A.io3",];
-        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
-              "col.I.long.2:row.A.io2", "col.I.local.2:row.A.io2", "col.I.local.4:row.A.io2", "col.I.long.3:row.A.io2"];
-        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
-      } else if (direction == "topright") {
-        k = ["col.?.clbw1:row.A.local.0"];
-        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
-              "col.?.clbw3:row.A.io2", "col.?.local.2:row.A.io2", "col.?.local.4:row.A.io2", "col.?.local.5:row.A.io2",
-              "col.?.long.2:row.A.io2"];
-        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
-"col.?.local.1:row.A.local.5", "col.?.local.3:row.A.local.5", "col.?.long.1:row.A.local.5",];
-        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
-      } else if (direction == "rightlower") {
-        k = [ "col.I.local.5:row.?.io1"];
-        t = [ "col.I.local.5:row.?.io1", "col.I.long.3:row.?.io1", "col.I.local.4:row.?.io1",
-"col.I.local.2:row.?.io1", "col.I.long.2:row.?.io1"];
-        i = [ "col.I.long.3:row.?.io2", "col.I.local.3:row.?.io2", "col.I.local.1:row.?.io2",
-"col.I.long.1:row.?.io2", "undefined:row.?.local.3", "undefined:row.?.local.5"];
-        o = [ "col.I.local.4:row.?.io3", "col.I.local.2:row.?.io3", "col.I.long.2:row.?.io3",
-"col.I.io1:row.?.local.1", "col.I.io1:row.?.local.4", "col.I.io1:row.?.long.1"];
-      } else if (direction == "rightupper") {
-        k = [ "col.I.local.5:row.?.io4"];
-        t = [ "col.I.long.3:row.?.io4", "col.I.local.4:row.?.io4", "col.I.local.2:row.?.io4", "col.I.long.2:row.?.io4",];
-        i = [ "col.I.local.4:row.?.io5", "col.I.local.2:row.?.io5", "col.I.long.2:row.?.io5", "col.I.io2:row.?.long.1", "col.I.io2:row.?.local.4", "col.I.io2:row.?.local.1",];
-        o = [ "col.I.long.3:?H.X", "col.I.local.3:?H.X", "col.I.local.1:?H.X", "col.I.long.1:?H.X", "col.I.local.0:row.?.local.5", "col.I.local.0:row.?.local.3",]
-      } else if (direction == "bottomright" && tile == "HI") {
-        k = [ "col.H.clbr1:row.I.local.5"];
-        o = [ "col.H.clbr1:row.I.clk", "col.H.clbr1:row.I.local.4", "col.H.clbr1:row.I.local.2", "col.H.clbr1:row.I.long.1", "col.H.clbr3:row.I.io2", "col.I.long.2:row.I.io2", "col.I.local.2:row.I.io2", "col.I.local.4:row.I.io2", "col.I.long.3:row.I.io2",];
-        i = [ "col.H.clbr2:row.I.long.2", "col.H.clbr2:row.I.local.3", "col.H.clbr2:row.I.local.1", "undefined:row.I.io3", "col.I.long.1:row.I.io3", "col.I.local.1:row.I.io3", "col.I.local.3:row.I.io3", "col.I.long.3:row.I.io3",];
-        t = [ "col.H.clbr3:row.I.long.2", "col.H.clbr3:row.I.local.4", "col.H.clbr3:row.I.local.2", "col.H.clbr3:row.I.long.1",];
-      } else if (direction == "bottomright") {
-        k = [ "col.?.clbw1:row.I.local.5"];
-        o = [ "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1", "col.?.clbw3:row.I.io3", "col.?.local.2:row.I.io3", "col.?.local.4:row.I.io3", "col.?.local.5:row.I.io3", "col.?.long.2:row.I.io3",];
-"",
-        i = [ "col.?.clbw2:row.I.long.2", "col.?.clbw2:row.I.local.3", "col.?.clbw2:row.I.local.1", "col.?.local.1:row.I.io4", "col.?.local.3:row.I.io4", "col.?.long.1:row.I.io4",];
-"",
-        t = [ "col.?.clbw3:row.I.long.2", "col.?.clbw3:row.I.local.4", "col.?.clbw3:row.I.local.2", "col.?.clbw3:row.I.long.1",];
-      } else if (direction == "bottomleft" && tile == "HA") {
-        k = [ "col.A.io3:row.I.local.5",];
-        o = [ "col.A.io3:row.I.long.2", "col.A.io3:row.I.local.3", "col.A.io3:row.I.local.1", "col.A.long.3:row.I.io2",
-          "col.A.local.3:row.I.io2", "col.A.local.1:row.I.io2", "col.A.long.2:row.I.io2",];
-        i = [ "col.A.x:row.I.local.4", "col.A.x:row.I.local.2", "col.A.x:row.I.long.1", "col.A.long.4:row.I.io1", "col.A.local.4:row.I.io1", "col.A.local.2:row.I.io1", "col.A.long.2:row.I.io1",];
-        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
-      } else if (direction == "bottomleft") {
-        k = [ "col.?.x:row.I.local.5",];
-        o = [ "col.?.x:row.I.long.2", "col.?.x:row.I.local.3", "col.?.x:row.I.local.1", "col.?.long.1:row.I.io2", "col.?.local.3:row.I.io2", "col.?.local.1:row.I.io2",];
-        i = [ "col.?.clbl2:row.I.local.4", "col.?.clbl2:row.I.local.2", "col.?.clbl2:row.I.long.1",
-        "col.?.long.2:row.I.io1", "col.?.local.5:row.I.io1", "col.?.local.4:row.I.io1", "col.?.local.2:row.I.io1"];
-        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
-      } else if (direction == "leftupper") {
-        k = [ "col.A.local.0:row.?.io4",];
-        t = [ "col.A.long.2:row.?.io4", "col.A.local.1:row.?.io4", "col.A.local.3:row.?.io4", "col.A.long.3:row.?.io4",];
-        i = [ "col.A.long.2:row.?.io5", "col.A.local.1:row.?.io5", "col.A.local.3:row.?.io5", "col.A.long.3:row.?.io5", "col.A.local.5:row.?.local.5",];
-        o = [ "col.A.local.2:?H.X", "col.A.local.4:?H.X", "col.A.long.4:?H.X", "col.A.io1:row.?.long.1", "col.A.io1:row.?.local.4", "col.A.io1:row.?.local.1",];
-      } else if (direction == "leftlower") { 
-        k = [ "col.A.local.0:row.?.io1",];
-        t = [ "col.A.long.2:row.?.io1", "col.A.local.1:row.?.io1", "col.A.local.3:row.?.io1", "col.A.long.3:row.?.io1",];
-        i = [ "col.A.local.2:row.?.io2", "col.A.local.4:row.?.io2", "col.A.long.4:row.?.io2", "col.A.io3:row.?.local.4", "col.A.io3:row.?.long.1",];
-        o = [ "col.A.long.2:row.?.io3", "col.A.local.1:row.?.io3", "col.A.local.3:row.?.io3", "col.A.long.3:row.?.io3", "col.A.io2:row.?.local.3",];
-      } else { 
-        return;
-      }
-      ctx.fillStyle = "red";
-      k.forEach(p => processIoPip(ctx, p, tile, pad + ".K"));
-      ctx.fillStyle = "green";
-      o.forEach(p => processIoPip(ctx, p, tile, pad + ".O"));
-      ctx.fillStyle = "blue";
-      i.forEach(p => processIoPip(ctx, p, tile, pad + ".I"));
-      ctx.fillStyle = "yellow";
-      t.forEach(p => processIoPip(ctx, p, tile, pad + ".T"));
-    });
-    return ioPips;
-  }
 
   // Bit position starts for the tiles A through I. Note there is I/O before A and buffers between C-D and F-G.
   var xTileStarts = [3, 21, 39, 59, 77, 95, 115, 133, 151];
@@ -400,7 +260,7 @@ function initNames() {
   }
   
 
-  class Clb {
+  class XXXClb {
     constructor(x, y, screenPt, gPt, bitPt) {
       this.x = x;
       this.y = y;
@@ -595,10 +455,6 @@ function initNames() {
 
       var row = "ABCDEFGHI"[y];
       var col = "ABCDEFGHI"[x];
-      // Substitute for ROW and COL in the pip name
-      function rename(pip) {
-        return pip.replace('ROW', row).replace('COL', col);
-      }
 
       // For a repeated tile, the pip location is relative to the origin for tile BB. The x and y will need to shift based on the row/column.
       // (The pip location could be given relative to the start of tile BB, but it's not.)
@@ -607,36 +463,9 @@ function initNames() {
       // 
       var xoffset = xTileStarts[x] - xTileStarts[1]; // xoffset == 0 for tile B
       var yoffset = yTileStarts[y] - yTileStarts[1]; // xoffset == 0 for tile B
-
-      this.switch1 = null;
-      this.switch2 = null;
-      if (this.type == TILE.ul) {
-        this.switch1 = new Switch(this, 1);
-        this.switch2 = new Switch(this, 2);
-      } else if (this.type == TILE.ur) {
-        this.switch1 = new Switch(this, 1);
-        this.switch2 = new Switch(this, 2);
-      } else if (this.type == TILE.center) {
-        // Main part
-        this.switch1 = new Switch(this, 1);
-        this.switch2 = new Switch(this, 2);
-      } else if (this.type == TILE.right) {
-        this.switch1 = new Switch(this, 1);
-        this.switch2 = new Switch(this, 2);
-      } else if (this.type == TILE.ll) {
-        // bottom left
-        this.switch1 = new Switch(this, 1);
-        this.switch2 = new Switch(this, 2);
-      } else if (this.type == TILE.lr) {
-        // bottom right
-      }
     }
 
     draw(ctx) {
-      if (this.switch1 != null) {
-        this.switch1.draw(ctx);
-        this.switch2.draw(ctx);
-      }
       if (this.clb) {
         this.clb.draw(ctx);
       }
@@ -647,22 +476,25 @@ function initNames() {
 
   /**
    * A switch matrix.
+   * Name is e.g. HA.8.1
    * Coordinates: screenPt is the upper left corner of the box. gPt is the coordinate of pin 8.
    */
   class Switch {
-    constructor(tile, num) {
-      this.tile = tile; // Back pointer to enclosing tile.
-      this.num = num; // 1 or 2
-      this.name = tile.name + '.8.' + num;
-      this.state = null;
-      this.wires = [];
+  constructor(name) {
+    this.name = name;
+    this.tilename = name[0] + name[1];
+    this.num = parseInt(name[5], 10);
+    this.pins = {}; // Dictionary holding names of pins
+    this.lines = {};
+    this.state = null;
+    this.wires = [];
 
       // The switch pair's upper left wires are local.1
-      var row = rowInfo['row.' + this.tile.name[0] + '.local.1'];
-      var col = colInfo['col.' + this.tile.name[1] + '.local.1'];
-      if (this.tile.type == TILE.bottom) {
+      var row = rowInfo['row.' + this.tilename[0] + '.local.1'];
+      var col = colInfo['col.' + this.tilename[1] + '.local.1'];
+      if (this.tilename[0] == "I") {
         // The bottom switches are mirror-imaged, inconveniently.
-        if (num == 1) {
+        if (this.num == 1) {
           this.gPt = [col[0] + 3, row[0] + 1];
           this.screenPt = [col[1] - 2, row[1] + 6];
         } else {
@@ -670,7 +502,7 @@ function initNames() {
           this.screenPt = [col[1] - 2 + 8, row[1] + 6 - 8];
         }
       } else {
-        if (num == 1) {
+        if (this.num == 1) {
           this.gPt =[col[0], row[0] + 1]
           this.screenPt = [col[1] - 2, row[1] - 2];
         } else {
@@ -679,6 +511,17 @@ function initNames() {
         }
       }
     }
+
+  /**
+   * Processes an entry from the configuration.
+   */
+  add(pin1, pin2, bit) {
+    this.pins[pin1] = 1;
+    this.pins[pin2] = 1;
+    const key = pin1 * 10 + pin2;
+    this.lines[key] = bit;
+  }
+
 
     /**
      * Returns (x, y) screen coordinate for the pin.
@@ -703,12 +546,13 @@ function initNames() {
      ctx.stroke();
    }
 
-   draw(ctx) {
+   render(ctx) {
      ctx.strokeStyle = "red";
      ctx.beginPath();
      var x0 = this.screenPt[0];
      var y0 = this.screenPt[1];
      ctx.rect(x0, y0, 8, 8);
+     /*
      // Draw the pins
      for (var i = 0; i < 8; i++) {
        if (this.skip(i)) continue;
@@ -716,15 +560,27 @@ function initNames() {
        ctx.moveTo(coord[0], coord[1]);
        ctx.lineTo(coord[0] + [0, 0, 2, 2, 0, 0, -2, -2][i], coord[1] + [-2, -2, 0, 0, 2, 2, 0, 0][i]);
      }
+     */
      ctx.stroke();
      this.drawWires(ctx);
    }
  
    // Helper to remove pins from switches along edges.
+   /*
    skip(pin) {
      return ((this.tile.type == TILE.top && (pin == 0 || pin == 1)) || (this.tile.type == TILE.bottom && (pin == 4 || pin == 5)) ||
          (this.tile.type == TILE.left && (pin == 6 || pin == 7)) || (this.tile.type == TILE.right && (pin == 2 || pin == 3)));
    }
+   */
+
+    isInside(x, y) {
+      return x >= this.screenPt[0] && x < this.screenPt[0] + 8 && y >= this.screenPt[1] && y < this.screenPt[1] + 8;
+    }
+
+    info() {
+      return "Switch " + this.name + " " + this.state + " " + this.wires;
+    }
+
  }
 
   /**
@@ -799,349 +655,234 @@ function initNames() {
     return bitstream;
   }
 
+/**
+ * An I/O block.
+ * Each I/O block is associated with its neighboring tile.
+ * Some complications: I/O blocks are different on the top, bottom, left, and right.
+ * There are typically two I/O blocks per tile, so the bits are different for these two. They are also drawn differently.
+ * Tile AA has 3 I/O blocks. Tile EA has 1 I/O block; one is omitted.
+ * 
+ */
+class Iob {
+  constructor(pin, tile, style, pad) {
+    this.name = pin;
+    this.tilename = tile;
+    this.style = style;
+    this.pips = [];
+
+    this.generateIobPips(pin, tile, style, pad);
+  }
+
   /**
-   * An I/O block.
-   * Each I/O block is associated with its neighboring tile.
-   * Some complications: I/O blocks are different on the top, bottom, left, and right.
-   * There are typically two I/O blocks per tile, so the bits are different for these two. They are also drawn differently.
-   * Tile AA has 3 I/O blocks. Tile EA has 1 I/O block; one is omitted.
-   * 
+   * Draw the specified pip.
+   * The name row and column are substituted into the pip.
+   * Returns G coordinate, screen X coordinate, screen Y
    */
-  class Iob {
-    constructor(name, tilename, x0, y0, style) {
-      this.name = name;
-      this.tilename = tilename;
-      this.x0 = x0;
-      this.y0 = y0;
-      this.style = style;
+  static processIoPip(pip, name, pad) {
+    let parts = pip.split(':');
+    let pipname;
+    if (parts[0].includes('?')) {
+      parts[0] = parts[0].replace('col.?', 'col.' + name[1]);
+      pipname = parts[1] + ':' + pad;
+    } else if (parts[1].includes('?')) {
+      parts[1] = parts[1].replace('row.?', 'row.' + name[0]);
+      pipname = parts[0] + ':' + pad;
+    } else {
+      console.log('No variable in pip name', pip);
     }
-
-    // Returns screen position for e.g. 'local.1'
-    colPos(s) {
-      const name = 'col.' + this.tilename[1] + '.' + s;
-      try {
-        return colInfo[name][1];
-      } catch {
-        throw "bad name " + name;
-      }
+    let col = colInfo[parts[0]];
+    let row = rowInfo[parts[1]];
+    if (col == undefined || row == undefined) {
+      console.log('Bad Iob pip', pip, name);
+      return [];
     }
-
-    // Returns screen position for e.g. 'local.1'
-    rowPos(s) {
-      const name = 'row.' + this.tilename[0] + '.' + s;
-      try {
-        return rowInfo[name][1];
-      } catch {
-        throw "bad name " + name;
-      }
-    }
-
-    draw(ctx) {
-      ctx.strokeStyle = "red";
-
-      ctx.font = "10px arial";
-      ctx.fillStyle = "green";
-      ctx.beginPath();
-
-      if (this.style == "topleft") { // top, left of pair
-        ctx.beginPath();
-        const W = 20;
-        const H = 12;
-        if (this.tilename[1] == "A") {
-          this.x0 = this.colPos("io3") - 8; // Left edge of box
-        } else {
-          this.x0 = this.colPos("x") - 8; // Left edge of box
-        }
-        this.y0 = this.rowPos("local.0") + 4; // Top edge of box
-        ctx.rect(this.x0, this.y0, W, H);
-        ctx.stroke();
-
-        // pin.O vertical
-        let cols;
-        // pin O
-        ctx.beginPath();
-        ctx.strokeStyle = 'white';
-        let row;
-        let col;
-        let col2;
-        if (this.tilename[1] == "A") {
-          row = "local.5";
-          col = "io3";
-          col2 = "long.2";
-        } else {
-          row = "io3";
-          col = "x";
-          col2 = "local.1";
-        }
-        ctx.moveTo(this.colPos(col), this.y0 + H);
-        ctx.lineTo(this.colPos(col), this.y0 + H + 3);
-        ctx.moveTo(this.colPos(col), this.y0 + 12);
-        ctx.lineTo(this.colPos(col), this.rowPos(row));
-        ctx.lineTo(this.colPos(col2), this.rowPos(row));
-
-        // pin.I
-        if (this.tilename[1] == "A") {
-          col = "x";
-          row = "io5";
-          col2 = "long.2";
-        } else {
-          col = "clbl2";
-          row = "io4";
-          col2 = "local.2";
-        }
-        ctx.moveTo(this.colPos(col), this.y0 + 12);
-        ctx.lineTo(this.colPos(col), this.y0 + 15);
-        ctx.moveTo(this.colPos(col), this.y0 + 12);
-        ctx.lineTo(this.colPos(col), this.rowPos(row));
-        ctx.lineTo(this.colPos(col2), this.rowPos(row));
-
-        // pin.T
-        if (this.tilename[1] == "A") {
-          col = 'clbl1';
-        } else {
-          col = 'clbl1';
-        }
-        ctx.moveTo(this.colPos(col), this.y0 + 12);
-        ctx.lineTo(this.colPos(col), this.y0 + 15);
-        ctx.lineTo(this.colPos(col), this.rowPos("long.3"));
-
-        // K pin
-        if (this.tilename[1] == "A") {
-          col = "io3";
-        } else {
-          col = "x";
-        }
-        ctx.moveTo(this.colPos(col), this.y0);
-        ctx.lineTo(this.colPos(col), this.y0 - 2);
-        ctx.stroke();
-
-        fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "topright") { // IOB on top, with wires to right
-        ctx.beginPath();
-        const W = 20;
-        const H = 12;
-        this.x0 = this.colPos("clbw1") - 4; // Left edge of box
-        this.y0 = this.rowPos("local.0") + 4; // Top edge of box
-        ctx.rect(this.x0, this.y0, W, H);
-        ctx.stroke();
-
-        // pin.O vertical
-        let rows = ["local.1", "local.3", "long.3"];
-        ctx.fillStyle = 'purple';
-        rows.forEach(s => ctx.fillRect(this.colPos("clbw1") - 1, this.rowPos(s) - 1, 2, 2));
-        let cols;
-        // pin O
-        ctx.beginPath();
-        ctx.moveTo(this.colPos('clbw1'), this.y0 + H);
-        ctx.lineTo(this.colPos('clbw1'), this.y0 + H + 3);
-        let row;
-        let col;
-        if (this.tilename[1] == "I") {
-          row = "io3";
-          col = "long.3";
-        } else {
-          row = "io2";
-          col = "long.2";
-        }
-        ctx.moveTo(this.colPos('clbw1'), this.y0 + 12);
-        ctx.lineTo(this.colPos('clbw1'), this.rowPos(row));
-        ctx.lineTo(this.colPos(col), this.rowPos(row));
-
-        // pin.I
-        ctx.moveTo(this.colPos('clbw2'), this.y0 + 12);
-        ctx.lineTo(this.colPos('clbw2'), this.y0 + 15);
-
-        ctx.fillStyle = 'yellow';
-        rows = ["local.2", "local.4", "long.2"];
-        rows.forEach(s => ctx.fillRect(this.colPos("clbw2") - 1, this.rowPos(s) - 1, 2, 2));
-        // pin.I horizontal PIPs
-        if (this.tilename[1] == "I") {
-          cols = ["local.2", "local.4", "long.2", "long.3"];
-          row = "io2";
-        } else {
-          cols = ["local.1", "local.3", "long.1"];
-          row = "local.5";
-        }
-        cols.forEach(s => ctx.fillRect(this.colPos(s, 1) - 1, this.rowPos("local.5") - 1, 2, 2));
-        ctx.moveTo(this.colPos("clbw2"), this.y0 + 12);
-        ctx.lineTo(this.colPos("clbw2"), this.rowPos(row));
-        ctx.lineTo(this.colPos(cols.pop()), this.rowPos(row));
-        ctx.stroke();
-
-        // pin.T
-        if (this.tilename[1] == "I") {
-          row = 'clbw3';
-        } else {
-          row = 'clbw3';
-        }
-        ctx.moveTo(this.colPos(row), this.y0 + 12);
-        ctx.lineTo(this.colPos(row), this.y0 + 15);
-        ctx.lineTo(this.colPos(row), this.rowPos('long.3'));
-        ctx.fillStyle = 'brown';
-        rows = ["long.2", "local.1", "local.3", "long.3"];
-        rows.forEach(s => ctx.fillRect(this.colPos(row) - 1, this.rowPos(s) - 1, 2, 2));
-
-        // K pin
-        ctx.moveTo(this.x0 + 4, this.y0);
-        ctx.lineTo(this.x0 + 4, this.y0 - 2);
-        ctx.stroke();
-        ctx.fillRect(this.colPos("clbw1") - 1, this.rowPos("local.0") - 1, 2, 2);
-
-        fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "leftdown") { // left
-        ctx.rect(this.x0, this.y0, 12, 26);
-        ctx.moveTo(this.x0 - 2, this.y0 + 12);
-        ctx.lineTo(this.x0, this.y0 + 12);
-
-        ctx.moveTo(this.x0+ 12, this.y0 + 12);
-        ctx.lineTo(this.x0 + 15, this.y0 + 12);
-        ctx.moveTo(this.x0+ 12, this.y0 + 16);
-        ctx.lineTo(this.x0 + 15, this.y0 + 16);
-        ctx.moveTo(this.x0+ 12, this.y0 + 20);
-        ctx.lineTo(this.x0 + 15, this.y0 + 20);
-        ctx.stroke();
-        vtext(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "leftup") { // left
-        ctx.rect(this.x0, this.y0, 12, 26);
-        ctx.moveTo(this.x0 - 2, this.y0 + 12);
-        ctx.lineTo(this.x0, this.y0 + 12);
-
-        ctx.moveTo(this.x0+ 12, this.y0 + 12);
-        ctx.lineTo(this.x0 + 15, this.y0 + 12);
-        ctx.moveTo(this.x0+ 12, this.y0 + 16);
-        ctx.lineTo(this.x0 + 15, this.y0 + 16);
-        ctx.moveTo(this.x0+ 12, this.y0 + 20);
-        ctx.lineTo(this.x0 + 15, this.y0 + 20);
-        ctx.stroke();
-        vtext(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "rightdown") { // right
-        ctx.rect(this.x0, this.y0, 12, 26);
-        ctx.moveTo(this.x0+ 12, this.y0 + 12);
-        ctx.lineTo(this.x0 + 16,  this.y0 + 12);
-
-        ctx.moveTo(this.x0 - 2, this.y0 + 12);
-        ctx.lineTo(this.x0, this.y0 + 12);
-        ctx.moveTo(this.x0 - 2, this.y0 + 16);
-        ctx.lineTo(this.x0, this.y0 + 16);
-        ctx.moveTo(this.x0 - 2, this.y0 + 20);
-        ctx.lineTo(this.x0, this.y0 + 20);
-        ctx.stroke();
-        vtext(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "rightup") { // right
-        ctx.rect(this.x0, this.y0, 12, 26);
-        ctx.moveTo(this.x0+ 12, this.y0 + 12);
-        ctx.lineTo(this.x0 + 16,  this.y0 + 12);
-
-        ctx.moveTo(this.x0 - 2, this.y0 + 12);
-        ctx.lineTo(this.x0, this.y0 + 12);
-        ctx.moveTo(this.x0 - 2, this.y0 + 16);
-        ctx.lineTo(this.x0, this.y0 + 16);
-        ctx.moveTo(this.x0 - 2, this.y0 + 20);
-        ctx.lineTo(this.x0, this.y0 + 20);
-        ctx.stroke();
-        vtext(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "bottomleft") { // bottom
-        ctx.rect(this.x0, this.y0, 20, 12);
-        ctx.moveTo(this.x0 + 8, this.y0 + 12);
-        ctx.lineTo(this.x0 + 8, this.y0 + 14);
-
-        ctx.moveTo(this.x0 + 8, this.y0 - 3);
-        ctx.lineTo(this.x0 + 8, this.y0);
-        ctx.moveTo(this.x0 + 12, this.y0 - 3);
-        ctx.lineTo(this.x0 + 12, this.y0);
-        ctx.moveTo(this.x0 + 16, this.y0 - 3);
-        ctx.lineTo(this.x0 + 16, this.y0);
-        ctx.stroke();
-        fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      } else if (this.style == "bottomright") { // alternate bottom
-        ctx.rect(this.x0, this.y0, 20, 12);
-        ctx.moveTo(this.x0 + 4, this.y0 + 12);
-        ctx.lineTo(this.x0 + 4, this.y0 + 14);
-
-        ctx.moveTo(this.x0 + 4, this.y0 - 3);
-        ctx.lineTo(this.x0 + 4, this.y0);
-        ctx.moveTo(this.x0 + 8, this.y0 - 3);
-        ctx.lineTo(this.x0 + 8, this.y0);
-        ctx.moveTo(this.x0 + 12, this.y0 - 3);
-        ctx.lineTo(this.x0 + 12, this.y0);
-        ctx.stroke();
-        fillText(ctx, this.name, this.x0 + 1, this.y0 + 8);
-      }
-    }
+    let gCoord = col[0] + "G" + row[0];
+    console.log(parts[0], parts[1], gCoord, col, row, pipname);
+    IobDecoders.gToIob[gCoord] = pipname;
+    return [gCoord, col[1], row[1], pipname];
   }
 
-  var objects = [];
-  function initIobs() {
-    function createIob(a, b, c, d, e, f) {
-      objects.push(new Iob(a, b, c, d, e, f));
-    };
-    return;
-
-    createIob("P9", "AA", 62, 6, "topleft", "PAD1");
-    createIob("P8", "AB", 90, 6, "topright", "PAD2");
-    createIob("P7", "AB", 138, 6, "topleft", "PAD3");
-    createIob("P6", "AC", 162, 6, "topright", "PAD4");
-    createIob("P5", "AC", 210, 6, "topleft", "PAD5");
-    createIob("P4", "AD", 234, 6, "topright", "PAD6");
-    createIob("P3", "AD", 282, 6, "topleft", "PAD7");
-    createIob("P2", "AE", 306, 6, "topright", "PAD8");
-    createIob("P68", "AE", 354, 6, "topleft", "PAD9");
-    createIob("P67", "AF", 378, 6, "topright", "PAD10");
-    createIob("P66", "AF", 426, 6, "topleft", "PAD11");
-    createIob("P65", "AG", 450, 6, "topright", "PAD12");
-    createIob("P64", "AG", 498, 6, "topleft", "PAD13");
-    createIob("P63", "AH", 522, 6, "topright", "PAD14");
-    createIob("P62", "AH", 570, 6, "topleft", "PAD15");
-    createIob("P61", "AI", 594, 6, "topright", "PAD16");
-
-    createIob("P27", "HA", 62, 656, "bottomleft", "PAD17");
-    createIob("P28", "HB", 90, 656, "bottomright", "PAD18");
-    createIob("P29", "HB", 138, 656, "bottomleft", "PAD19");
-    createIob("P30", "HC", 162, 656, "bottomright", "PAD20");
-    createIob("P31", "HC", 210, 656, "bottomleft", "PAD21");
-    createIob("P32", "HD", 234, 656, "bottomright", "PAD22");
-    createIob("P33", "HD", 282, 656, "bottomleft", "PAD23");
-    createIob("P34", "HE", 306, 656, "bottomright", "PAD24");
-    createIob("P36", "HE", 354, 656, "bottomleft", "PAD25");
-    createIob("P37", "HF", 378, 656, "bottomright", "PAD26");
-    createIob("P38", "HF", 426, 656, "bottomleft", "PAD27");
-    createIob("P39", "HG", 450, 656, "bottomright", "PAD28");
-    createIob("P40", "HG", 498, 656, "bottomleft", "PAD29");
-    createIob("P41", "HH", 522, 656, "bottomright");
-    createIob("P42", "HH", 570, 656, "bottomleft");
-    createIob("P43", "HI", 594, 656, "bottomright");
-
-    for (var i = 0; i < 14; i += 2) {
-      if (i == 7) continue;
-      createIob("P" + (11 + i), "ABCDEFGH"[i/2] + "A", 6, 88 + 36 * i, "leftdown");
-    }
-    for (var i = 1; i < 14; i += 2) {
-      if (i == 7) continue;
-      createIob("P" + (11 + i), "ABCDEFGH"[(i+1)/2] + "A", 6, 88 + 36 * i, "leftup");
-    }
-
-    for (var i = 0; i < 14; i += 2) {
-      if (i == 7) continue;
-      createIob("P" + (59 - i), "ABCDEFGH"[i/2] + "H", 656, 88 + 36 * i, "rightdown");
-    }
-
-    for (var i = 1; i < 14; i += 2) {
-      if (i == 7) continue;
-      createIob("P" + (59 - i), "ABCDEFGH"[(i+1)/2] + "H", 656, 88 + 36 * i, "rightup");
-    }
-  }
-
-  var tiles = new Array(9);
-  function initTiles() {
-    for (var x = 0; x < 9; x++) {
-      tiles[x] = new Array(9);
-      for (var y = 0; y < 9; y++) {
-        var tile = new Tile(x, y);
-        tiles[x][y] = tile;
-        objects.push(tile);
+  /**
+   * Adds entries for the pips.
+   */
+  generateIobPips(pin, tile, direction, pad) {
+      let k = [];
+      let o = [];
+      let i = [];
+      let t = [];
+      let xoff = 0;
+      let yoff = 0;
+      if (direction == "topleft" && tile == 'AA') {
+        this.W = 20;
+        this.H = 12;
+        xoff = -8;
+        yoff = 4;
+        k = ["col.?.io3:row.A.local.0"];
+        o = [ "col.?.io3:CLK.AA.O",
+              "col.?.io3:row.A.long.2",
+              "col.?.io3:row.A.local.2",
+              "col.?.io3:row.A.local.4",
+              "col.A.long.3:row.?.local.5",
+              "col.A.local.3:row.?.local.5",
+              "col.A.local.1:row.?.local.5",
+              "col.A.long.2:row.?.local.5"];
+        i = ["col.?.x:row.A.local.1", "col.?.x:row.A.local.3", "col.?.x:row.A.long.3",
+          "col.A.io2:row.?.io5", "col.A.long.4:row.?.io5",
+          "col.A.local.4:row.?.io5", "col.A.local.2:row.?.io5",
+          "col.A.long.2:row.?.io5" ];
+        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
+      } else if (direction == "topleft") {
+        this.W = 20;
+        this.H = 12;
+        xoff = -8;
+        yoff = 4;
+        k = ["col.?.x:row.A.local.0"];
+        o = ["col.?.x:row.A.long.2", "col.?.x:row.A.local.2",
+              "col.?.x:row.A.local.4",
+              "col.?.long.1:row.A.io3",
+              "col.?.local.3:row.A.io3",
+              "col.?.local.1:row.A.io3"];
+        i = ["col.?.clbl2:row.A.local.1", "col.?.clbl2:row.A.local.3", "col.?.clbl2:row.A.long.3",
+              "col.?.long.2:row.A.io4", "col.?.local.5:row.A.io4", "col.?.local.4:row.A.io4",
+              "col.?.local.2:row.A.io4"];
+        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
+      } else if (direction == "topright" && tile == "AI") {
+        this.W = 20;
+        this.H = 12;
+        xoff = -3;
+        yoff = 4;
+        k = ["col.?.clbw1:row.A.local.0"];
+        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
+              "col.H.clbr3:row.A.io3", "col.I.long.1:row.A.io3", "col.I.local.1:row.A.io3", "col.I.local.3:row.A.io3", "col.I.long.3:row.A.io3",];
+        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
+              "col.I.long.2:row.A.io2", "col.I.local.2:row.A.io2", "col.I.local.4:row.A.io2", "col.I.long.3:row.A.io2"];
+        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
+      } else if (direction == "topright") {
+        this.W = 20;
+        this.H = 12;
+        xoff = -3;
+        yoff = 4;
+        k = ["col.?.clbw1:row.A.local.0"];
+        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
+              "col.?.clbw3:row.A.io2", "col.?.local.2:row.A.io2", "col.?.local.4:row.A.io2", "col.?.local.5:row.A.io2",
+              "col.?.long.2:row.A.io2"];
+        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
+"col.?.local.1:row.A.local.5", "col.?.local.3:row.A.local.5", "col.?.long.1:row.A.local.5",];
+        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
+      } else if (direction == "rightlower") {
+        this.W = 12;
+        this.H = 26;
+        xoff = -16;
+        yoff = -12;
+        k = [ "col.I.local.5:row.?.io1"];
+        t = [ "col.I.local.5:row.?.io1", "col.I.long.3:row.?.io1", "col.I.local.4:row.?.io1",
+"col.I.local.2:row.?.io1", "col.I.long.2:row.?.io1"];
+        i = [ "col.I.long.3:row.?.io2", "col.I.local.3:row.?.io2", "col.I.local.1:row.?.io2",
+"col.I.long.1:row.?.io2", "undefined:row.?.local.3", "undefined:row.?.local.5"];
+        o = [ "col.I.local.4:row.?.io3", "col.I.local.2:row.?.io3", "col.I.long.2:row.?.io3",
+"col.I.io1:row.?.local.1", "col.I.io1:row.?.local.4", "col.I.io1:row.?.long.1"];
+      } else if (direction == "rightupper") {
+        this.W = 12;
+        this.H = 26;
+        xoff = -16;
+        yoff = -12
+        k = [ "col.I.local.5:row.?.io4"];
+        t = [ "col.I.long.3:row.?.io4", "col.I.local.4:row.?.io4", "col.I.local.2:row.?.io4", "col.I.long.2:row.?.io4",];
+        i = [ "col.I.local.4:row.?.io5", "col.I.local.2:row.?.io5", "col.I.long.2:row.?.io5", "col.I.io2:row.?.long.1", "col.I.io2:row.?.local.4", "col.I.io2:row.?.local.1",];
+        o = [ "col.I.long.3:?H.X", "col.I.local.3:?H.X", "col.I.local.1:?H.X", "col.I.long.1:?H.X", "col.I.local.0:row.?.local.5", "col.I.local.0:row.?.local.3",]
+      } else if (direction == "bottomright" && tile == "HI") {
+        this.W = 20;
+        this.H = 12;
+        xoff = -4;
+        yoff = -16
+        k = [ "col.H.clbr1:row.I.local.5"];
+        o = [ "col.H.clbr1:row.I.clk", "col.H.clbr1:row.I.local.4", "col.H.clbr1:row.I.local.2", "col.H.clbr1:row.I.long.1", "col.H.clbr3:row.I.io2", "col.I.long.2:row.I.io2", "col.I.local.2:row.I.io2", "col.I.local.4:row.I.io2", "col.I.long.3:row.I.io2",];
+        i = [ "col.H.clbr2:row.I.long.2", "col.H.clbr2:row.I.local.3", "col.H.clbr2:row.I.local.1", "undefined:row.I.io3", "col.I.long.1:row.I.io3", "col.I.local.1:row.I.io3", "col.I.local.3:row.I.io3", "col.I.long.3:row.I.io3",];
+        t = [ "col.H.clbr3:row.I.long.2", "col.H.clbr3:row.I.local.4", "col.H.clbr3:row.I.local.2", "col.H.clbr3:row.I.long.1",];
+      } else if (direction == "bottomright") {
+        this.W = 20;
+        this.H = 12;
+        xoff = -4;
+        yoff = -16
+        k = [ "col.?.clbw1:row.I.local.5"];
+        o = [ "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1", "col.?.clbw3:row.I.io3", "col.?.local.2:row.I.io3", "col.?.local.4:row.I.io3", "col.?.local.5:row.I.io3", "col.?.long.2:row.I.io3",];
+"",
+        i = [ "col.?.clbw2:row.I.long.2", "col.?.clbw2:row.I.local.3", "col.?.clbw2:row.I.local.1", "col.?.local.1:row.I.io4", "col.?.local.3:row.I.io4", "col.?.long.1:row.I.io4",];
+"",
+        t = [ "col.?.clbw3:row.I.long.2", "col.?.clbw3:row.I.local.4", "col.?.clbw3:row.I.local.2", "col.?.clbw3:row.I.long.1",];
+      } else if (direction == "bottomleft" && tile == "HA") {
+        this.W = 20;
+        this.H = 12;
+        xoff = -8;
+        yoff = -16
+        k = [ "col.A.io3:row.I.local.5",];
+        o = [ "col.A.io3:row.I.long.2", "col.A.io3:row.I.local.3", "col.A.io3:row.I.local.1", "col.A.long.3:row.I.io2",
+          "col.A.local.3:row.I.io2", "col.A.local.1:row.I.io2", "col.A.long.2:row.I.io2",];
+        i = [ "col.A.x:row.I.local.4", "col.A.x:row.I.local.2", "col.A.x:row.I.long.1", "col.A.long.4:row.I.io1", "col.A.local.4:row.I.io1", "col.A.local.2:row.I.io1", "col.A.long.2:row.I.io1",];
+        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
+      } else if (direction == "bottomleft") {
+        this.W = 20;
+        this.H = 12;
+        xoff = -8;
+        yoff = -16
+        k = [ "col.?.x:row.I.local.5",];
+        o = [ "col.?.x:row.I.long.2", "col.?.x:row.I.local.3", "col.?.x:row.I.local.1", "col.?.long.1:row.I.io2", "col.?.local.3:row.I.io2", "col.?.local.1:row.I.io2",];
+        i = [ "col.?.clbl2:row.I.local.4", "col.?.clbl2:row.I.local.2", "col.?.clbl2:row.I.long.1",
+        "col.?.long.2:row.I.io1", "col.?.local.5:row.I.io1", "col.?.local.4:row.I.io1", "col.?.local.2:row.I.io1"];
+        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
+      } else if (direction == "leftupper") {
+        this.W = 12;
+        this.H = 26;
+        xoff = 4;
+        yoff = -12;
+        k = [ "col.A.local.0:row.?.io4",];
+        t = [ "col.A.long.2:row.?.io4", "col.A.local.1:row.?.io4", "col.A.local.3:row.?.io4", "col.A.long.3:row.?.io4",];
+        i = [ "col.A.long.2:row.?.io5", "col.A.local.1:row.?.io5", "col.A.local.3:row.?.io5", "col.A.long.3:row.?.io5", "col.A.local.5:row.?.local.5",];
+        o = [ "col.A.local.2:?H.X", "col.A.local.4:?H.X", "col.A.long.4:?H.X", "col.A.io1:row.?.long.1", "col.A.io1:row.?.local.4", "col.A.io1:row.?.local.1",];
+      } else if (direction == "leftlower") { 
+        this.W = 12;
+        this.H = 26;
+        xoff = 4;
+        yoff = -12;
+        k = [ "col.A.local.0:row.?.io1",];
+        t = [ "col.A.long.2:row.?.io1", "col.A.local.1:row.?.io1", "col.A.local.3:row.?.io1", "col.A.long.3:row.?.io1",];
+        i = [ "col.A.local.2:row.?.io2", "col.A.local.4:row.?.io2", "col.A.long.4:row.?.io2", "col.A.io3:row.?.local.4", "col.A.io3:row.?.long.1",];
+        o = [ "col.A.long.2:row.?.io3", "col.A.local.1:row.?.io3", "col.A.local.3:row.?.io3", "col.A.long.3:row.?.io3", "col.A.io2:row.?.local.3",];
+      } else { 
+        return;
       }
-    }
+      k.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".K")));
+      this.x0 = this.pips[this.pips.length - 1][1] + xoff;
+      this.y0 = this.pips[this.pips.length - 1][2] + yoff;
+      o.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".O")));
+      i.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".I")));
+      t.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".T")));
   }
+
+  draw(ctx) {
+    ctx.strokeStyle = "white";
+    ctx.beginPath();
+    ctx.rect(this.x0, this.y0, this.W, this.H);
+    ctx.stroke();
+    ctx.fillStyle = "yellow";
+    this.pips.forEach(function([gCoord, col, row, pipname]) {
+      ctx.fillRect(col - 1, row - 1, 3, 3);
+    });
+  }
+
+  add(str, bit) {
+    console.log(str);
+  }
+
+    isInside(x, y) {
+      return x >= this.x0 && x < this.x0 + this.W && y >= this.y0 && y <= this.y0 + this.H;
+    }
+
+    info() {
+      return "IOB " + this.name + " " + this.tilename + " " + this.style + " " + this.pips;
+    }
+
+}
 
   function fillText(ctx, text, x, y) {
     ctx.fillText(text, x + 0.5, y + 0.5);
@@ -1173,8 +914,8 @@ const SCALE = 2;
     $("#img").height(HEIGHT);
     ctx.lineWidth = 1;
     ctx.lineCap = 'butt';
-    objects.forEach(o => o.draw(ctx));
-    ioPips = generateIobPips(ctx, pads);
+    // objects.forEach(o => o.draw(ctx));
+    decoders.forEach(d => d.render(ctx));
   }
 
 /**
@@ -1202,9 +943,7 @@ function pipRender(ctx, entries) {
     }
     ctx.fillRect(x-1, y-1, 3, 3);
   }
+
 }
 
-function render(ctx) {
-  decoders.forEach(d => d.render(ctx));
-}
 

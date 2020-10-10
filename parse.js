@@ -121,7 +121,7 @@ function decode(rawBitstream, config) {
     let m = entry.match(/IOB (P\d+)(.*)/);
     if (m) {
       bitTypes[i] = BITTYPE.iob;
-      iobDecoders.get(m[1]).add(m[2], rawBitstream[i]);
+      iobDecoders.getFromPin(m[1]).add(m[2], rawBitstream[i]);
       continue;
     }
     m = entry.match(/PIP\s+(.*)/);
@@ -139,7 +139,7 @@ function decode(rawBitstream, config) {
     m = entry.match(/Magic @ (\S+) (\d) (\d)$/);
     if (m) {
       bitTypes[i] = BITTYPE.switch;
-      switchDecoders.get(m[1]).add(parseInt(m[2]), parseInt(m[3]), rawBitstream[i]);
+      switchDecoders.getFromG(m[1]).add(parseInt(m[2]), parseInt(m[3]), rawBitstream[i]);
       continue;
     }
     m = entry.match(/CLB ([A-H][A-H])\s*(.*)/);
@@ -196,31 +196,32 @@ class ClkDecoder {
 class IobDecoders {
   constructor() {
     this.iobs = {};
+    this.iobsFromPin = {};
+    const self = this;
+    pads.forEach(function([pin, tile, style, pad]) {
+      self.iobs[pad] = new Iob(pin, tile, style, pad);
+      self.iobsFromPin[pin] = new Iob(pin, tile, style, pad);
+    });
   }
 
-  get(name) {
-    if (this.iobs[name] == undefined) {
-      this.iobs[name] = new IobDecoder(name);
+  getFromPin(pin) {
+    return this.iobsFromPin[pin];
+  }
+
+  getFromXY(x, y) {
+    for (const iob of Object.entries(this.iobs)) {
+      if (iob[1].isInside(x, y)) {
+        return iob[1];
+      }
     }
-    return this.iobs[name];
+    return undefined;
   }
 
   render(ctx) {
-    Object.entries(this.iobs).forEach(([name, obj]) => obj.render(ctx));
+    Object.entries(this.iobs).forEach(([name, obj]) => obj.draw(ctx));
   }
 }
-
-class IobDecoder {
-  constructor(name) {
-    this.name = name;
-  }
-
-  add(str, bit) {
-  }
-
-  render(ctx) {
-  }
-}
+IobDecoders.gToIob = {};
 
 class PipDecoder {
   constructor() {
@@ -255,12 +256,26 @@ class BidiDecoder {
 class SwitchDecoders {
   constructor() {
     this.switches = {};
+    this.switchesFromG = {};
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        if ((i == 0) && (j == 0 || j == 8)) continue; // Top corners
+        if ((i == 8) && (j == 0 || j == 8)) continue; // Bottom corners
+        for (let num = 1; num <= 2; num++) {
+          const name = "ABCDEFGHI"[i] + "ABCDEFGHI"[j] + ".8." + num;
+          const sw = new Switch(name);
+          this.switches[name] = sw;
+          this.switchesFromG[sw.gPt[0] + "G" + sw.gPt[1]] = sw;
+        }
+      }
+    }
+  }
+
+  getFromG(name) {
+    return this.switchesFromG[name];
   }
 
   get(name) {
-    if (this.switches[name] == undefined) {
-      this.switches[name] = new SwitchDecoder(name);
-    }
     return this.switches[name];
   }
 
@@ -270,23 +285,6 @@ class SwitchDecoders {
 
 }
 
-class SwitchDecoder {
-  constructor(name) {
-    this.name = name;
-    this.pins = {}; // Dictionary holding names of pins
-    this.lines = {};
-  }
-
-  add(pin1, pin2, bit) {
-    this.pins[pin1] = 1;
-    this.pins[pin2] = 1;
-    const key = pin1 * 10 + pin2;
-    this.lines[key] = bit;
-  }
-
-  render(ctx) {
-  }
-}
 
 class ClbDecoders {
   constructor() {
@@ -303,9 +301,6 @@ class ClbDecoders {
   }
 
   get(name) {
-    if (this.clbDecoders[name] == undefined) {
-      alert("Bad CLB " + name);
-    }
     return this.clbDecoders[name];
   }
 
@@ -334,6 +329,7 @@ class Mux {
     this.inputs = config;
     this.data = {};
     this.pips = [];
+    this.selected = "";
   }
 
   add(bitnum, bit) {
@@ -350,10 +346,12 @@ class Mux {
           // entry1 is active;
           self.pips.push([entry0, 1]);
           self.pips.push([entry1, 0]); // Active-low
+          this.selected = entry1;
         } else {
           // entry0 is active
           self.pips.push([entry0, 0]); // Active-low
           self.pips.push([entry1, 1]);
+          this.selected = entry0;
         }
       } else {
         // Neither is active
@@ -365,6 +363,10 @@ class Mux {
 
   render(ctx) {
     pipRender(ctx, this.pips);
+  }
+
+  info() {
+    return "Mux " + this.selected;
   }
 }
 
@@ -390,8 +392,8 @@ class Mux {
    * Converts G coordinates to a symbolic name.
    */
   function gToName(str) {
-    if (gToIob[str]) {
-      return gToIob[str];
+    if (IobDecoders.gToIob[str]) {
+      return IobDecoders.gToIob[str];
     }
     const parts = str.split('G');
     const col = colFromG[parts[0]];
@@ -431,6 +433,11 @@ class ClbDecoder {
     this.name = name;
     this.muxs = {};
     this.muxs['B'] = new Mux(fillInMuxEntries(this.name, muxB));
+    let xCenter = colInfo['col.' + this.name[1] + '.clb'][1];
+    let yCenter = rowInfo['row.' + this.name[0] + '.c'][1];
+    this.W = 20;
+    this.H = 32;
+    this.screenPt = [xCenter - this.W / 2, yCenter - this.H / 2];
   }
 
   add(str, bit) {
@@ -452,6 +459,22 @@ class ClbDecoder {
   render(ctx) {
     this.decode();
     Object.entries(this.muxs).forEach(([name, mux]) => mux.render(ctx));
+    ctx.strokeStyle = "#cff";
+    ctx.rect(this.screenPt[0], this.screenPt[1], this.W, this.H);
+    ctx.stroke();
+  }
+
+  info() {
+    let result = [];
+    Object.entries(this.muxs).forEach(([name, mux]) => result.push(mux.info()));
+    return "CLB: " + this.name + " " + result.join(" ");
+  }
+
+  isInside(x, y) {
+    if (this.name[0] == "I" || this.name[1] == "I") {
+      return false;
+    }
+    return x >= this.screenPt[0] && x < this.screenPt[0] + this.W && y >= this.screenPt[1] && y < this.screenPt[1] + this.H;
   }
 }
 
@@ -884,7 +907,7 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
    * A switch matrix.
    * Coordinates: screenPt is the upper left corner of the box. gPt is the coordinate of pin 8.
    */
-  class SwitchDecode {
+  class XXXSwitchDecode {
     constructor(tile, num) {
       this.tile = tile; // Back pointer to enclosing tile.
       this.num = num; // 1 or 2
@@ -938,6 +961,10 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
       });
       ctx.stroke();
       
+    }
+
+    isInside(x, y) {
+      return x >= this.screenPt[0] && x < this.screenPt[0] + 8 && y >= this.screenPt[1] && y < this.screenPt[1] + 8;
     }
 
     // Helper to remove pins from switches along edges.
@@ -995,6 +1022,10 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     getBitTypes() {
       return this.bitTypes;
     }
+
+    info() {
+      return "Switch " + this.state + " " + this.wires;
+    }
   }
 
 
@@ -1006,7 +1037,7 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
    * Tile AA has 3 I/O blocks. Tile EA has 1 I/O block; one is omitted.
    * 
    */
-  class IobDecode {
+  class XXXIobDecode {
     constructor(name, tilename, x0, y0, style) {
       this.name = name;
       this.tilename = tilename;
@@ -1039,7 +1070,11 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     getBitTypes() {
       return [];
     }
+
   }
+
+  /*
+  let objects = [];
 
   var tiles = new Array(9);
   function initTiles() {
@@ -1052,12 +1087,11 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
       }
     }
   }
+  */
 
   function initParser() {
-    initDecoders();
     initNames();
-    initIobs();
-    initTiles();
+    initDecoders();
   }
 
   // Processes a click on the Layout image
@@ -1077,34 +1111,29 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     tiley = Math.max(Math.min(tiley, 8), 0); // Clamp to range 0-8
     const name = "ABCDEFGHI"[tiley] + "ABCDEFGHI"[tilex];
     let prefix = '';
-    if (x < 20) {
-       prefix = 'pin';
-       // pins
-    } else if (x > 654) {
-       prefix = 'pin';
-       // pins
-    } else if (y < 20) {
-       prefix = 'pin';
-      // pins
-    } else if (y > 654) {
-       prefix = 'pin';
-      // pins
-    } else if (xmod > 54  && ymod >= 36 && tilex < 8 && tiley < 8 ) {
-      // inside clb
-      prefix = 'CLB: ';
-      if (tiles[tilex][tiley].clb) {
-        let text = '';
-        try {
-         text = tiles[tilex][tiley].clb.describe();
-        } catch {
-        }
-        if (text != '') {
-          $("#info3").html(text);
-          return;
-          }
-        }
-    }
+    $("#info2").html("&nbsp;");
     $("#info3").html(prefix + name + ' ' + x + ' ' + y + '; ' + tilex + ' ' + xmod + ', ' + tiley + ' ' + ymod);
+    let sw = switchDecoders.get(name + ".8.1");
+    if (sw && sw.isInside(x, y)) {
+      $("#info2").html(sw.info());
+      return;
+    }
+    sw = switchDecoders.get(name + ".8.2");
+    if (sw && sw.isInside(x, y)) {
+      $("#info2").html(sw.info());
+      return;
+    }
+    let iob = iobDecoders.getFromXY(x, y);
+    if (iob) {
+      $("#info2").html(iob.info());
+      return;
+    }
+    // inside clb
+    const clb = clbDecoders.get(name);
+    if (clb && clb.isInside(x, y)) {
+      $("#info2").html(clb.info());
+      return;
+    }
   }
 
 function layoutClickInfo(x, y) {
