@@ -146,6 +146,7 @@ function initNames() {
       rowInfo[fullname + '.C'] = rowInfo['row.' + "ABCDEFGH"[row] + ".c"];
       rowInfo[fullname + '.K'] = rowInfo['row.' + "ABCDEFGH"[row] + ".k"];
       rowInfo[fullname + '.X'] = rowInfo['row.' + "ABCDEFGH"[row] + ".b"];
+      rowInfo[fullname + '.Y'] = rowInfo['row.' + "ABCDEFGH"[row] + ".y"];
       colInfo[fullname + '.D'] = colInfo['col.' + "ABCDEFGH"[row] + ".clb"];
       colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[row] + ".clbr1"];
       // colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[col] + ".clb"];
@@ -675,26 +676,56 @@ class Iob {
   }
 
   /**
-   * Draw the specified pip.
+   * Create the specified pip.
    * The name row and column are substituted into the pip.
    * Returns G coordinate, screen X coordinate, screen Y
+   * Also fills in IobDecoders.gToName and IobDecoders.nameToG
+   *
+   * The goal of all this is to generate the pips as conveniently as possible, taking advantage of patterns rather than
+   * making a giant hard-coded list. There are many complications that make this difficult.
+   * The idea is we define the location of each pip by its column and row.
+   * To take advantage of repeating tiles, we put a ? in the location, which is replaced with the current
+   * row or column from the tile.
+   *
+   * One complication is the pip's name is e.g. "row.A.local.4:PAD12.I". Either the row or the column is
+   * discarded and the pad name is put at the end, depending on if the pip is on a vertical or horizontal line.
+   * We indicate this with the first character of the name (| or -) so we know whether to use the column or row.
+   * Another complication is some pips put the pad first such as "PAD46.I:HA.B", "PAD17.O:AH.X", "PAD1.O:CLK.AA.O".
+   * Confusingly, HB.C:PAD43.I, HF.X:PAD34.O, HE.D:PAD37.I, AA.A:PAD1.I, AF.A:PAD11.I.
+   * The pattern is not entirely clear, but seems to depend on if the pad is on the same side as clb bin. It seems that:
+   * xx.A has the pad first along the top edge
+   * xx.B has the pad first along the top edge (but also P24 which doesn't quite fit)
+   * xx.D has the pad first along the bottom edge
+   * xx.D has the pad always second.
+   * xx.X has the pad first along the right edge
+   * xx.Y has the pad first along the right edge
+   * For these, we give up on trying to generate the name here. The caller gives the output name as the last two parts of the name.
    */
   static processIoPip(pip, name, pad) {
-    let parts = pip.split(':');
-    let pipname;
-    if (parts[0].includes('?') && parts[1].includes('?')) {
-      throw "Bad name " + pip;
+    let dir;
+    let parts;
+    if (pip[0] == '-' || pip[0] == '|') {
+      dir = pip[0];
+      parts = pip.substring(1).split(":");
+    } else {
+      parts = pip.split(":");
+      if (parts.length != 4) {
+        throw "Bad name, no direction " + pip;
+      }
+      dir = 'hardcoded';
     }
-    if (parts[0].includes('?')) {
+    let pipname;
+    parts[0] = parts[0].replace('?', name[1]);
+    parts[1] = parts[1].replace('?', name[0]);
+    if (dir == '|') {
       // parts[0] = parts[0].replace('col.?', 'col.' + name[1]);
-      parts[0] = parts[0].replace('?', name[1]);
       pipname = parts[1] + ':' + pad;
-    } else if (parts[1].includes('?')) {
+    } else if (dir == '-') {
       // parts[1] = parts[1].replace('row.?', 'row.' + name[0]);
-      parts[1] = parts[1].replace('?', name[0]);
       pipname = parts[0] + ':' + pad;
     } else {
-      console.log('No variable in pip name', pip);
+      // Hardcoded name
+      pipname = parts[2] + ":" + parts[3];
     }
     let col = colInfo[parts[0]];
     let row = rowInfo[parts[1]];
@@ -706,13 +737,9 @@ class Iob {
       console.log('Bad Iob', name, pip, 'col', parts[0], "->", col, ";", parts[1], "->", row);
       return [];
     }
-    if (parts.length == 4) {
-      // Hardcoded name
-      pipname = parts[2] + ":" + parts[3];
-    }
     let gCoord = col[0] + "G" + row[0];
-    console.log(pipname, gCoord);
-    IobDecoders.gToIob[gCoord] = pipname;
+    IobDecoders.gToName[gCoord] = pipname;
+    IobDecoders.nameToG[pipname] = gCoord;
     return [gCoord, col[1], row[1], pipname];
   }
 
@@ -731,149 +758,167 @@ class Iob {
         this.H = 12;
         xoff = -8;
         yoff = 4;
-        k = ["col.?.io3:row.A.local.0"];
-        o = [ "col.?.io3:CLK.AA.O",
-              "col.?.io3:row.A.long.2",
-              "col.?.io3:row.A.local.2",
-              "col.?.io3:row.A.local.4",
-              "col.A.long.3:row.?.local.5",
-              "col.A.local.3:row.?.local.5",
-              "col.A.local.1:row.?.local.5",
-              "col.A.long.2:row.?.local.5"];
-        i = ["col.?.x:row.A.local.1", "col.?.x:row.A.local.3", "col.?.x:row.A.long.3",
-          "col.A.io2:row.?.io5", "col.A.long.4:row.?.io5",
-          "col.A.local.4:row.?.io5", "col.A.local.2:row.?.io5",
-          "col.A.long.2:row.?.io5" ];
-        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
+        k = ["|col.?.io3:row.A.local.0"];
+        o = [ "|col.?.io3:row.A.long.2", "|col.?.io3:row.A.local.2", "|col.?.io3:row.A.local.4", "-col.A.long.3:row.?.local.5",
+              "-col.A.local.3:row.?.local.5", "-col.A.local.1:row.?.local.5", "-col.A.long.2:row.?.local.5"];
+        o.push("col.?.io3:CLK.AA.O:" + pad + ".O" + ":CLK.AA.O");
+        i = ["|col.?.x:row.A.local.1", "|col.?.x:row.A.local.3", "|col.?.x:row.A.long.3",
+          "-col.A.io2:row.?.io5", "-col.A.long.4:row.?.io5",
+          "-col.A.local.4:row.?.io5", "-col.A.local.2:row.?.io5",
+          "-col.A.long.2:row.?.io5" ];
+        i.push("col.?.clb:row.A.io2:A" + tile[1] + ".A:" + pad + ".I"); // special case
+        t = [ "|col.?.clbl1:row.A.long.2", "|col.?.clbl1:row.A.local.1", "|col.?.clbl1:row.A.local.3", "|col.?.clbl1:row.A.long.3"];
       } else if (direction == "topleft") {
         this.W = 20;
         this.H = 12;
         xoff = -8;
         yoff = 4;
-        k = ["col.?.x:row.A.local.0"];
-        o = ["col.?.x:row.A.long.2", "col.?.x:row.A.local.2",
-              "col.?.x:row.A.local.4",
-              "col.?.long.1:row.A.io3",
-              "col.?.local.3:row.A.io3",
-              "col.?.local.1:row.A.io3"];
-        i = ["col.?.clbl2:row.A.local.1", "col.?.clbl2:row.A.local.3", "col.?.clbl2:row.A.long.3",
-              "col.?.long.2:row.A.io4", "col.?.local.5:row.A.io4", "col.?.local.4:row.A.io4",
-              "col.?.local.2:row.A.io4"];
-        t = [ "col.?.clbl1:row.A.long.2", "col.?.clbl1:row.A.local.1", "col.?.clbl1:row.A.local.3", "col.?.clbl1:row.A.long.3"];
+        k = ["|col.?.x:row.A.local.0"];
+        o = ["|col.?.x:row.A.long.2", "|col.?.x:row.A.local.2", "|col.?.x:row.A.local.4",
+              "-col.?.long.1:row.A.io3", "-col.?.local.3:row.A.io3", "-col.?.local.1:row.A.io3"];
+        i = ["|col.?.clbl2:row.A.local.1", "|col.?.clbl2:row.A.local.3", "|col.?.clbl2:row.A.long.3",
+              "-col.?.long.2:row.A.io4", "-col.?.local.5:row.A.io4", "-col.?.local.4:row.A.io4",
+              "-col.?.local.2:row.A.io4"];
+        i.push("col.?.clb:row.A.io2:A" + tile[1] + ".A:" + pad + ".I"); // special case
+        i.push("col.?.x:AH.X:" + pad + ".I:" + tile + ".B");
+        t = [ "|col.?.clbl1:row.A.long.2", "|col.?.clbl1:row.A.local.1", "|col.?.clbl1:row.A.local.3", "|col.?.clbl1:row.A.long.3"];
       } else if (direction == "topright" && tile == "AI") {
         this.W = 20;
         this.H = 12;
         xoff = -3;
         yoff = 4;
-        k = ["col.?.clbw1:row.A.local.0"];
-        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
-              "col.H.clbr3:row.?.io3", "col.I.long.1:row.?.io3", "col.I.local.1:row.?.io3", "col.I.local.3:row.?.io3", "col.I.long.3:row.?.io3",];
-        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
-              "col.I.long.2:row.?.io2", "col.I.local.2:row.?.io2", "col.I.local.4:row.?.io2", "col.I.long.3:row.?.io2"];
-        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
+        k = ["|col.?.clbw1:row.A.local.0"];
+        o = [ "|col.?.clbw1:row.A.local.1", "|col.?.clbw1:row.A.local.3", "|col.?.clbw1:row.A.long.3",
+              "-col.H.clbr3:row.?.io3", "-col.I.long.1:row.?.io3", "-col.I.local.1:row.?.io3", "-col.I.local.3:row.?.io3", "-col.I.long.3:row.?.io3",];
+        i = [ "|col.?.clbw2:row.A.long.2", "|col.?.clbw2:row.A.local.2", "|col.?.clbw2:row.A.local.4",
+              "-col.I.long.2:row.?.io2", "-col.I.local.2:row.?.io2", "-col.I.local.4:row.?.io2", "-col.I.long.3:row.?.io2"];
+        t = [ "|col.?.clbw3:row.A.long.2", "|col.?.clbw3:row.A.local.1", "|col.?.clbw3:row.A.local.3", "|col.?.clbw3:row.A.long.3",];
       } else if (direction == "topright") {
         this.W = 20;
         this.H = 12;
         xoff = -3;
         yoff = 4;
-        k = ["col.?.clbw1:row.A.local.0"];
-        o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
-              "col.?.clbw3:row.A.io2", "col.?.local.2:row.A.io2", "col.?.local.4:row.A.io2", "col.?.local.5:row.A.io2",
-              "col.?.long.2:row.A.io2"];
-        i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
-"col.?.local.1:row.A.local.5", "col.?.local.3:row.A.local.5", "col.?.long.1:row.A.local.5",];
-        t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
+        k = ["|col.?.clbw1:row.A.local.0"];
+        o = [ "|col.?.clbw1:row.A.local.1", "|col.?.clbw1:row.A.local.3", "|col.?.clbw1:row.A.long.3",
+              "-col.?.clbw3:row.A.io2", "-col.?.local.2:row.A.io2", "-col.?.local.4:row.A.io2", "-col.?.local.5:row.A.io2",
+              "-col.?.long.2:row.A.io2"];
+        i = [ "|col.?.clbw2:row.A.long.2", "|col.?.clbw2:row.A.local.2", "|col.?.clbw2:row.A.local.4",
+"-col.?.local.1:row.A.local.5", "-col.?.local.3:row.A.local.5", "-col.?.long.1:row.A.local.5",];
+        t = [ "|col.?.clbw3:row.A.long.2", "|col.?.clbw3:row.A.local.1", "|col.?.clbw3:row.A.local.3", "|col.?.clbw3:row.A.long.3",];
       } else if (direction == "rightlower") {
         this.W = 12;
         this.H = 26;
         xoff = -16;
         yoff = -12;
-        k = [ "col.I.local.5:row.?.io1"];
-        t = [ "col.I.long.3:row.?.io1", "col.I.local.4:row.?.io1",
-"col.I.local.2:row.?.io1", "col.I.long.2:row.?.io1"];
-        i = [ "col.I.long.3:row.?.io2", "col.I.local.3:row.?.io2", "col.I.local.1:row.?.io2",
-"col.I.long.1:row.?.io2", "col.I.io1:row.?.local.3", "col.I.io1:row.?.local.5"];
-        o = [ "col.I.local.4:row.?.io3", "col.I.local.2:row.?.io3", "col.I.long.2:row.?.io3",
-"col.I.io2:row.?.local.1", "col.I.io2:row.?.local.4", "col.I.io2:row.?.long.1", "col.I.io2:?H.X", "col.I.io2:?H.Y"];
+        k = [ "-col.I.local.5:row.?.io1"];
+        t = [ "-col.I.long.3:row.?.io1", "-col.I.local.4:row.?.io1", "-col.I.local.2:row.?.io1", "-col.I.long.2:row.?.io1"];
+        i = [ "-col.I.long.3:row.?.io2", "-col.I.local.3:row.?.io2", "-col.I.local.1:row.?.io2", "-col.I.long.1:row.?.io2",
+          "|col.I.io1:row.?.local.3", "|col.I.io1:row.?.local.5"];
+        o = [ "-col.I.local.4:row.?.io3", "-col.I.local.2:row.?.io3", "-col.I.long.2:row.?.io3",
+"|col.I.io2:row.?.local.1", "|col.I.io2:row.?.local.4", "|col.I.io2:row.?.long.1",];
+        // Annoying special case. The X and Y connections are to e.g. AH while everything else is in the BH tile.
+        let prevRow = String.fromCharCode(tile.charCodeAt(0) - 1);
+        o.push("col.I.io2:" + prevRow + "H.X:" + pad + ".O:" + prevRow + "H.X");
+        o.push("col.I.io2:" + prevRow + "H.Y:" + pad + ".O:" + prevRow + "H.Y");
       } else if (direction == "rightupper") {
         this.W = 12;
         this.H = 26;
         xoff = -16;
         yoff = -12
-        k = [ "col.I.local.5:row.?.io4"];
-        t = [ "col.I.long.3:row.?.io4", "col.I.local.4:row.?.io4", "col.I.local.2:row.?.io4", "col.I.long.2:row.?.io4",];
-        i = [ "col.I.local.4:row.?.io5", "col.I.local.2:row.?.io5", "col.I.long.2:row.?.io5", "col.I.io2:row.?.long.1", "col.I.io2:row.?.local.4", "col.I.io2:row.?.local.1",];
-        o = [ "col.I.long.3:row.?.io6", "col.I.local.3:row.?.io6", "col.I.local.1:row.?.io6", "col.I.long.1:row.?.io6", "col.I.local.0:row.?.local.5", "col.I.local.0:row.?.local.3", "col.I.local.0:?H.X", "col.I.local.0:?H.Y"]
+        k = [ "-col.I.local.5:row.?.io4"];
+        t = [ "-col.I.long.3:row.?.io4", "-col.I.local.4:row.?.io4", "-col.I.local.2:row.?.io4", "-col.I.long.2:row.?.io4",];
+        i = [ "-col.I.local.4:row.?.io5", "-col.I.local.2:row.?.io5", "-col.I.long.2:row.?.io5",
+           "|col.I.io3:row.?.long.1", "|col.I.io3:row.?.local.4", "|col.I.io3:row.?.local.1",];
+        o = [ "-col.I.long.3:row.?.io6", "-col.I.local.3:row.?.io6", "-col.I.local.1:row.?.io6", "-col.I.long.1:row.?.io6",
+          "|col.I.local.0:row.?.local.5", "|col.I.local.0:row.?.local.3", "|col.I.local.0:?H.X", "|col.I.local.0:?H.Y"]
       } else if (direction == "bottomright" && tile == "II") {
         this.W = 20;
         this.H = 12;
         xoff = -4;
         yoff = -16
-        k = [ "col.?.clbw1:row.I.local.5"];
-        o = [ "col.?.clbw1:row.I.clk", "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1",
-              "col.?.clbw3:row.I.io2", "col.?.long.2:row.I.io2", "col.?.local.2:row.I.io2", "col.?.local.4:row.I.io2", "col.?.long.3:row.I.io2",];
-        i = [ "col.?.clbw2:row.I.long.2", "col.?.clbw2:row.I.local.3", "col.?.clbw2:row.I.local.1",
-            "col.?.io1:row.I.io3:CLK.II.O:PAD30.I",
-            "col.?.long.1:row.I.io3", "col.?.local.1:row.I.io3", "col.?.local.3:row.I.io3", "col.?.long.3:row.I.io3",];
-        let x = [
-            "col.?.long.1:row.I.io3", "col.?.local.1:row.I.io3", "col.?.local.3:row.I.io3", "col.?.long.3:row.I.io3",];
-        t = [ "col.?.clbw3:row.I.long.2", "col.?.clbw3:row.I.local.4", "col.?.clbw3:row.I.local.2", "col.?.clbw3:row.I.long.1",];
+        k = [ "|col.?.clbw1:row.I.local.5"];
+        o = [ "|col.?.clbw1:row.I.clk", "|col.?.clbw1:row.I.local.4", "|col.?.clbw1:row.I.local.2", "|col.?.clbw1:row.I.long.1",
+              "-col.?.long.2:row.I.io2", "-col.?.local.2:row.I.io2", "-col.?.local.4:row.I.io2", "-col.?.long.3:row.I.io2",]
+        o.push("col.?.clbw3:row.I.io2:HH.X:PAD30.O");
+        i = [ "|col.?.clbw2:row.I.long.2", "|col.?.clbw2:row.I.local.3", "|col.?.clbw2:row.I.local.1",
+            "-col.?.io1:row.I.io3:CLK.II.O:PAD30.I",
+            "-col.?.long.1:row.I.io3", "-col.?.local.1:row.I.io3", "-col.?.local.3:row.I.io3", "-col.?.long.3:row.I.io3",];
+        t = [ "|col.?.clbw3:row.I.long.2", "|col.?.clbw3:row.I.local.4", "|col.?.clbw3:row.I.local.2", "|col.?.clbw3:row.I.long.1",];
       } else if (direction == "bottomright") {
         this.W = 20;
         this.H = 12;
         xoff = -4;
         yoff = -16
-        k = [ "col.?.clbw1:row.I.local.5"];
-        o = [ "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1",
-            "col.?.local.2:row.I.io3", "col.?.local.4:row.I.io3", "col.?.local.5:row.I.io3", "col.?.long.2:row.I.io3",];
-        o.push("col.?.clbw3:row.I.io3:" + pad + ".O:" + tile + ".X"); // Hardwire this tricky case
+        k = [ "|col.?.clbw1:row.I.local.5"];
+        o = [ "|col.?.clbw1:row.I.local.4", "|col.?.clbw1:row.I.local.2", "|col.?.clbw1:row.I.long.1",
+            "-col.?.local.2:row.I.io3", "-col.?.local.4:row.I.io3", "-col.?.local.5:row.I.io3", "-col.?.long.2:row.I.io3",];
+        let prevRow = String.fromCharCode(tile.charCodeAt(0) - 1);
+        let prevCol = String.fromCharCode(tile.charCodeAt(1) - 1);
+        o.push("col.?.clbw3:row.I.io3:" + prevRow + prevCol + ".X:" +pad + ".O"); // Hardwire this tricky case
 "",
-        i = [ "col.?.clbw2:row.I.long.2", "col.?.clbw2:row.I.local.3", "col.?.clbw2:row.I.local.1", "col.?.local.1:row.I.io4", "col.?.local.3:row.I.io4", "col.?.long.1:row.I.io4",];
+        i = [ "|col.?.clbw2:row.I.long.2", "|col.?.clbw2:row.I.local.3", "|col.?.clbw2:row.I.local.1",
+        "-col.?.local.1:row.I.io4", "-col.?.local.3:row.I.io4", "-col.?.long.1:row.I.io4",];
 "",
-        t = [ "col.?.clbw3:row.I.long.2", "col.?.clbw3:row.I.local.4", "col.?.clbw3:row.I.local.2", "col.?.clbw3:row.I.long.1",];
+        t = [ "|col.?.clbw3:row.I.long.2", "|col.?.clbw3:row.I.local.4", "|col.?.clbw3:row.I.local.2", "|col.?.clbw3:row.I.long.1",];
       } else if (direction == "bottomleft" && tile == "IA") {
         this.W = 20;
         this.H = 12;
         xoff = -8;
         yoff = -16
-        k = [ "col.?.io3:row.I.local.5",];
-        o = [ "col.?.io3:row.I.long.2", "col.?.io3:row.I.local.3", "col.?.io3:row.I.local.1",
-          "col.A.long.3:row.?.io2",
-          "col.A.local.3:row.?.io2", "col.A.local.1:row.?.io2", "col.A.long.2:row.?.io2",];
-        i = [ "col.?.x:row.I.local.4", "col.?.x:row.I.local.2", "col.?.x:row.I.long.1", "col.A.long.4:row.?.io1", "col.A.local.4:row.?.io1", "col.A.local.2:row.?.io1", "col.A.long.2:row.?.io1",];
-        i.push("col.?.clb:row.I.io2:" + tile + ".D:" + pad + ".I"); // special case
+        k = [ "|col.?.io3:row.I.local.5",];
+        o = [ "|col.?.io3:row.I.long.2", "|col.?.io3:row.I.local.3", "|col.?.io3:row.I.local.1",
+          "-col.A.long.3:row.?.io2",
+          "-col.A.local.3:row.?.io2", "-col.A.local.1:row.?.io2", "-col.A.long.2:row.?.io2",];
+        i = [ "|col.?.x:row.I.local.4", "|col.?.x:row.I.local.2", "|col.?.x:row.I.long.1",
+          "-col.A.long.4:row.?.io1", "-col.A.local.4:row.?.io1", "-col.A.local.2:row.?.io1", "-col.A.long.2:row.?.io1",];
+        i.push("col.?.clb:row.I.io2:H" + tile[1] + ".D:" + pad + ".I"); // special case
+        i.push("col.?.x:HH.C:H" + tile[1] + ".C:" + pad + ".I"); // special case
         // i.push("col.?.clb:row.I.io2"); // special case
-        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
+        t = [ "|col.?.clbl1:row.I.long.2", "|col.?.clbl1:row.I.local.4", "|col.?.clbl1:row.I.local.2", "|col.?.clbl1:row.I.long.1",];
       } else if (direction == "bottomleft") {
         this.W = 20;
         this.H = 12;
         xoff = -8;
         yoff = -16
-        k = [ "col.?.x:row.I.local.5",];
-        o = [ "col.?.x:row.I.long.2", "col.?.x:row.I.local.3", "col.?.x:row.I.local.1", "col.?.long.1:row.I.io2", "col.?.local.3:row.I.io2", "col.?.local.1:row.I.io2",
+        k = [ "|col.?.x:row.I.local.5",];
+        o = [ "|col.?.x:row.I.long.2", "|col.?.x:row.I.local.3", "|col.?.x:row.I.local.1",
+          "-col.?.long.1:row.I.io2", "-col.?.local.3:row.I.io2", "-col.?.local.1:row.I.io2",
         ];
-        i = [ "col.?.clbl2:row.I.local.4", "col.?.clbl2:row.I.local.2", "col.?.clbl2:row.I.long.1",
-        "col.?.long.2:row.I.io1", "col.?.local.5:row.I.io1", "col.?.local.4:row.I.io1", "col.?.local.2:row.I.io1",
-        "H?.D:row.I.io2"];
-        t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
+        i = [ "|col.?.clbl2:row.I.local.4", "|col.?.clbl2:row.I.local.2", "|col.?.clbl2:row.I.long.1",
+        "-col.?.long.2:row.I.io1", "-col.?.local.5:row.I.io1", "-col.?.local.4:row.I.io1", "-col.?.local.2:row.I.io1",
+        "-H?.D:row.I.io2"];
+        i.push("?H.D:row.I.io2:H" + tile[1] + ".D:" + pad + ".I"); // special case
+        i.push("col.?.x:HH.C:H" + tile[1] + ".C:" + pad + ".I"); // special case
+        t = [ "|col.?.clbl1:row.I.long.2", "|col.?.clbl1:row.I.local.4", "|col.?.clbl1:row.I.local.2", "|col.?.clbl1:row.I.long.1",];
       } else if (direction == "leftupper") {
         this.W = 12;
         this.H = 26;
         xoff = 4;
         yoff = -12;
-        k = [ "col.A.local.0:row.?.io4",];
-        t = [ "col.A.long.2:row.?.io4", "col.A.local.1:row.?.io4", "col.A.local.3:row.?.io4", "col.A.long.3:row.?.io4",];
-        i = [ "col.A.long.2:row.?.io5", "col.A.local.1:row.?.io5", "col.A.local.3:row.?.io5", "col.A.long.3:row.?.io5", "col.A.local.5:row.?.local.5",];
-        o = [ "col.A.local.2:?H.X", "col.A.local.4:?H.X", "col.A.long.4:?H.X", "col.A.io1:row.?.long.1", "col.A.io1:row.?.local.4", "col.A.io1:row.?.local.1",];
+        k = [ "-col.A.local.0:row.?.io4",];
+        t = [ "-col.A.long.2:row.?.io4", "-col.A.local.1:row.?.io4", "-col.A.local.3:row.?.io4", "-col.A.long.3:row.?.io4",];
+        i = [ "-col.A.long.2:row.?.io5", "-col.A.local.1:row.?.io5", "-col.A.local.3:row.?.io5", "-col.A.long.3:row.?.io5",
+        "|col.A.local.5:row.?.local.5",];
+        o = [ "-col.A.local.2:row.?.io6", "-col.A.local.4:row.?.io6", "-col.A.long.4:row.?.io6",
+          "|col.A.io1:row.?.long.1", "|col.A.io1:row.?.local.4", "|col.A.io1:row.?.local.1",];
+        if (tile == "HA") {
+          // P24 special case
+          i.push("col.A.io3:HA.B:" + pad + ".I:HA.B");
+        }
       } else if (direction == "leftlower") { 
         this.W = 12;
         this.H = 26;
         xoff = 4;
         yoff = -12;
-        k = [ "col.A.local.0:row.?.io1",];
-        t = [ "col.A.long.2:row.?.io1", "col.A.local.1:row.?.io1", "col.A.local.3:row.?.io1", "col.A.long.3:row.?.io1",];
-        i = [ "col.A.local.2:row.?.io2", "col.A.local.4:row.?.io2", "col.A.long.4:row.?.io2", "col.A.io3:row.?.local.4", "col.A.io3:row.?.long.1",];
-        o = [ "col.A.long.2:row.?.io3", "col.A.local.1:row.?.io3", "col.A.local.3:row.?.io3", "col.A.long.3:row.?.io3", "col.A.io2:row.?.local.3",];
+        k = [ "-col.A.local.0:row.?.io1",];
+        t = [ "-col.A.long.2:row.?.io1", "-col.A.local.1:row.?.io1", "-col.A.local.3:row.?.io1", "-col.A.long.3:row.?.io1",];
+        i = [ "-col.A.local.2:row.?.io2", "-col.A.local.4:row.?.io2", "-col.A.long.4:row.?.io2", "-col.A.io2:row.?.io2",
+          "|col.A.io3:row.?.local.4", "|col.A.io3:row.?.long.1",];
+        o = [ "-col.A.long.2:row.?.io3", "-col.A.local.1:row.?.io3", "-col.A.local.3:row.?.io3", "-col.A.long.3:row.?.io3",
+          "|col.A.io2:row.?.local.3", "|col.A.io2:row.?.local.5"];
+        // Annoying special case to deal with connection to above tile.
+        let prevRow = String.fromCharCode(tile.charCodeAt(0) - 1);
+        i.push("col.A.io3:" + prevRow + "A.B:" + pad + ".I:" + prevRow + "A.B");
       } else { 
         return;
       }
@@ -906,7 +951,7 @@ class Iob {
         ctx.fillStyle = "pink";
       } else {
         ctx.fillStyle = "brown";
-        alert(pipname);
+        alert("Unexpected pipname: " + pipname);
       }
       ctx.fillRect(col - 1, row - 1, 3, 3);
     });

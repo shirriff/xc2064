@@ -221,7 +221,8 @@ class IobDecoders {
     Object.entries(this.iobs).forEach(([name, obj]) => obj.draw(ctx));
   }
 }
-IobDecoders.gToIob = {};
+IobDecoders.gToName = {};
+IobDecoders.nameToG = {};
 
 class PipDecoder {
   constructor() {
@@ -338,25 +339,25 @@ class Mux {
   }
 
   decode() {
-    this.pips = [];
+    this.pips = {};
     const self = this;
     this.inputs.forEach(function([entry0, entry1, muxbit]) {
       if (self.data[muxbit] == 0) { // This group of two is selected, active low.
         if (self.data[self.selector]) { // Select between the two
           // entry1 is active;
-          self.pips.push([entry0, 1]);
-          self.pips.push([entry1, 0]); // Active-low
-          this.selected = entry1;
+          self.pips[entry0] = 1;
+          self.pips[entry1] = 0; // Active-low
+          self.selected = entry1;
         } else {
           // entry0 is active
-          self.pips.push([entry0, 0]); // Active-low
-          self.pips.push([entry1, 1]);
-          this.selected = entry0;
+          self.pips[entry0] = 0; // Active-low
+          self.pips[entry1] = 1;
+          self.selected = entry0;
         }
       } else {
         // Neither is active
-        self.pips.push([entry0, 1]);
-        self.pips.push([entry1, 1]);
+        self.pips[entry0] = 1;
+        self.pips[entry1] = 1;
       }
     });
   }
@@ -392,8 +393,8 @@ class Mux {
    * Converts G coordinates to a symbolic name.
    */
   function gToName(str) {
-    if (IobDecoders.gToIob[str]) {
-      return IobDecoders.gToIob[str];
+    if (IobDecoders.gToName[str]) {
+      return IobDecoders.gToName[str];
     }
     const parts = str.split('G');
     const col = colFromG[parts[0]];
@@ -1158,8 +1159,8 @@ function layoutClickInfo(x, y) {
   } else {
     const gcoord = colv[0] + "G" + rowv[0];
     let pip = "";
-    if (IobDecoders.gToIob[gcoord]) {
-      pip = IobDecoders.gToIob[gcoord];
+    if (IobDecoders.gToName[gcoord]) {
+      pip = IobDecoders.gToName[gcoord];
     }
     $("#info0").html(col + " " + row + " " + colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
     console.log(col, row, colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);

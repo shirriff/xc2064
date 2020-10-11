@@ -42,7 +42,7 @@
       assert.deepEqual(colInfo['col.A.local.1'], [5, 26], 'col.A.local.1');
     });
 
-    QUnit.test('validate tile coords', function(assert) {
+    QUnit.skip('validate tile coords', function(assert) {
       initTiles();
 
       assert.deepEqual(tiles[0][0].screenPt, [78, 68]);
@@ -354,20 +354,20 @@
       let initData = {1: 1, 2: 1, 3: 1, 4: 1};
       Object.entries(initData).forEach(([bitNum , val]) => mux.add(bitNum, val));
       mux.decode();
-      assert.deepEqual(mux.pips, [["A", 1], ["B", 1], ["C", 1], ["D", 0], ["E", 1], ["F", 1]]);
+      assert.deepEqual(mux.pips, {"A": 1, "B": 1, "C": 1, "D": 0, "E": 1, "F": 1});
 
       initData = {1: 0, 2: 1, 3: 1, 4: 1};
       Object.entries(initData).forEach(([bitNum , val]) => mux.add(bitNum, val));
       mux.decode();
-      assert.deepEqual(mux.pips, [["A", 1], ["B", 1], ["C", 0], ["D", 1], ["E", 1], ["F", 1]]);
+      assert.deepEqual(mux.pips, {"A": 1, "B": 1, "C": 0, "D": 1, "E": 1, "F": 1});
 
       initData = {1: 1, 2: 1, 3: 0, 4: 0};
       Object.entries(initData).forEach(([bitNum , val]) => mux.add(bitNum, val));
       mux.decode();
-      assert.deepEqual(mux.pips, [["A", 1], ["B", 1], ["C", 1], ["D", 1], ["E", 1], ["F", 0]]);
+      assert.deepEqual(mux.pips, {"A": 1, "B": 1, "C": 1, "D": 1, "E": 1, "F": 0});
     });
 
-    QUnit.test('test mux substitution', function(assert) {
+    QUnit.skip('test mux substitution', function(assert) {
       const inputs = [["col.X:C.X", "row.X:C.Y", "2"], ["XW.D:WX:D", "XX.X", "!4"], "1"];
       const wanted = [["col.C:C.X", "row.D:C.Y", "2"], ["CC.D:BD:D", "CD.X", "!4"], "1"];
       const result = fillInMuxEntries("CD", inputs);
@@ -398,6 +398,12 @@
     });
 
     QUnit.test('test gToName', function(assert) {
+      let ctx = {fillStyle: () => 0, fillRect: () => 0}; // Dummy ctx
+      generateIobPips(ctx, pads);
+      
+      assert.equal(gToName["8G34"], "col.A.local.3:PAD47.O");
+      assert.equal(gToName("8G34"), "col.A.local.3:PAD47.O");
+      assert.equal(gToName("23G166"), "row.A.local.2:PAD2.I");
       assert.equal(gToName("113G66"), "col.F.local.5:row.F.local.4");
       let done = assert.async();
       let errors = 0;
@@ -450,6 +456,45 @@
       assert.equal(getSwitchCoords("HI.8.2.5")[0], "175G26");
       assert.equal(getSwitchCoords("HH.8.1.6")[0], "146G30");
       assert.equal(getSwitchCoords("AC.8.2.7")[0], "49G164");
+    });
+
+    QUnit.test('test pad name generation', function(assert) {
+      const iobDecoders = new IobDecoders();
+      let done = assert.async();
+      let errors = 0;
+      let undef = 0;
+      let success = 0;
+      $.getJSON( 'testfiles/data.js', function(data, status) {
+        assert.equal(status, 'success');
+        Object.entries(data).forEach(function([name, val]) {
+          if (!name.includes('PAD')) {
+            return;
+          }
+          if (IobDecoders.nameToG[name] == undefined) {
+            if (IobDecoders.gToName[val[2]] != undefined) {
+              assert.equal(IobDecoders.gToName[val[2]], name, 'bad name ' + name);
+              if (IobDecoders.gToName[val[2]] != name) {
+                errors += 1;
+                return;
+              }
+            }
+            assert.ok(false, "missing " + name);
+            undef += 1;
+            return;
+          }
+          const g = IobDecoders.nameToG[name];
+          assert.equal(IobDecoders.gToName[g], name, "G test " + name);
+          if (g != val[2]) {
+            errors += 1;
+          } else {
+            success += 1;
+          }
+          assert.equal(g, val[2], name);
+        });
+        assert.equal(errors, 0, "errors with " + success + " successes.");
+        assert.equal(undef, 0, "unimplemented");
+        done();
+      });
     });
 
 
