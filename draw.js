@@ -64,9 +64,10 @@ var colInfo = {
  "col.I.clbw1": [162, 598],
  "col.I.clbw2": [163, 602],
  "col.I.clbw3": [164, 606],
- "col.I.io1": [165, 614], // My invention, the column used just for I/O pins
+ "col.I.io1": [165, 610], // My invention, the column used just for I/O pins
+ "col.I.io2": [166, 614], // My invention, the column used just for I/O pins
  "col.I.local.0": [167, 618],
- "col.I.io2": [168, 622], // My invention, the column used just for I/O pins
+ "col.I.io3": [168, 622], // My invention, the column used just for I/O pins
  "col.I.long.1": [169, 626],
  "col.I.long.2": [170, 630],
  "col.I.local.1": [172, 636],
@@ -144,8 +145,9 @@ function initNames() {
       rowInfo[fullname + '.B'] = rowInfo['row.' + "ABCDEFGH"[row] + ".b"];
       rowInfo[fullname + '.C'] = rowInfo['row.' + "ABCDEFGH"[row] + ".c"];
       rowInfo[fullname + '.K'] = rowInfo['row.' + "ABCDEFGH"[row] + ".k"];
-      rowInfo[fullname + '.X'] = rowInfo['row.' + "ABCDEFGH"[row] + ".io6"];
-      rowInfo[fullname + '.Y'] = rowInfo['row.' + "ABCDEFGH"[row] + ".y"];
+      rowInfo[fullname + '.X'] = rowInfo['row.' + "ABCDEFGH"[row] + ".b"];
+      colInfo[fullname + '.D'] = colInfo['col.' + "ABCDEFGH"[row] + ".clb"];
+      colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[row] + ".clbr1"];
       // colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[col] + ".clb"];
     }
   }
@@ -156,7 +158,6 @@ function initNames() {
 }
 
    const pads = [
-
     ["P9", "AA", "topleft", "PAD1"],
     ["P8", "AB", "topright", "PAD2"],
     ["P7", "AB", "topleft", "PAD3"],
@@ -188,22 +189,22 @@ function initNames() {
     ["P47", "HI", "rightlower", "PAD28"],
     ["P46", "HI", "rightupper", "PAD29"],
 
-    ["P43", "HI", "bottomright", "PAD30"],
-    ["P42", "HH", "bottomleft", "PAD31"],
-    ["P41", "HH", "bottomright", "PAD32"],
-    ["P40", "HG", "bottomleft", "PAD33"],
-    ["P39", "HG", "bottomright", "PAD34"],
-    ["P38", "HF", "bottomleft", "PAD35"],
-    ["P37", "HF", "bottomright", "PAD36"],
-    ["P36", "HE", "bottomleft", "PAD37"],
-    ["P34", "HE", "bottomright", "PAD38"],
-    ["P33", "HD", "bottomleft", "PAD39"],
-    ["P32", "HD", "bottomright", "PAD40"],
-    ["P31", "HC", "bottomleft", "PAD41"],
-    ["P30", "HC", "bottomright", "PAD42"],
-    ["P29", "HB", "bottomleft", "PAD43"],
-    ["P28", "HB", "bottomright", "PAD44"],
-    ["P27", "HA", "bottomleft", "PAD45"],
+    ["P43", "II", "bottomright", "PAD30"],
+    ["P42", "IH", "bottomleft", "PAD31"],
+    ["P41", "IH", "bottomright", "PAD32"],
+    ["P40", "IG", "bottomleft", "PAD33"],
+    ["P39", "IG", "bottomright", "PAD34"],
+    ["P38", "IF", "bottomleft", "PAD35"],
+    ["P37", "IF", "bottomright", "PAD36"],
+    ["P36", "IE", "bottomleft", "PAD37"],
+    ["P34", "IE", "bottomright", "PAD38"],
+    ["P33", "ID", "bottomleft", "PAD39"],
+    ["P32", "ID", "bottomright", "PAD40"],
+    ["P31", "IC", "bottomleft", "PAD41"],
+    ["P30", "IC", "bottomright", "PAD42"],
+    ["P29", "IB", "bottomleft", "PAD43"],
+    ["P28", "IB", "bottomright", "PAD44"],
+    ["P27", "IA", "bottomleft", "PAD45"],
 
     ["P24", "HA", "leftupper", "PAD46"],
     ["P23", "HA", "leftlower", "PAD47"],
@@ -681,23 +682,36 @@ class Iob {
   static processIoPip(pip, name, pad) {
     let parts = pip.split(':');
     let pipname;
+    if (parts[0].includes('?') && parts[1].includes('?')) {
+      throw "Bad name " + pip;
+    }
     if (parts[0].includes('?')) {
-      parts[0] = parts[0].replace('col.?', 'col.' + name[1]);
+      // parts[0] = parts[0].replace('col.?', 'col.' + name[1]);
+      parts[0] = parts[0].replace('?', name[1]);
       pipname = parts[1] + ':' + pad;
     } else if (parts[1].includes('?')) {
-      parts[1] = parts[1].replace('row.?', 'row.' + name[0]);
+      // parts[1] = parts[1].replace('row.?', 'row.' + name[0]);
+      parts[1] = parts[1].replace('?', name[0]);
       pipname = parts[0] + ':' + pad;
     } else {
       console.log('No variable in pip name', pip);
     }
     let col = colInfo[parts[0]];
     let row = rowInfo[parts[1]];
-    if (col == undefined || row == undefined) {
-      console.log('Bad Iob pip', pip, name);
+    if (col == undefined) {
+      console.log('Bad Iob', name, pip, 'col', parts[0], "->", col, ";", parts[1], "->", row);
       return [];
     }
+    if (row == undefined) {
+      console.log('Bad Iob', name, pip, 'col', parts[0], "->", col, ";", parts[1], "->", row);
+      return [];
+    }
+    if (parts.length == 4) {
+      // Hardcoded name
+      pipname = parts[2] + ":" + parts[3];
+    }
     let gCoord = col[0] + "G" + row[0];
-    console.log(parts[0], parts[1], gCoord, col, row, pipname);
+    console.log(pipname, gCoord);
     IobDecoders.gToIob[gCoord] = pipname;
     return [gCoord, col[1], row[1], pipname];
   }
@@ -753,9 +767,9 @@ class Iob {
         yoff = 4;
         k = ["col.?.clbw1:row.A.local.0"];
         o = [ "col.?.clbw1:row.A.local.1", "col.?.clbw1:row.A.local.3", "col.?.clbw1:row.A.long.3",
-              "col.H.clbr3:row.A.io3", "col.I.long.1:row.A.io3", "col.I.local.1:row.A.io3", "col.I.local.3:row.A.io3", "col.I.long.3:row.A.io3",];
+              "col.H.clbr3:row.?.io3", "col.I.long.1:row.?.io3", "col.I.local.1:row.?.io3", "col.I.local.3:row.?.io3", "col.I.long.3:row.?.io3",];
         i = [ "col.?.clbw2:row.A.long.2", "col.?.clbw2:row.A.local.2", "col.?.clbw2:row.A.local.4",
-              "col.I.long.2:row.A.io2", "col.I.local.2:row.A.io2", "col.I.local.4:row.A.io2", "col.I.long.3:row.A.io2"];
+              "col.I.long.2:row.?.io2", "col.I.local.2:row.?.io2", "col.I.local.4:row.?.io2", "col.I.long.3:row.?.io2"];
         t = [ "col.?.clbw3:row.A.long.2", "col.?.clbw3:row.A.local.1", "col.?.clbw3:row.A.local.3", "col.?.clbw3:row.A.long.3",];
       } else if (direction == "topright") {
         this.W = 20;
@@ -775,12 +789,12 @@ class Iob {
         xoff = -16;
         yoff = -12;
         k = [ "col.I.local.5:row.?.io1"];
-        t = [ "col.I.local.5:row.?.io1", "col.I.long.3:row.?.io1", "col.I.local.4:row.?.io1",
+        t = [ "col.I.long.3:row.?.io1", "col.I.local.4:row.?.io1",
 "col.I.local.2:row.?.io1", "col.I.long.2:row.?.io1"];
         i = [ "col.I.long.3:row.?.io2", "col.I.local.3:row.?.io2", "col.I.local.1:row.?.io2",
-"col.I.long.1:row.?.io2", "undefined:row.?.local.3", "undefined:row.?.local.5"];
+"col.I.long.1:row.?.io2", "col.I.io1:row.?.local.3", "col.I.io1:row.?.local.5"];
         o = [ "col.I.local.4:row.?.io3", "col.I.local.2:row.?.io3", "col.I.long.2:row.?.io3",
-"col.I.io1:row.?.local.1", "col.I.io1:row.?.local.4", "col.I.io1:row.?.long.1"];
+"col.I.io2:row.?.local.1", "col.I.io2:row.?.local.4", "col.I.io2:row.?.long.1", "col.I.io2:?H.X", "col.I.io2:?H.Y"];
       } else if (direction == "rightupper") {
         this.W = 12;
         this.H = 26;
@@ -789,36 +803,46 @@ class Iob {
         k = [ "col.I.local.5:row.?.io4"];
         t = [ "col.I.long.3:row.?.io4", "col.I.local.4:row.?.io4", "col.I.local.2:row.?.io4", "col.I.long.2:row.?.io4",];
         i = [ "col.I.local.4:row.?.io5", "col.I.local.2:row.?.io5", "col.I.long.2:row.?.io5", "col.I.io2:row.?.long.1", "col.I.io2:row.?.local.4", "col.I.io2:row.?.local.1",];
-        o = [ "col.I.long.3:?H.X", "col.I.local.3:?H.X", "col.I.local.1:?H.X", "col.I.long.1:?H.X", "col.I.local.0:row.?.local.5", "col.I.local.0:row.?.local.3",]
-      } else if (direction == "bottomright" && tile == "HI") {
+        o = [ "col.I.long.3:row.?.io6", "col.I.local.3:row.?.io6", "col.I.local.1:row.?.io6", "col.I.long.1:row.?.io6", "col.I.local.0:row.?.local.5", "col.I.local.0:row.?.local.3", "col.I.local.0:?H.X", "col.I.local.0:?H.Y"]
+      } else if (direction == "bottomright" && tile == "II") {
         this.W = 20;
         this.H = 12;
         xoff = -4;
         yoff = -16
-        k = [ "col.H.clbr1:row.I.local.5"];
-        o = [ "col.H.clbr1:row.I.clk", "col.H.clbr1:row.I.local.4", "col.H.clbr1:row.I.local.2", "col.H.clbr1:row.I.long.1", "col.H.clbr3:row.I.io2", "col.I.long.2:row.I.io2", "col.I.local.2:row.I.io2", "col.I.local.4:row.I.io2", "col.I.long.3:row.I.io2",];
-        i = [ "col.H.clbr2:row.I.long.2", "col.H.clbr2:row.I.local.3", "col.H.clbr2:row.I.local.1", "undefined:row.I.io3", "col.I.long.1:row.I.io3", "col.I.local.1:row.I.io3", "col.I.local.3:row.I.io3", "col.I.long.3:row.I.io3",];
-        t = [ "col.H.clbr3:row.I.long.2", "col.H.clbr3:row.I.local.4", "col.H.clbr3:row.I.local.2", "col.H.clbr3:row.I.long.1",];
+        k = [ "col.?.clbw1:row.I.local.5"];
+        o = [ "col.?.clbw1:row.I.clk", "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1",
+              "col.?.clbw3:row.I.io2", "col.?.long.2:row.I.io2", "col.?.local.2:row.I.io2", "col.?.local.4:row.I.io2", "col.?.long.3:row.I.io2",];
+        i = [ "col.?.clbw2:row.I.long.2", "col.?.clbw2:row.I.local.3", "col.?.clbw2:row.I.local.1",
+            "col.?.io1:row.I.io3:CLK.II.O:PAD30.I",
+            "col.?.long.1:row.I.io3", "col.?.local.1:row.I.io3", "col.?.local.3:row.I.io3", "col.?.long.3:row.I.io3",];
+        let x = [
+            "col.?.long.1:row.I.io3", "col.?.local.1:row.I.io3", "col.?.local.3:row.I.io3", "col.?.long.3:row.I.io3",];
+        t = [ "col.?.clbw3:row.I.long.2", "col.?.clbw3:row.I.local.4", "col.?.clbw3:row.I.local.2", "col.?.clbw3:row.I.long.1",];
       } else if (direction == "bottomright") {
         this.W = 20;
         this.H = 12;
         xoff = -4;
         yoff = -16
         k = [ "col.?.clbw1:row.I.local.5"];
-        o = [ "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1", "col.?.clbw3:row.I.io3", "col.?.local.2:row.I.io3", "col.?.local.4:row.I.io3", "col.?.local.5:row.I.io3", "col.?.long.2:row.I.io3",];
+        o = [ "col.?.clbw1:row.I.local.4", "col.?.clbw1:row.I.local.2", "col.?.clbw1:row.I.long.1",
+            "col.?.local.2:row.I.io3", "col.?.local.4:row.I.io3", "col.?.local.5:row.I.io3", "col.?.long.2:row.I.io3",];
+        o.push("col.?.clbw3:row.I.io3:" + pad + ".O:" + tile + ".X"); // Hardwire this tricky case
 "",
         i = [ "col.?.clbw2:row.I.long.2", "col.?.clbw2:row.I.local.3", "col.?.clbw2:row.I.local.1", "col.?.local.1:row.I.io4", "col.?.local.3:row.I.io4", "col.?.long.1:row.I.io4",];
 "",
         t = [ "col.?.clbw3:row.I.long.2", "col.?.clbw3:row.I.local.4", "col.?.clbw3:row.I.local.2", "col.?.clbw3:row.I.long.1",];
-      } else if (direction == "bottomleft" && tile == "HA") {
+      } else if (direction == "bottomleft" && tile == "IA") {
         this.W = 20;
         this.H = 12;
         xoff = -8;
         yoff = -16
-        k = [ "col.A.io3:row.I.local.5",];
-        o = [ "col.A.io3:row.I.long.2", "col.A.io3:row.I.local.3", "col.A.io3:row.I.local.1", "col.A.long.3:row.I.io2",
-          "col.A.local.3:row.I.io2", "col.A.local.1:row.I.io2", "col.A.long.2:row.I.io2",];
-        i = [ "col.A.x:row.I.local.4", "col.A.x:row.I.local.2", "col.A.x:row.I.long.1", "col.A.long.4:row.I.io1", "col.A.local.4:row.I.io1", "col.A.local.2:row.I.io1", "col.A.long.2:row.I.io1",];
+        k = [ "col.?.io3:row.I.local.5",];
+        o = [ "col.?.io3:row.I.long.2", "col.?.io3:row.I.local.3", "col.?.io3:row.I.local.1",
+          "col.A.long.3:row.?.io2",
+          "col.A.local.3:row.?.io2", "col.A.local.1:row.?.io2", "col.A.long.2:row.?.io2",];
+        i = [ "col.?.x:row.I.local.4", "col.?.x:row.I.local.2", "col.?.x:row.I.long.1", "col.A.long.4:row.?.io1", "col.A.local.4:row.?.io1", "col.A.local.2:row.?.io1", "col.A.long.2:row.?.io1",];
+        i.push("col.?.clb:row.I.io2:" + tile + ".D:" + pad + ".I"); // special case
+        // i.push("col.?.clb:row.I.io2"); // special case
         t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
       } else if (direction == "bottomleft") {
         this.W = 20;
@@ -826,9 +850,11 @@ class Iob {
         xoff = -8;
         yoff = -16
         k = [ "col.?.x:row.I.local.5",];
-        o = [ "col.?.x:row.I.long.2", "col.?.x:row.I.local.3", "col.?.x:row.I.local.1", "col.?.long.1:row.I.io2", "col.?.local.3:row.I.io2", "col.?.local.1:row.I.io2",];
+        o = [ "col.?.x:row.I.long.2", "col.?.x:row.I.local.3", "col.?.x:row.I.local.1", "col.?.long.1:row.I.io2", "col.?.local.3:row.I.io2", "col.?.local.1:row.I.io2",
+        ];
         i = [ "col.?.clbl2:row.I.local.4", "col.?.clbl2:row.I.local.2", "col.?.clbl2:row.I.long.1",
-        "col.?.long.2:row.I.io1", "col.?.local.5:row.I.io1", "col.?.local.4:row.I.io1", "col.?.local.2:row.I.io1"];
+        "col.?.long.2:row.I.io1", "col.?.local.5:row.I.io1", "col.?.local.4:row.I.io1", "col.?.local.2:row.I.io1",
+        "H?.D:row.I.io2"];
         t = [ "col.?.clbl1:row.I.long.2", "col.?.clbl1:row.I.local.4", "col.?.clbl1:row.I.local.2", "col.?.clbl1:row.I.long.1",];
       } else if (direction == "leftupper") {
         this.W = 12;
@@ -866,6 +892,22 @@ class Iob {
     ctx.stroke();
     ctx.fillStyle = "yellow";
     this.pips.forEach(function([gCoord, col, row, pipname]) {
+      if (pipname == undefined) {
+        ctx.fillStyle = "red";
+      } else
+      if (pipname.match(/\d\.K/)) {
+        ctx.fillStyle = "yellow";
+      } else if (pipname.match(/\d\.O/)) {
+        ctx.fillStyle = "blue";
+      } else if (pipname.match(/\d\.I/)) {
+      console.log(pipname);
+        ctx.fillStyle = "green";
+      } else if (pipname.match(/\d\.T/)) {
+        ctx.fillStyle = "pink";
+      } else {
+        ctx.fillStyle = "brown";
+        alert(pipname);
+      }
       ctx.fillRect(col - 1, row - 1, 3, 3);
     });
   }

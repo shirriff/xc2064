@@ -382,7 +382,7 @@ class Mux {
     const col = colInfo[parts[0]];
     const row = rowInfo[parts[1]];
     if (col == undefined || row == undefined) {
-      // console.log("Couldn't convert name", str);
+      console.log("Couldn't convert name", str);
       return;
     }
     return col[0] + "G" + row[0];
@@ -399,7 +399,7 @@ class Mux {
     const col = colFromG[parts[0]];
     const row = rowFromG[parts[1]];
     if (col == undefined || row == undefined) {
-      // console.log("Couldn't convert name", str);
+      console.log("Couldn't convert name", str);
       return;
     }
     return col + ":" + row;
@@ -437,7 +437,7 @@ class ClbDecoder {
     let yCenter = rowInfo['row.' + this.name[0] + '.c'][1];
     this.W = 20;
     this.H = 32;
-    this.screenPt = [xCenter - this.W / 2, yCenter - this.H / 2];
+    this.screenPt = [xCenter - this.W / 2, yCenter - this.H / 2 - 1];
   }
 
   add(str, bit) {
@@ -689,7 +689,6 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
      * Format: [[x, y, type], ...]
      */
     getBitTypes() {
-      console.log('pip',[this.bitPt[0], this.bitPt[1], BITTYPE.pip]);
       return [[this.bitPt[0], this.bitPt[1], BITTYPE.pip]];
     }
   }
@@ -1048,7 +1047,6 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
 
     // Returns screen position for e.g. 'local.1'
     colPos(s) {
-      console.log('col.' + this.tilename[1] + '.' + s + ':' + colInfo['col.' + this.tilename[1] + '.' + s][1]);
       return colInfo['col.' + this.tilename[1] + '.' + s][1];
     }
 
@@ -1141,16 +1139,29 @@ function layoutClickInfo(x, y) {
   y = Math.floor(y / SCALE);
   let col;
   let row;
+  let colv;
+  let rowv;
   Object.entries(colInfo).forEach(function([k, v]) {
     if (Math.abs(v[1] - x) < 3) {
       col = k;
+      colv = v;
     }
   });
   Object.entries(rowInfo).forEach(function([k, v]) {
     if (Math.abs(v[1] - y) < 3) {
       row = k;
+      rowv = v;
     }
   });
-  $("#info0").html(x + ' ' + y + ' ' + col + ' ' + row);
-  console.log(col + ':' + row);
+  if (rowv == undefined || colv == undefined) {
+    $("#info0").html("");
+  } else {
+    const gcoord = colv[0] + "G" + rowv[0];
+    let pip = "";
+    if (IobDecoders.gToIob[gcoord]) {
+      pip = IobDecoders.gToIob[gcoord];
+    }
+    $("#info0").html(col + " " + row + " " + colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
+    console.log(col, row, colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
+  }
 }
