@@ -487,9 +487,6 @@ function initNames() {
     this.tilename = name[0] + name[1];
     this.num = parseInt(name[5], 10);
     this.pins = {}; // Dictionary holding names of pins
-    this.lines = {};
-    this.state = null;
-    this.wires = [];
 
       // The switch pair's upper left wires are local.1
       var row = rowInfo['row.' + this.tilename[0] + '.local.1'];
@@ -513,6 +510,12 @@ function initNames() {
         }
       }
     }
+
+  startDecode() {
+    this.lines = {};
+    this.state = null;
+    this.wires = [];
+  }
 
   /**
    * Processes an entry from the configuration.
@@ -670,9 +673,21 @@ class Iob {
     this.name = pin;
     this.tilename = tile;
     this.style = style;
-    this.pips = [];
 
+    this.kpipVals = [];
+    this.opipVals = [];
+    this.ipipVals = [];
+    this.tpipVals = [];
     this.generateIobPips(pin, tile, style, pad);
+  }
+
+  startDecode() {
+    this.data = [];
+    this.bit = -1; // PAD/Latched
+    this.muxo = 0;
+    this.muxk = 0;
+    this.muxt = 0;
+    this.l = 0;
   }
 
   /**
@@ -745,6 +760,7 @@ class Iob {
 
   /**
    * Adds entries for the pips.
+   * Also initializes x0, y0, W, H
    */
   generateIobPips(pin, tile, direction, pad) {
       let k = [];
@@ -922,12 +938,29 @@ class Iob {
       } else { 
         return;
       }
-      k.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".K")));
-      this.x0 = this.pips[this.pips.length - 1][1] + xoff;
-      this.y0 = this.pips[this.pips.length - 1][2] + yoff;
-      o.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".O")));
-      i.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".I")));
-      t.forEach(p => this.pips.push(Iob.processIoPip(p, tile, pad + ".T")));
+      this.kpips = [];
+      this.opips = [];
+      this.ipips = [];
+      this.tpips = [];
+      k.forEach(p => this.kpips.push(Iob.processIoPip(p, tile, pad + ".K")));
+      o.forEach(p => this.opips.push(Iob.processIoPip(p, tile, pad + ".O")));
+      i.forEach(p => this.ipips.push(Iob.processIoPip(p, tile, pad + ".I")));
+      t.forEach(p => this.tpips.push(Iob.processIoPip(p, tile, pad + ".T")));
+      // Grab the x,y coordinates of the K pip; this is the origin for drawing the box
+      this.x0 = this.kpips[0][1] + xoff;
+      this.y0 = this.kpips[0][2] + yoff;
+  }
+
+  drawInt(ctx, pips, vals, color) {
+    for (let i = 0; i < pips.length; i++) {
+      const [gCoord, col, row, pipname] = pips[i];
+      if (vals[i]) {
+        ctx.fillStyle = "red";
+      } else {
+        ctx.fillStyle = color;
+      }
+      ctx.fillRect(col - 1, row - 1, 3, 3);
+    }
   }
 
   draw(ctx) {
@@ -936,29 +969,38 @@ class Iob {
     ctx.rect(this.x0, this.y0, this.W, this.H);
     ctx.stroke();
     ctx.fillStyle = "yellow";
-    this.pips.forEach(function([gCoord, col, row, pipname]) {
-      if (pipname == undefined) {
-        ctx.fillStyle = "red";
-      } else
-      if (pipname.match(/\d\.K/)) {
-        ctx.fillStyle = "yellow";
-      } else if (pipname.match(/\d\.O/)) {
-        ctx.fillStyle = "blue";
-      } else if (pipname.match(/\d\.I/)) {
-      console.log(pipname);
-        ctx.fillStyle = "green";
-      } else if (pipname.match(/\d\.T/)) {
-        ctx.fillStyle = "pink";
-      } else {
-        ctx.fillStyle = "brown";
-        alert("Unexpected pipname: " + pipname);
-      }
-      ctx.fillRect(col - 1, row - 1, 3, 3);
-    });
+    this.drawInt(ctx, this.kpips, this.kpipVals, "yellow");
+    this.drawInt(ctx, this.opips, this.opipVals, "blue");
+    this.drawInt(ctx, this.ipips, this.ipipVals, "green");
+    this.drawInt(ctx, this.tpips, this.tpipVals, "pink");
+    ctx.font = "5px arial";
+    ctx.fillStyle = "red";
+    ctx.fillText("" + this.l + " " + this.muxk + " " + this.muxo + " " + this.muxt, this.x0, this.y0);
   }
 
   add(str, bit) {
-    console.log(str);
+    if (str == ".I PAD/Latched") {
+      this.l = bit;
+    } else if (str == "") {
+      this.muxt |= (bit << 0);
+    } else {
+      let m = str.match(/\.([OKT]) MuxBit: (\d+)/);
+      if (m) {
+        if (m[1] == 'K') {
+          this.muxk |= (bit << parseInt(m[2]));
+        } else if (m[1] == 'O') {
+          this.muxo |= (bit << parseInt(m[2]));
+        } else if (m[1] == 'T') {
+          this.muxt |= (bit << parseInt(m[2]));
+        } else {
+          alert('Bad mux ' + str);
+        }
+      } else {
+        alert('Bad mux2 ' + str);
+      }
+    }
+    console.log("IOB " + this.name + " " + this.tilename + " " + str + " " + this.l + " " + this.muxk + " " + this.muxo + " " + this.muxt);
+    this.data.push(str + " " + bit);
   }
 
     isInside(x, y) {
@@ -966,7 +1008,7 @@ class Iob {
     }
 
     info() {
-      return "IOB " + this.name + " " + this.tilename + " " + this.style + " " + this.pips;
+      return "IOB " + this.name + " " + this.tilename + " " + this.style + " " + this.pips + this.data.join(", ");
     }
 
 }

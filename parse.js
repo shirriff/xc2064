@@ -115,6 +115,7 @@ function makeBitstreamTable(rawBitstream) {
 let bitTypes;
 function decode(rawBitstream, config) {
   bitTypes = new Array(160 * 71);
+  decoders.forEach(d => d.startDecode());
   for (let i = 0; i < 160 * 71; i++) {
     let entry = config[i];
     if (entry == undefined || entry == "----- NOT USED -----") continue;
@@ -179,11 +180,15 @@ function initDecoders() {
   clbDecoders = new ClbDecoders;
   switchDecoders = new SwitchDecoders();
   decoders = [iobDecoders, pipDecoder, bidiDecoder, otherDecoder, clbDecoders, switchDecoders];
+  decoders.forEach(d => d.startDecode());
 }
 
 class ClkDecoder {
   constructor(name) {
     this.name = name;
+  }
+
+  startDecode() {
   }
 
   add(str) {
@@ -199,8 +204,16 @@ class IobDecoders {
     this.iobsFromPin = {};
     const self = this;
     pads.forEach(function([pin, tile, style, pad]) {
-      self.iobs[pad] = new Iob(pin, tile, style, pad);
-      self.iobsFromPin[pin] = new Iob(pin, tile, style, pad);
+      const iob = new Iob(pin, tile, style, pad);
+      self.iobs[pad] = iob;
+      self.iobsFromPin[pin] = iob;
+    });
+  }
+
+  startDecode() {
+    const self = this;
+    pads.forEach(function([pin, tile, style, pad]) {
+      self.iobs[pad].startDecode();
     });
   }
 
@@ -229,6 +242,10 @@ class PipDecoder {
     this.entries = {};
   }
 
+  startDecode() {
+    this.entries = {};
+  }
+
   add(str, bit) {
     this.entries[str] = bit;
   }
@@ -243,6 +260,10 @@ class PipDecoder {
 
 class BidiDecoder {
   constructor() {
+    this.entries = {};
+  }
+
+  startDecode() {
     this.entries = {};
   }
 
@@ -270,6 +291,10 @@ class SwitchDecoders {
         }
       }
     }
+  }
+
+  startDecode() {
+    Object.entries(this.switches).forEach(([k, s]) => s.startDecode());
   }
 
   getFromG(name) {
@@ -301,6 +326,10 @@ class ClbDecoders {
     this.clbDecoders["CLK.II.I"] = new ClkDecoder("CLK.II.I");
   }
 
+  startDecode() {
+    Object.entries(this.clbDecoders).forEach(([k, c]) => c.startDecode());
+  }
+
   get(name) {
     return this.clbDecoders[name];
   }
@@ -328,6 +357,9 @@ class Mux {
   constructor(config) {
     this.selector = config.pop();
     this.inputs = config;
+  }
+
+  startDecode() {
     this.data = {};
     this.pips = [];
     this.selected = "";
@@ -375,6 +407,9 @@ class Mux {
    * Converts a symbolic name to G coordinates.
    */
   function nameToG(str) {
+    if (str.includes("PAD")) {
+      return IobDecoders.nameToG[str];
+    }
     const m = str.match(/([A-I][A-I])\.8\.(\d)\.(\d)$/);
     if (str.match(/([A-I][A-I])\.8\.(\d)\.(\d)$/)) {
       return getSwitchCoords(str)[0];
@@ -441,6 +476,10 @@ class ClbDecoder {
     this.screenPt = [xCenter - this.W / 2, yCenter - this.H / 2 - 1];
   }
 
+  startDecode() {
+    Object.entries(this.muxs).forEach(([k, m]) => m.startDecode());
+  }
+
   add(str, bit) {
     const m = str.match(/\.([A-H]) MuxBit: (\d)/);
     if (m) {
@@ -458,7 +497,6 @@ class ClbDecoder {
   }
 
   render(ctx) {
-    this.decode();
     Object.entries(this.muxs).forEach(([name, mux]) => mux.render(ctx));
     ctx.strokeStyle = "#cff";
     ctx.rect(this.screenPt[0], this.screenPt[1], this.W, this.H);
@@ -482,6 +520,9 @@ class ClbDecoder {
 
 class OtherDecoder {
   constructor() {
+  }
+
+  startDecode() {
     this.entries = {};
   }
 
@@ -496,7 +537,7 @@ class OtherDecoder {
 
 const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6, other: 7});
 
-  class ClbDecode {
+  class XXXClbDecode {
     constructor(x, y, gPt, bitPt) {
       this.x = x;
       this.y = y;
@@ -1165,4 +1206,9 @@ function layoutClickInfo(x, y) {
     $("#info0").html(col + " " + row + " " + colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
     console.log(col, row, colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
   }
+    let iob = iobDecoders.getFromXY(x, y);
+    if (iob) {
+      console.log(iob.info());
+      return;
+    }
 }

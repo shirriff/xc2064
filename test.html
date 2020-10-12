@@ -375,6 +375,8 @@
     });
 
     QUnit.test('test nameToG', function(assert) {
+      const iobDecoders = new IobDecoders();
+      initNames();
       assert.equal(nameToG("col.F.local.5:row.F.local.4"), "113G66");
       let done = assert.async();
       let errors = 0;
@@ -384,11 +386,14 @@
         Object.entries(data).forEach(function([name, val]) {
           const result = nameToG(name);
           if (result == undefined) {
+            assert.ok(false, "missing: " + name);
             console.log(name, 'unimplemented');
             undef += 1;
           } else if (result != val[2]) {
-            console.log(name, 'want:', val[2], 'got:', result);
+            assert.equal(result, val[2], name);
             errors += 1;
+          } else {
+            assert.ok(true, name);
           }
         });
         assert.equal(errors, 0, "errors");
