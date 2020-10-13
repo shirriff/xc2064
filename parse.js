@@ -198,45 +198,6 @@ class ClkDecoder {
   }
 }
 
-class IobDecoders {
-  constructor() {
-    this.iobs = {};
-    this.iobsFromPin = {};
-    const self = this;
-    pads.forEach(function([pin, tile, style, pad]) {
-      const iob = new Iob(pin, tile, style, pad);
-      self.iobs[pad] = iob;
-      self.iobsFromPin[pin] = iob;
-    });
-  }
-
-  startDecode() {
-    const self = this;
-    pads.forEach(function([pin, tile, style, pad]) {
-      self.iobs[pad].startDecode();
-    });
-  }
-
-  getFromPin(pin) {
-    return this.iobsFromPin[pin];
-  }
-
-  getFromXY(x, y) {
-    for (const iob of Object.entries(this.iobs)) {
-      if (iob[1].isInside(x, y)) {
-        return iob[1];
-      }
-    }
-    return undefined;
-  }
-
-  render(ctx) {
-    Object.entries(this.iobs).forEach(([name, obj]) => obj.draw(ctx));
-  }
-}
-IobDecoders.gToName = {};
-IobDecoders.nameToG = {};
-
 class PipDecoder {
   constructor() {
     this.entries = {};
@@ -347,62 +308,6 @@ const muxB = [
 ["WX.X:XX.B", "col.X.local.3:XX.B", "!5"],
 "0"];
 
-// This implements a mux tree. The XC2064 uses a mux to select
-// Controls: MuxBit: 0-N
-// Input: [["pip0", "pip1", "0"], ["pip2", "pip3", "!1"], ["pip4", "pip5", "2"]], "3"
-// The idea is that MuxBit 0 selects pip0 and pip1, MuxBit 1 low selects pip2 and pip3. Muxbit 3 selects the first (low) or second (high)
-// of the selected pair.
-// Output: list of Pips with correct one activated
-class Mux {
-  constructor(config) {
-    this.selector = config.pop();
-    this.inputs = config;
-  }
-
-  startDecode() {
-    this.data = {};
-    this.pips = [];
-    this.selected = "";
-  }
-
-  add(bitnum, bit) {
-    this.data[bitnum] = bit;
-    this.data["!" + bitnum] = 1 - bit; // Inverted bit
-  }
-
-  decode() {
-    this.pips = {};
-    const self = this;
-    this.inputs.forEach(function([entry0, entry1, muxbit]) {
-      if (self.data[muxbit] == 0) { // This group of two is selected, active low.
-        if (self.data[self.selector]) { // Select between the two
-          // entry1 is active;
-          self.pips[entry0] = 1;
-          self.pips[entry1] = 0; // Active-low
-          self.selected = entry1;
-        } else {
-          // entry0 is active
-          self.pips[entry0] = 0; // Active-low
-          self.pips[entry1] = 1;
-          self.selected = entry0;
-        }
-      } else {
-        // Neither is active
-        self.pips[entry0] = 1;
-        self.pips[entry1] = 1;
-      }
-    });
-  }
-
-  render(ctx) {
-    pipRender(ctx, this.pips);
-  }
-
-  info() {
-    return "Mux " + this.selected;
-  }
-}
-
   /**
    * Converts a symbolic name to G coordinates.
    */
@@ -441,34 +346,9 @@ class Mux {
     return col + ":" + row;
   }
 
-  /**
-   * Fills in the blanks in a mux entry.
-   * The current tile is represented as XX so the tile to the left is XW and the tile above is WX.
-   */
-  function fillInMuxEntries(name, inputs) {
-    const result = [];
-    const col = 'col.' + name[0];
-    const row = 'row.' + name[1];
-    const xx = name;
-    const xw = name[0] + String.fromCharCode(name.charCodeAt(1) - 1);
-    const wx = String.fromCharCode(name.charCodeAt(0) - 1) + name[1];
-    // Substitute one string.
-    function fill(str) {
-      // The string with the XX replaced by the current tile name
-      return str.replace('col.X', col).replace('row.X', row).replace('XX', xx).replace('XW', xw).replace('WX', wx);
-    }
-    for (let i = 0; i < inputs.length - 1; i++) {
-      result.push([nameToG(fill(inputs[i][0])), nameToG(fill(inputs[i][1])), inputs[i][2]]);
-    }
-    result.push(inputs[inputs.length - 1]); // Last entry is a bitNum, not wires.
-    return result;
-  }
-
 class ClbDecoder {
   constructor(name) {
     this.name = name;
-    this.muxs = {};
-    this.muxs['B'] = new Mux(fillInMuxEntries(this.name, muxB));
     let xCenter = colInfo['col.' + this.name[1] + '.clb'][1];
     let yCenter = rowInfo['row.' + this.name[0] + '.c'][1];
     this.W = 20;
@@ -477,27 +357,19 @@ class ClbDecoder {
   }
 
   startDecode() {
-    Object.entries(this.muxs).forEach(([k, m]) => m.startDecode());
   }
 
   add(str, bit) {
     const m = str.match(/\.([A-H]) MuxBit: (\d)/);
     if (m) {
-      if (this.muxs[m[1]]) {
-        this.muxs[m[1]].add(m[2], bit);
-      } else {
-        console.log('Need to create mux', m[1]);
-      }
     }
   }
 
   // Decoded the received data
   decode() {
-    Object.entries(this.muxs).forEach(([name, mux]) => mux.decode());
   }
 
   render(ctx) {
-    Object.entries(this.muxs).forEach(([name, mux]) => mux.render(ctx));
     ctx.strokeStyle = "#cff";
     ctx.rect(this.screenPt[0], this.screenPt[1], this.W, this.H);
     ctx.stroke();
@@ -505,7 +377,6 @@ class ClbDecoder {
 
   info() {
     let result = [];
-    Object.entries(this.muxs).forEach(([name, mux]) => result.push(mux.info()));
     return "CLB: " + this.name + " " + result.join(" ");
   }
 
@@ -1069,66 +940,6 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     }
   }
 
-
-  /**
-   * An I/O block.
-   * Each I/O block is associated with its neighboring tile.
-   * Some complications: I/O blocks are different on the top, bottom, left, and right.
-   * There are typically two I/O blocks per tile, so the bits are different for these two. They are also drawn differently.
-   * Tile AA has 3 I/O blocks. Tile EA has 1 I/O block; one is omitted.
-   * 
-   */
-  class XXXIobDecode {
-    constructor(name, tilename, x0, y0, style) {
-      this.name = name;
-      this.tilename = tilename;
-      this.x0 = x0;
-      this.y0 = y0;
-      this.style = style;
-    }
-
-    // Returns screen position for e.g. 'local.1'
-    colPos(s) {
-      return colInfo['col.' + this.tilename[1] + '.' + s][1];
-    }
-
-    // Returns screen position for e.g. 'local.1'
-    rowPos(s) {
-      return rowInfo['row.' + this.tilename[0] + '.' + s][1];
-    }
-
-    decode(bitstreamTable) {
-     // TODO
-     return [];
-    }
-
-    /**
-     * Returns the function of each (known) bit in the bitstreamTable.
-     *
-     * Format: [[x, y, type], ...]
-     */
-    getBitTypes() {
-      return [];
-    }
-
-  }
-
-  /*
-  let objects = [];
-
-  var tiles = new Array(9);
-  function initTiles() {
-    for (var x = 0; x < 9; x++) {
-      tiles[x] = new Array(9);
-      for (var y = 0; y < 9; y++) {
-        var tile = new Tile(x, y);
-        tiles[x][y] = tile;
-        objects.push(tile);
-      }
-    }
-  }
-  */
-
   function initParser() {
     initNames();
     initDecoders();
@@ -1206,9 +1017,9 @@ function layoutClickInfo(x, y) {
     $("#info0").html(col + " " + row + " " + colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
     console.log(col, row, colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
   }
-    let iob = iobDecoders.getFromXY(x, y);
-    if (iob) {
-      console.log(iob.info());
-      return;
-    }
+  let iob = iobDecoders.getFromXY(x, y);
+  if (iob) {
+    console.log(iob.info());
+    return;
+  }
 }
