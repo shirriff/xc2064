@@ -145,7 +145,7 @@ function initNames() {
       rowInfo[fullname + '.B'] = rowInfo['row.' + "ABCDEFGH"[row] + ".b"];
       rowInfo[fullname + '.C'] = rowInfo['row.' + "ABCDEFGH"[row] + ".c"];
       rowInfo[fullname + '.K'] = rowInfo['row.' + "ABCDEFGH"[row] + ".k"];
-      rowInfo[fullname + '.X'] = rowInfo['row.' + "ABCDEFGH"[row] + ".b"];
+      rowInfo[fullname + '.X'] = rowInfo['row.' + "ABCDEFGH"[row] + ".c"];
       rowInfo[fullname + '.Y'] = rowInfo['row.' + "ABCDEFGH"[row] + ".y"];
       colInfo[fullname + '.D'] = colInfo['col.' + "ABCDEFGH"[row] + ".clb"];
       colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[row] + ".clbr1"];
@@ -670,24 +670,20 @@ function initNames() {
  */
 class Iob {
   constructor(pin, tile, style, pad) {
-    this.name = pin;
-    this.tilename = tile;
+    this.pin = pin;
+    this.tile = tile;
     this.style = style;
+    this.pad = pad;
 
-    this.kpipVals = [];
-    this.opipVals = [];
-    this.ipipVals = [];
-    this.tpipVals = [];
-    this.generateIobPips(pin, tile, style, pad);
   }
 
   startDecode() {
     this.data = [];
-    this.bit = -1; // PAD/Latched
-    this.muxo = 0;
+    this.muxo = 0; // Mux bits converted to binary
     this.muxk = 0;
     this.muxt = 0;
-    this.l = 0;
+    this.latch = 0; // Pad/latched bit
+    this.label = "";
   }
 
   /**
@@ -755,7 +751,7 @@ class Iob {
     let gCoord = col[0] + "G" + row[0];
     IobDecoders.gToName[gCoord] = pipname;
     IobDecoders.nameToG[pipname] = gCoord;
-    return [gCoord, col[1], row[1], pipname];
+    return [gCoord, col[1], row[1], pipname, false];
   }
 
   /**
@@ -767,23 +763,40 @@ class Iob {
       let o = [];
       let i = [];
       let t = [];
+      let kmux = undefined;
+      let omux = undefined;
+      let tmux = undefined;
       let xoff = 0;
       let yoff = 0;
+      this.label = "";
       if (direction == "topleft" && tile == 'AA') {
         this.W = 20;
         this.H = 12;
         xoff = -8;
         yoff = 4;
         k = ["|col.?.io3:row.A.local.0"];
-        o = [ "|col.?.io3:row.A.long.2", "|col.?.io3:row.A.local.2", "|col.?.io3:row.A.local.4", "-col.A.long.3:row.?.local.5",
-              "-col.A.local.3:row.?.local.5", "-col.A.local.1:row.?.local.5", "-col.A.long.2:row.?.local.5"];
-        o.push("col.?.io3:CLK.AA.O:" + pad + ".O" + ":CLK.AA.O");
+        o = ["col.?.io3:CLK.AA.O:" + pad + ".O" + ":CLK.AA.O"];
+        o.push( "|col.?.io3:row.A.long.2", "|col.?.io3:row.A.local.2", "|col.?.io3:row.A.local.4", "-col.A.long.3:row.?.local.5",
+              "-col.A.local.3:row.?.local.5", "-col.A.local.1:row.?.local.5", "-col.A.long.2:row.?.local.5");
         i = ["|col.?.x:row.A.local.1", "|col.?.x:row.A.local.3", "|col.?.x:row.A.long.3",
           "-col.A.io2:row.?.io5", "-col.A.long.4:row.?.io5",
           "-col.A.local.4:row.?.io5", "-col.A.local.2:row.?.io5",
           "-col.A.long.2:row.?.io5" ];
-        i.push("col.?.clb:row.A.io2:A" + tile[1] + ".A:" + pad + ".I"); // special case
+        i.push("col.?.clb:row.A.io2:" + tile + ".A:" + pad + ".I"); // special case
+        i.push("col.A.x:AA.B:" + tile + ".B:" + pad + ".I"); // special case
         t = [ "|col.?.clbl1:row.A.long.2", "|col.?.clbl1:row.A.local.1", "|col.?.clbl1:row.A.local.3", "|col.?.clbl1:row.A.long.3"];
+        // 6 indicates output, no TRI; 4 indicates no output
+        tmux = {3: 0, 1: 1, 7: 2, 5: 3, 4: null, 6: null}[this.muxt];
+        if (this.muxt != 4) {
+          this.label += "O"; // Output
+        }
+        if (this.latch) {
+          this.label += "L"; // Latched input
+        }
+        // tree of muxes: bit 16 low selects inputs 0, 7; bit 8 low selects 1, 5; bit 4 low selects 2, 4;
+        // bit 2 *high* selects 3, 6. Bit 1 selects one of the pair.
+        omux = {12: 0, 20: 1, 25: 2, 30: 3, 24: 4, 21: 5, 31: 6, 13: 7}[this.muxo];
+        kmux = {9: 0, 15: null}[this.muxk]; // K input selected
       } else if (direction == "topleft") {
         this.W = 20;
         this.H = 12;
@@ -798,6 +811,9 @@ class Iob {
         i.push("col.?.clb:row.A.io2:A" + tile[1] + ".A:" + pad + ".I"); // special case
         i.push("col.?.x:AH.X:" + pad + ".I:" + tile + ".B");
         t = [ "|col.?.clbl1:row.A.long.2", "|col.?.clbl1:row.A.local.1", "|col.?.clbl1:row.A.local.3", "|col.?.clbl1:row.A.long.3"];
+        // Standard mux: 2-bit active high, other bits active low, 1-bit toggles.
+        omux = {4: 0, 9: 1, 14: 2, 8: 3, 5: 4, 15: 5}[this.muxo];
+        tmux = {3: 0, 1: 1, 7: 2, 5: 3, 4: null, 6: null}[this.muxt];
       } else if (direction == "topright" && tile == "AI") {
         this.W = 20;
         this.H = 12;
@@ -805,10 +821,13 @@ class Iob {
         yoff = 4;
         k = ["|col.?.clbw1:row.A.local.0"];
         o = [ "|col.?.clbw1:row.A.local.1", "|col.?.clbw1:row.A.local.3", "|col.?.clbw1:row.A.long.3",
-              "-col.H.clbr3:row.?.io3", "-col.I.long.1:row.?.io3", "-col.I.local.1:row.?.io3", "-col.I.local.3:row.?.io3", "-col.I.long.3:row.?.io3",];
+              "-col.H.clbr3:row.?.io3:AH.X:" + pad + ".O",
+              "-col.I.long.1:row.?.io3", "-col.I.local.1:row.?.io3", "-col.I.local.3:row.?.io3", "-col.I.long.3:row.?.io3",];
         i = [ "|col.?.clbw2:row.A.long.2", "|col.?.clbw2:row.A.local.2", "|col.?.clbw2:row.A.local.4",
               "-col.I.long.2:row.?.io2", "-col.I.local.2:row.?.io2", "-col.I.local.4:row.?.io2", "-col.I.long.3:row.?.io2"];
         t = [ "|col.?.clbw3:row.A.long.2", "|col.?.clbw3:row.A.local.1", "|col.?.clbw3:row.A.local.3", "|col.?.clbw3:row.A.long.3",];
+        omux = {13: 0, 10: 1, 11: 2, 12: 3, 30: 4, 6: 5, 7: 6, 31: 7}[this.muxo];
+        tmux = {3: 0, 1: 1, 7: 2, 5: 3, 4: null, 6: null}[this.muxt];
       } else if (direction == "topright") {
         this.W = 20;
         this.H = 12;
@@ -821,6 +840,9 @@ class Iob {
         i = [ "|col.?.clbw2:row.A.long.2", "|col.?.clbw2:row.A.local.2", "|col.?.clbw2:row.A.local.4",
 "-col.?.local.1:row.A.local.5", "-col.?.local.3:row.A.local.5", "-col.?.long.1:row.A.local.5",];
         t = [ "|col.?.clbw3:row.A.long.2", "|col.?.clbw3:row.A.local.1", "|col.?.clbw3:row.A.local.3", "|col.?.clbw3:row.A.long.3",];
+        // Standard mux with 16-bit active-one, others active-zero, 1-bit the toggle.
+        omux = {13: 0, 10: 1, 11: 2, 12: 3, 30: 4, 6: 5, 7: 6, 31: 7}[this.muxo];
+        tmux = {3: 0, 1: 1, 7: 2, 5: 3, 4: null, 6: null}[this.muxt];
       } else if (direction == "rightlower") {
         this.W = 12;
         this.H = 26;
@@ -946,15 +968,24 @@ class Iob {
       o.forEach(p => this.opips.push(Iob.processIoPip(p, tile, pad + ".O")));
       i.forEach(p => this.ipips.push(Iob.processIoPip(p, tile, pad + ".I")));
       t.forEach(p => this.tpips.push(Iob.processIoPip(p, tile, pad + ".T")));
+      if (tmux != undefined && tmux != null) {
+        this.tpips[tmux][4] = true; // Select the appropriate pip
+      }
+      if (omux != undefined && omux != null) {
+        this.opips[omux][4] = true; // Select the appropriate pip
+      }
+      if (kmux != undefined && kmux != null) {
+        this.kpips[kmux][4] = true; // Select the appropriate pip
+      }
       // Grab the x,y coordinates of the K pip; this is the origin for drawing the box
       this.x0 = this.kpips[0][1] + xoff;
       this.y0 = this.kpips[0][2] + yoff;
   }
 
-  drawInt(ctx, pips, vals, color) {
+  drawInt(ctx, pips, color) {
     for (let i = 0; i < pips.length; i++) {
-      const [gCoord, col, row, pipname] = pips[i];
-      if (vals[i]) {
+      const [gCoord, col, row, pipname, selected] = pips[i];
+      if (selected) {
         ctx.fillStyle = "red";
       } else {
         ctx.fillStyle = color;
@@ -964,23 +995,24 @@ class Iob {
   }
 
   draw(ctx) {
+    this.generateIobPips(this.pin, this.tile, this.style, this.pad);
     ctx.strokeStyle = "white";
     ctx.beginPath();
     ctx.rect(this.x0, this.y0, this.W, this.H);
     ctx.stroke();
     ctx.fillStyle = "yellow";
-    this.drawInt(ctx, this.kpips, this.kpipVals, "yellow");
-    this.drawInt(ctx, this.opips, this.opipVals, "blue");
-    this.drawInt(ctx, this.ipips, this.ipipVals, "green");
-    this.drawInt(ctx, this.tpips, this.tpipVals, "pink");
+    this.drawInt(ctx, this.kpips, "yellow");
+    this.drawInt(ctx, this.opips, "blue");
+    this.drawInt(ctx, this.ipips, "green");
+    this.drawInt(ctx, this.tpips, "pink");
     ctx.font = "5px arial";
     ctx.fillStyle = "red";
-    ctx.fillText("" + this.l + " " + this.muxk + " " + this.muxo + " " + this.muxt, this.x0, this.y0);
+    ctx.fillText(this.label + "" + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt, this.x0, this.y0);
   }
 
   add(str, bit) {
     if (str == ".I PAD/Latched") {
-      this.l = bit;
+      this.latch = bit;
     } else if (str == "") {
       this.muxt |= (bit << 0);
     } else {
@@ -999,7 +1031,7 @@ class Iob {
         alert('Bad mux2 ' + str);
       }
     }
-    console.log("IOB " + this.name + " " + this.tilename + " " + str + " " + this.l + " " + this.muxk + " " + this.muxo + " " + this.muxt);
+    console.log("IOB " + this.pin + " " + this.tile + " " + str + " " + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt);
     this.data.push(str + " " + bit);
   }
 
@@ -1008,7 +1040,7 @@ class Iob {
     }
 
     info() {
-      return "IOB " + this.name + " " + this.tilename + " " + this.style + " " + this.pips + this.data.join(", ");
+      return "IOB " + this.pin + " " + this.tile + " " + this.style + " " + this.pips + this.data.join(", ");
     }
 
 }
