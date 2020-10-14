@@ -273,41 +273,6 @@ class SwitchDecoders {
 }
 
 
-class ClbDecoders {
-  constructor() {
-    this.clbDecoders = {};
-    for (let i = 0; i < 8; i++) {
-      for (let j = 0; j < 8; j++) {
-        let name = "ABCDEFGH"[i] + "ABCDEFGH"[j];
-        this.clbDecoders[name] = new ClbDecoder(name);
-      }
-    }
-    // These are in the config as CLBs.
-    this.clbDecoders["CLK.AA.I"] = new ClkDecoder("CLK.AA.I");
-    this.clbDecoders["CLK.II.I"] = new ClkDecoder("CLK.II.I");
-  }
-
-  startDecode() {
-    Object.entries(this.clbDecoders).forEach(([k, c]) => c.startDecode());
-  }
-
-  get(name) {
-    return this.clbDecoders[name];
-  }
-
-  render(ctx) {
-    Object.entries(this.clbDecoders).forEach(([name, obj]) => obj.render(ctx));
-  }
-}
-
-const muxB = [
-["col.X.local.2:XX.B", "CLK.AA.O:XX.B", "1"],
-["col.X.long.1:XX.B", "col.X.long.2:XX.B", "2"],
-["col.X.local.5:XX.B", "col.X.local.4:XX.B", "3"],
-["XW.X:XX.B", "col.X.local.1:XX.B", "4"],
-["WX.X:XX.B", "col.X.local.3:XX.B", "!5"],
-"0"];
-
   /**
    * Converts a symbolic name to G coordinates.
    */
@@ -346,45 +311,15 @@ const muxB = [
     return col + ":" + row;
   }
 
-class ClbDecoder {
-  constructor(name) {
-    this.name = name;
-    let xCenter = colInfo['col.' + this.name[1] + '.clb'][1];
-    let yCenter = rowInfo['row.' + this.name[0] + '.c'][1];
-    this.W = 20;
-    this.H = 32;
-    this.screenPt = [xCenter - this.W / 2, yCenter - this.H / 2 - 1];
-  }
-
-  startDecode() {
-  }
-
-  add(str, bit) {
-    const m = str.match(/\.([A-H]) MuxBit: (\d)/);
-    if (m) {
+function drawPips(ctx, pips, color) {
+  for (let i = 0; i < pips.length; i++) {
+    const [gCoord, col, row, pipname, selected] = pips[i];
+    if (selected) {
+      ctx.fillStyle = "red";
+    } else {
+      ctx.fillStyle = color;
     }
-  }
-
-  // Decoded the received data
-  decode() {
-  }
-
-  render(ctx) {
-    ctx.strokeStyle = "#cff";
-    ctx.rect(this.screenPt[0], this.screenPt[1], this.W, this.H);
-    ctx.stroke();
-  }
-
-  info() {
-    let result = [];
-    return "CLB: " + this.name + " " + result.join(" ");
-  }
-
-  isInside(x, y) {
-    if (this.name[0] == "I" || this.name[1] == "I") {
-      return false;
-    }
-    return x >= this.screenPt[0] && x < this.screenPt[0] + this.W && y >= this.screenPt[1] && y < this.screenPt[1] + this.H;
+    ctx.fillRect(col - 1, row - 1, 3, 3);
   }
 }
 
@@ -407,168 +342,6 @@ class OtherDecoder {
 
 
 const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6, other: 7});
-
-  class XXXClbDecode {
-    constructor(x, y, gPt, bitPt) {
-      this.x = x;
-      this.y = y;
-      this.name = "ABCDEFGH"[y] + "ABCDEFGH"[x];
-      this.gPt = gPt;
-      this.bitPt = bitPt;
-      this.configString = '';
-    }
-
-    /**
-     * Decode this CLB from the bitstreamTable.
-     */
-    decode(bitstreamTable) {
-      this.bitTypes = []; // Fill this in as we go
-      var x = this.bitPt[0];
-      var y = this.bitPt[1];
-      var nf = 0;
-      for (var bitnum = 0; bitnum < 8; bitnum++) {
-        var bit = bitstreamTable[x + bitnum][y + 7];
-        this.bitTypes.push([x + bitnum, y + 7, BITTYPE.lut]);
-        if (bit) {
-          nf |= 1 << [1, 0, 2, 3, 5, 4, 6, 7][bitnum]; // Ordering of LUT is irregular
-        }
-      }
-      this.configNf = nf;
-      var fin1 = bitstreamTable[x + 7][y + 6] ? 'A' : 'B';
-      var fin2 = bitstreamTable[x + 6][y + 6] ? 'B' : 'C';
-      var fin3 = 'Q';
-      if (bitstreamTable[x + 1][y + 6]) {
-        fin3 = 'C';
-      } else if ( bitstreamTable[x + 0][y + 6]) {
-        fin3 = 'D';
-      }
-      this.bitTypes.push([x + 7, y + 6, BITTYPE.clb], [x + 6, y + 6, BITTYPE.clb], [x + 1, y + 6, BITTYPE.clb], [x + 0, y + 6, BITTYPE.clb]);
-
-      var ng = 0;
-      for (var bitnum = 0; bitnum < 8; bitnum++) {
-        bit = bitstreamTable[x + bitnum + 10][y + 7];
-        this.bitTypes.push([x + bitnum + 10, y + 7, BITTYPE.lut]);
-        if (bit) {
-          ng |= 1 << [7, 6, 4, 5, 3, 2, 0, 1][bitnum]; // Ordering of LUT is irregular
-        }
-      }
-      this.configNg = ng;
-      var gin1 = bitstreamTable[x + 11][y + 6] ? 'A' : 'B';
-      var gin2 = bitstreamTable[x + 12][y + 6] ? 'B' : 'C';
-      this.bitTypes.push([x + 11, y + 6, BITTYPE.clb], [x + 12, y + 6, BITTYPE.clb]);
-      var gin3 = 'Q';
-      if ( bitstreamTable[x + 16][y + 6]) {
-        gin3 = 'C';
-      } else if ( bitstreamTable[x + 17][y + 6]) {
-        gin3 = 'D';
-      }
-
-      var str;
-      var fname = 'F'; // The F output used internally; renamed to M for Base FGM.
-      var gname = 'G';
-      this.bitTypes.push([x + 9, y + 7, BITTYPE.clb]);
-      if (bitstreamTable[x + 9][y + 7] != 1) {
-        if (fin1 == gin1 && fin2 == gin2 && fin3 == gin3) {
-          this.configBase = 'F';
-          this.configF = fin1 + ':B:' + fin2 + ':' + fin3;
-          this.configG = '';
-          // F,G combined
-          str = 'F = ' + formula4((nf << 8) | ng, fin1, fin2, fin3, 'B');
-        } else {
-          // MUX
-          this.configBase = 'FGM';
-          this.configF = fin1 + ':' + fin2 + ':' + fin3;
-          this.configG = gin1 + ':' + gin2 + ':' + gin3;
-          fname = 'M';
-          gname = 'M';
-          str = 'F = B*(' + formula3(nf, fin1, fin2, fin3) +
-            ') + ~B*(' + formula3(ng, gin1, gin2, gin3) + ')';
-        }
-      } else {
-        // F, G separate
-        this.configBase = 'FG';
-        this.configF = fin1 + ':' + fin2 + ':' + fin3;
-        this.configG = gin1 + ':' + gin2 + ':' + gin3;
-        str = 'F = ' + formula3(nf, fin1, fin2, fin3);
-        str += '<br/>G = ' + formula3(ng, gin1, gin2, gin3);
-      }
-
-      // Select one of four values based on two index bits
-      function choose4(bit1, bit0, [val0, val1, val2, val3]) {
-        if (bit1) {
-          return bit0 ? val3 : val2;
-        } else {
-          return bit0 ? val1 : val0;
-          }
-        }
-      
-      // Decode X input
-      this.configX = choose4(bitstreamTable[x + 11][y + 5], bitstreamTable[x + 10][y + 5], ['Q', fname, gname, 'UNDEF']);
-      this.bitTypes.push([x + 11, y + 5, BITTYPE.clb], [x + 10, y + 5, BITTYPE.clb]);
-      this.configY = choose4(bitstreamTable[x + 13][y + 5], bitstreamTable[x + 12][y + 5], ['Q', gname, fname, 'UNDEF']);
-      this.bitTypes.push([x + 13, y + 5, BITTYPE.clb], [x + 12, y + 5, BITTYPE.clb]);
-      this.configQ = bitstreamTable[x + 9][y + 5] ? 'LATCH': 'FF';
-      this.bitTypes.push([x + 9, y + 5, BITTYPE.clb]);
-
-      // Figure out flip flop type and clock source. This seems a bit messed up.
-      let clkInvert = bitstreamTable[x + 5][y + 4]; // Invert flag
-      this.bitTypes.push([x + 5, y + 4, BITTYPE.clb]);
-      if (bitstreamTable[x + 9][y + 5]) {
-        clkInvert = !clkInvert; // LATCH flips the clock
-      }
-      if (bitstreamTable[x + 6][y + 4] == 0) {
-        // No clock
-        this.configClk = '';
-      } else {
-        if (bitstreamTable[x + 4][y + 4] == 1) {
-          this.configClk = 'C';
-        } else {
-          // K or G inverted. This seems like a bug in XACT?
-          // Assume not inverted?
-          if (clkInvert) {
-            clkInvert = 0;
-            this.configClk = gname;
-          } else {
-            this.configClk = 'K';
-          }
-        }
-      }
-      this.bitTypes.push([x + 6, y + 4, BITTYPE.clb]);
-      this.bitTypes.push([x + 4, y + 4, BITTYPE.clb]);
-      if (clkInvert) { // Add NOT, maybe with colon separator.
-        if (this.configClk != '') {
-          this.configClk += ':NOT';
-        } else {
-          this.configClk += 'NOT';
-        }
-      }
-
-      this.configSet = choose4(bitstreamTable[x + 3][y + 5], bitstreamTable[x + 2][y + 5], ['A', '', fname, 'BOTH?']);
-      this.bitTypes.push([x + 3, y + 5, BITTYPE.clb], [x + 2, y + 5, BITTYPE.clb]);
-      this.configRes = choose4(bitstreamTable[x + 1][y + 5], bitstreamTable[x + 0][y + 5], ['', 'G?', 'D', gname]);
-      this.bitTypes.push([x + 1, y + 5, BITTYPE.clb], [x + 0, y + 5, BITTYPE.clb]);
-      this.configString = 'X:' + this.configX + ' Y:' + this.configY + ' F:' + this.configF + ' G:' + this.configG + ' Q:' + this.configQ +
-          ' SET:' + this.configSet + ' RES:' + this.configRes + ' CLK:' + this.configClk;
-    }
-
-    config() {
-      return this.configString;
-    }
-
-    describe() {
-      return this.configString;
-    }
-
-    /**
-     * Returns the function of each (known) bit in the bitstreamTable.
-     *
-     * Format: [[x, y, type], ...]
-     */
-    getBitTypes() {
-      return this.bitTypes;
-    }
-  }
-
   class PipDecode {
     constructor(name, bitPt) {
       this.name = name;

@@ -100,7 +100,7 @@ class IobDecoders {
   }
 
   render(ctx) {
-    Object.entries(this.iobs).forEach(([name, obj]) => obj.draw(ctx));
+    Object.entries(this.iobs).forEach(([name, obj]) => obj.render(ctx));
   }
 }
 IobDecoders.gToName = {};
@@ -158,7 +158,7 @@ class Iob {
    * xx.Y has the pad first along the right edge
    * For these, we give up on trying to generate the name here. The caller gives the output name as the last two parts of the name.
    */
-  static processIoPip(pip, name, pad) {
+  static processIobPip(pip, name, pad) {
     let dir;
     let parts;
     if (pip[0] == '-' || pip[0] == '|') {
@@ -202,7 +202,8 @@ class Iob {
 
   /**
    * Adds entries for the pips.
-   * Also initializes x0, y0, W, H
+   * Also initializes x0, y0, W, H.
+   * Maybe this should be put into subclasses? Or a "strategy" object?
    */
   generateIobPips(pin, tile, direction, pad) {
       let k = [];
@@ -410,10 +411,10 @@ class Iob {
       this.opips = [];
       this.ipips = [];
       this.tpips = [];
-      k.forEach(p => this.kpips.push(Iob.processIoPip(p, tile, pad + ".K")));
-      o.forEach(p => this.opips.push(Iob.processIoPip(p, tile, pad + ".O")));
-      i.forEach(p => this.ipips.push(Iob.processIoPip(p, tile, pad + ".I")));
-      t.forEach(p => this.tpips.push(Iob.processIoPip(p, tile, pad + ".T")));
+      k.forEach(p => this.kpips.push(Iob.processIobPip(p, tile, pad + ".K")));
+      o.forEach(p => this.opips.push(Iob.processIobPip(p, tile, pad + ".O")));
+      i.forEach(p => this.ipips.push(Iob.processIobPip(p, tile, pad + ".I")));
+      t.forEach(p => this.tpips.push(Iob.processIobPip(p, tile, pad + ".T")));
       if (tmux != undefined && tmux != null) {
         this.tpips[tmux][4] = true; // Select the appropriate pip
       }
@@ -428,29 +429,17 @@ class Iob {
       this.y0 = this.kpips[0][2] + yoff;
   }
 
-  drawInt(ctx, pips, color) {
-    for (let i = 0; i < pips.length; i++) {
-      const [gCoord, col, row, pipname, selected] = pips[i];
-      if (selected) {
-        ctx.fillStyle = "red";
-      } else {
-        ctx.fillStyle = color;
-      }
-      ctx.fillRect(col - 1, row - 1, 3, 3);
-    }
-  }
-
-  draw(ctx) {
+  render(ctx) {
     this.generateIobPips(this.pin, this.tile, this.style, this.pad);
     ctx.strokeStyle = "white";
     ctx.beginPath();
     ctx.rect(this.x0, this.y0, this.W, this.H);
     ctx.stroke();
     ctx.fillStyle = "yellow";
-    this.drawInt(ctx, this.kpips, "yellow");
-    this.drawInt(ctx, this.opips, "blue");
-    this.drawInt(ctx, this.ipips, "green");
-    this.drawInt(ctx, this.tpips, "pink");
+    drawPips(ctx, this.kpips, "yellow");
+    drawPips(ctx, this.opips, "blue");
+    drawPips(ctx, this.ipips, "green");
+    drawPips(ctx, this.tpips, "pink");
     ctx.font = "5px arial";
     ctx.fillStyle = "red";
     ctx.fillText(this.label + "" + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt, this.x0, this.y0);
@@ -477,7 +466,7 @@ class Iob {
         alert('Bad mux2 ' + str);
       }
     }
-    console.log("IOB " + this.pin + " " + this.tile + " " + str + " " + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt);
+    // console.log("IOB " + this.pin + " " + this.tile + " " + str + " " + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt);
     this.data.push(str + " " + bit);
   }
 

@@ -147,8 +147,8 @@ function initNames() {
       rowInfo[fullname + '.K'] = rowInfo['row.' + "ABCDEFGH"[row] + ".k"];
       rowInfo[fullname + '.X'] = rowInfo['row.' + "ABCDEFGH"[row] + ".c"];
       rowInfo[fullname + '.Y'] = rowInfo['row.' + "ABCDEFGH"[row] + ".y"];
-      colInfo[fullname + '.D'] = colInfo['col.' + "ABCDEFGH"[row] + ".clb"];
-      colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[row] + ".clbr1"];
+      colInfo[fullname + '.D'] = colInfo['col.' + "ABCDEFGH"[col] + ".clb"];
+      colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[col] + ".clbr1"];
       // colInfo[fullname + '.A'] = colInfo['col.' + "ABCDEFGH"[col] + ".clb"];
     }
   }
