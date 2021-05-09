@@ -82,6 +82,9 @@ var colInfo = {
 const rowFromG = {}; // Look up the row name from the G coordinate
 const colFromG = {}; // Look up the column name from the G coordinate
 
+const rowFromS = {}; // Look up the row name from the Screen coordinate
+const colFromS = {}; // Look up the column name from the Screen coordinate
+
 function initNames() {
   // Generate formulaic row and column names (B through H)
   for (var i = 1; i < 8; i++) {
@@ -153,9 +156,11 @@ function initNames() {
     }
   }
 
-  // Make reverse table
+  // Make reverse tables
   Object.entries(rowInfo).forEach(([key, val]) => rowFromG[val[0]] = key);
   Object.entries(colInfo).forEach(([key, val]) => colFromG[val[0]] = key);
+  Object.entries(rowInfo).forEach(([key, val]) => rowFromS[val[1]] = key);
+  Object.entries(colInfo).forEach(([key, val]) => colFromS[val[1]] = key);
 }
 
   // Bit position starts for the tiles A through I. Note there is I/O before A and buffers between C-D and F-G.
@@ -372,7 +377,7 @@ function initNames() {
     }
   }
 
-  class Tile {
+  class XXXTile {
     constructor(x, y) {
       this.x = x; // Index 0-8
       this.y = y;
@@ -414,6 +419,8 @@ function initNames() {
    * A switch matrix.
    * Name is e.g. HA.8.1
    * Coordinates: screenPt is the upper left corner of the box. gPt is the coordinate of pin 8.
+   * LCA pin numbering is 1-8 with 1 in the upper left.
+   * 
    */
   class Switch {
   constructor(name) {
@@ -446,7 +453,6 @@ function initNames() {
     }
 
   startDecode() {
-    this.lines = {};
     this.state = null;
     this.wires = [];
   }
@@ -454,21 +460,21 @@ function initNames() {
   /**
    * Processes an entry from the configuration.
    */
-  add(pin1, pin2, bit) {
-    this.pins[pin1] = 1;
-    this.pins[pin2] = 1;
-    const key = pin1 * 10 + pin2;
-    this.lines[key] = bit;
+  add(pin1, pin2) {
+    assert(pin1 > 0 && pin1 <= 8, 'Bad switch pin ' + pin1);
+    assert(pin2 > 0 && pin2 <= 8, 'Bad switch pin ' + pin2);
+    this.wires.push([pin1, pin2]);
   }
 
 
-    /**
-     * Returns (x, y) screen coordinate for the pin.
-     */
-    pinCoord(pin) {
-        return [this.screenPt[0] + [2, 6, 9, 9, 6, 2, 0, 0][pin],
-                this.screenPt[1] + [0, 0, 2, 6, 9, 9, 6, 2][pin]];
-    }
+  /**
+   * Returns (x, y) screen coordinate for the pin.
+   */
+  pinCoord(pin) {
+      return [this.screenPt[0] + [2, 6, 9, 9, 6, 2, 0, 0][pin - 1],
+              this.screenPt[1] + [0, 0, 2, 6, 9, 9, 6, 2][pin - 1]];
+  }
+
    /**
     * Draws the internal wire between pin1 and pin2.
     */
@@ -486,21 +492,6 @@ function initNames() {
    }
 
    render(ctx) {
-     ctx.strokeStyle = "red";
-     ctx.beginPath();
-     var x0 = this.screenPt[0];
-     var y0 = this.screenPt[1];
-     ctx.rect(x0, y0, 8, 8);
-     /*
-     // Draw the pins
-     for (var i = 0; i < 8; i++) {
-       if (this.skip(i)) continue;
-       var coord = this.pinCoord(i);
-       ctx.moveTo(coord[0], coord[1]);
-       ctx.lineTo(coord[0] + [0, 0, 2, 2, 0, 0, -2, -2][i], coord[1] + [-2, -2, 0, 0, 2, 2, 0, 0][i]);
-     }
-     */
-     ctx.stroke();
      this.drawWires(ctx);
    }
  
@@ -608,6 +599,7 @@ function initNames() {
 const SCALE = 2;
 
   function drawLayout(ctx) {
+    $("#img").css('opacity', 1);
     ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
     const HEIGHT = 680 * SCALE;
     const WIDTH = 680 * SCALE;

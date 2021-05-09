@@ -1,11 +1,12 @@
 class ClbDecoder {
-  constructor(tile) {
+  constructor(tile) { // tile is e.g. AB
     this.tile = tile;
     let xCenter = colInfo['col.' + this.tile[1] + '.clb'][1];
     let yCenter = rowInfo['row.' + this.tile[0] + '.c'][1];
     this.W = 20;
     this.H = 32;
     this.screenPt = [xCenter - this.W / 2, yCenter - this.H / 2 - 1];
+    this.clbInternal = new ClbInternal(tile);
   }
 
   /**
@@ -60,7 +61,6 @@ class ClbDecoder {
     let gCoord = col[0] + "G" + row[0];
     ClbDecoders.gToName[gCoord] = pipname;
     ClbDecoders.tileToG[pipname] = gCoord;
-    console.log(pip, colName, col[1], rowName, row[1], pipname);
     return [gCoord, col[1], row[1], pipname, false];
   }
 
@@ -152,6 +152,7 @@ class ClbDecoder {
 
   // Decoded the received data
   decode() {
+    this.clbInternal.decode(bitstreamTable);
   }
 
   render(ctx) {
@@ -171,6 +172,7 @@ class ClbDecoder {
 
   info() {
     let result = [];
+    result.push(this.clbInternal.describe());
     return "CLB: " + this.tile + " " + result.join(" ");
   }
 
@@ -204,6 +206,10 @@ class ClbDecoders {
     return this.clbDecoders[tile];
   }
 
+  decode() {
+    Object.entries(this.clbDecoders).forEach(([k, c]) => c.decode());
+  }
+
   render(ctx) {
     Object.entries(this.clbDecoders).forEach(([tile, obj]) => obj.render(ctx));
   }
@@ -220,15 +226,14 @@ const muxB = [
 ["WX.X:XX.B", "col.X.local.3:XX.B", "!5"],
 "0"];
 
+// Indices into the bitmamp
+var tileToBitmapX = {A: 3, B: 21, C: 39, D: 59, E: 77, F: 95, G: 115, H: 133, I: 151};
+var tileToBitmapY = {A: 1, B: 9, C: 17, D: 26, E: 34, F: 42, G: 51, H: 59, I: 67};
 
-  class XXXClbDecode {
-    constructor(x, y, gPt, bitPt) {
-      this.x = x;
-      this.y = y;
-      this.tile = "ABCDEFGH"[y] + "ABCDEFGH"[x];
-      this.gPt = gPt;
-      this.bitPt = bitPt;
-      this.configString = '';
+class ClbInternal {
+    // bitPt is the index into the config bitmap
+    constructor(name) {
+      this.bitPt = [tileToBitmapX[name[1]], tileToBitmapY[name[0]]];
     }
 
     /**

@@ -86,6 +86,8 @@ class IobDecoders {
     });
   }
 
+  decode() {}
+
   getFromPin(pin) {
     return this.iobsFromPin[pin];
   }

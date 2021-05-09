@@ -17,12 +17,19 @@
 <script src="bitstreamDisplay.js"></script>
 
 <script>
+function assert(cond, message) {
+  if (!cond) {
+    console.log(message);
+    throw new Error('assertion failed: ' + message);
+  }
+}
 $(document).ready(function() {
   window.onerror = function errorHandler(msg, url, line) {
     alert('Exception ' + msg + ' ' + url + ' ' + line);
     error('Exception ' + msg + ' ' + url + ' ' + line);
     return false;
   }
+
 
   var ctx = $("#canvas")[0].getContext("2d");
   var ctx2 = $("#canvas2")[0].getContext("2d");
@@ -90,7 +97,7 @@ $(document).ready(function() {
       rawBitstream = makeDemoBitstream();
       $('#mode').css('display', 'block'); // Show the dropdown
       decode(rawBitstream, config);
-      $("#mode").val("bitstream");
+      $("#mode").val("layout");
       redraw(ctx);
     });
   }
@@ -145,7 +152,7 @@ $(document).ready(function() {
 </head>
 <body>
 <div id="header">
-<select id="mode" style="display:none"><option value="layout" selected>Layout</option><option value="layout">Bitstream</option></select>
+<select id="mode" style="display:none"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
 <button id="demo">Demo</button>
 <span id="bitstreamSpan" style="display:none">
 <input type="checkbox" id="labels" value="Labels" checked>Labels</input>

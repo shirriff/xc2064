@@ -140,7 +140,9 @@ function decode(rawBitstream, config) {
     m = entry.match(/Magic @ (\S+) (\d) (\d)$/);
     if (m) {
       bitTypes[i] = BITTYPE.switch;
-      switchDecoders.getFromG(m[1]).add(parseInt(m[2]), parseInt(m[3]), rawBitstream[i]);
+      if (rawBitstream[i] != 1) {
+        switchDecoders.getFromG(m[1]).add(parseInt(m[2]), parseInt(m[3]));
+      }
       continue;
     }
     m = entry.match(/CLB ([A-H][A-H])\s*(.*)/);
@@ -163,6 +165,7 @@ function decode(rawBitstream, config) {
     }
     console.log('UNKNOWN:', entry);
   }
+  decoders.forEach(d => d.decode());
 }
 
 var iobDecoders;
@@ -194,6 +197,9 @@ class ClkDecoder {
   add(str) {
   }
 
+  decode() {
+  }
+
   render(ctx) {
   }
 }
@@ -210,6 +216,8 @@ class PipDecoder {
   add(str, bit) {
     this.entries[str] = bit;
   }
+
+  decode() {}
 
   // Is it better to separate the parsing code and the rendering code
   // or to fold it into one class?
@@ -231,6 +239,8 @@ class BidiDecoder {
   add(str, bit) {
     this.entries[str] = bit;
   }
+
+  decode() {}
 
   render(ctx) {
   }
@@ -265,6 +275,8 @@ class SwitchDecoders {
   get(name) {
     return this.switches[name];
   }
+
+  decode() {}
 
   render(ctx) {
     Object.entries(this.switches).forEach(([name, obj]) => obj.render(ctx));
@@ -335,6 +347,8 @@ class OtherDecoder {
   add(str, bit) {
     this.entries[str] = bit;
   }
+
+  decode() {}
 
   render(ctx) {
   }
@@ -758,7 +772,28 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
       $("#info2").html(clb.info());
       return;
     }
+    const wire = isOnWire(x, y);
+    if (wire) {
+      $("#info2").html(wire);
+      return;
+    }
   }
+
+
+function isOnWire(x, y) {
+  const result = [];
+  const rowName = rowFromS[y];
+  if (rowName) {
+    result.push(rowName);
+  }
+  const colName = colFromS[x];
+  if (colName) {
+    result.push(colName);
+  }
+  if (result.length > 0) {
+    return result.join(' ');
+  }
+}
 
 function layoutClickInfo(x, y) {
   x = Math.floor(x / SCALE);
