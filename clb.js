@@ -478,3 +478,19 @@ class ClbInternal {
     }
   }
 
+let popup = undefined;
+function clbDrawPopup(clb, x, y) {
+  popup = $("<canvas/>", {class: "popup"}).width(300).height(300).css("left", x * SCALE).css("top", y * SCALE)[0];
+  $('#container').append(popup);
+  const context = popup.getContext('2d');
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "black";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function clbRemovePopup() {
+  if (popup) {
+    popup.remove();
+    popup = undefined;
+  }
+}

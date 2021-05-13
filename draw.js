@@ -662,3 +662,114 @@ function drawPips(ctx, pips, color) {
 }
 
 
+// Processes a click on the Layout image
+function layoutClick(x, y) {
+  if (bitstreamTable == null) {
+    // return;
+  }
+  x = Math.floor(x / SCALE);
+  y = Math.floor(y / SCALE);
+  const XOFF = 24;
+  const YOFF = 30;
+  const xmod = (x - XOFF) % 72;
+  const ymod = (y - YOFF) % 72;
+  let tilex = Math.floor((x - XOFF) / 72);
+  let tiley = Math.floor((y - YOFF) / 72);
+  tilex = Math.max(Math.min(tilex, 8), 0); // Clamp to range 0-8
+  tiley = Math.max(Math.min(tiley, 8), 0); // Clamp to range 0-8
+  const name = "ABCDEFGHI"[tiley] + "ABCDEFGHI"[tilex];
+  let prefix = '';
+  $("#info2").html("&nbsp;");
+  $("#info3").html(prefix + name + ' ' + x + ' ' + y + '; ' + tilex + ' ' + xmod + ', ' + tiley + ' ' + ymod);
+  let sw = switchDecoders.get(name + ".8.1");
+  if (sw && sw.isInside(x, y)) {
+    $("#info2").html(sw.info());
+    return;
+  }
+  sw = switchDecoders.get(name + ".8.2");
+  if (sw && sw.isInside(x, y)) {
+    $("#info2").html(sw.info());
+    return;
+  }
+  let iob = iobDecoders.getFromXY(x, y);
+  if (iob) {
+    $("#info2").html(iob.info());
+    return;
+  }
+  // inside clb
+  const clb = clbDecoders.get(name);
+  if (clb && clb.isInside(x, y)) {
+    $("#info2").html(clb.info());
+    return;
+  }
+  const wire = isOnWire(x, y);
+  if (wire) {
+    $("#info2").html(wire);
+    return;
+  }
+}
+
+function isOnWire(x, y) {
+  const result = [];
+  const rowName = rowFromS[y];
+  if (rowName) {
+    result.push(rowName);
+  }
+  const colName = colFromS[x];
+  if (colName) {
+    result.push(colName);
+  }
+  if (result.length > 0) {
+    return result.join(' ');
+  }
+}
+
+function layoutClickInfo(x, y) {
+  x = Math.floor(x / SCALE);
+  y = Math.floor(y / SCALE);
+  let col;
+  let row;
+  let colv;
+  let rowv;
+  Object.entries(colInfo).forEach(function([k, v]) {
+    if (Math.abs(v[1] - x) < 3) {
+      col = k;
+      colv = v;
+    }
+  });
+  Object.entries(rowInfo).forEach(function([k, v]) {
+    if (Math.abs(v[1] - y) < 3) {
+      row = k;
+      rowv = v;
+    }
+  });
+  if (rowv == undefined || colv == undefined) {
+    $("#info0").html("");
+  } else {
+    const gcoord = colv[0] + "G" + rowv[0];
+    let pip = "";
+    if (IobDecoders.gToName[gcoord]) {
+      pip = IobDecoders.gToName[gcoord];
+    }
+    $("#info0").html(col + " " + row + " " + colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
+    console.log(col, row, colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
+  }
+  const XOFF = 24;
+  const YOFF = 30;
+  let tilex = Math.floor((x - XOFF) / 72);
+  let tiley = Math.floor((y - YOFF) / 72);
+  tilex = Math.max(Math.min(tilex, 8), 0); // Clamp to range 0-8
+  tiley = Math.max(Math.min(tiley, 8), 0); // Clamp to range 0-8
+  const name = "ABCDEFGHI"[tiley] + "ABCDEFGHI"[tilex];
+  // inside clb
+  const clb = clbDecoders.get(name);
+  clbRemovePopup();
+  if (clb && clb.isInside(x, y)) {
+    clbDrawPopup(clb, x, y);
+  }
+  let iob = iobDecoders.getFromXY(x, y);
+  if (iob) {
+    console.log(iob.info());
+    return;
+  }
+}
