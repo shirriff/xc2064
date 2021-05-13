@@ -18,16 +18,27 @@ class ClbDecoder {
    * The goal of all this is to generate the pips as conveniently as possible, taking advantage of patterns rather than
    * making a giant hard-coded list. There are many complications that make this difficult.
    * The idea is we define the location of each pip by its column and row.
-   * To take advantage of repeating tiles, we put a ? in the location, which is replaced with the current
+   * To take advantage of repeating tiles, we put an = in the location, which is replaced with the current
    * row or column from the tile.
    *
-   * This is similar to generateClbPips.
+   * Input syntax:
+   * col.stuff:row.stuff or row.stuff:col.stuff
+   * col.stuff:row.stuff:pipcol:piprow  In this clase, the first two parts specify the coordinate, while the second two parts are the name that is used
+   * (The motivation is that most pips are simply named col.stuff:row.stuff but some pips have weird names so they get hardcoded in the long-form input.)
+   * The syntax is that "=" is the specified row or column, "-" is the previous, and "+" is the next.
+   * I.e. "=" in "stuff" is replaced with the column or row name
+   * == is replaced with the current tile name. -= is replaced with the tile one row higher. += is replaced with the tile one row lower.
    */
   static processClbPip(pip, tile, pad) {
     let dir;
+    let currRow = tile[0];
     let prevRow = String.fromCharCode(tile.charCodeAt(0) - 1);
+    let nextRow = String.fromCharCode(tile.charCodeAt(0) + 1);
+
+    let currCol = tile[1];
     let prevCol = String.fromCharCode(tile.charCodeAt(1) - 1);
-    pip = pip.replace("XX", tile).replace("WX", prevRow + tile[1]);
+    let nextCol = String.fromCharCode(tile.charCodeAt(1) + 1);
+    pip = pip.replace("==", tile).replace("-=", prevRow + currCol).replace("+=", nextRow + tile[1]).replace("=-", currRow + prevRow).replace("=+", currRow + nextRow);
     let parts = pip.split(":");
     let pipname;
     let colName;
@@ -41,8 +52,8 @@ class ClbDecoder {
     } else {
       throw "Unexpected pip " + pip;
     }
-    rowName = rowName.replace('?', tile[0]);
-    colName = colName.replace('?', tile[1]);
+    rowName = rowName.replace('=', currRow).replace('+', nextRow);
+    colName = colName.replace('=', currCol).replace('+', nextCol);
     if (parts.length == 4) {
       pipname = parts[2] + ":" + parts[3];
     } else {
@@ -78,50 +89,130 @@ class ClbDecoder {
     let kmux = undefined;
     const row = tile[0];
     const col = tile[1];
+
+    // Inputs to A
     if (tile[0] == "A") {
       // Top
-      a = [ "row.A.long.2:col.?.clb:row.A.long.2:XX.A", "row.A.local.1:col.?.clb:row.A.local.1:XX.A",
-        "row.A.local.2:col.?.clb:row.A.local.2:XX.A", "row.A.local.3:col.?.clb:row.A.local.3:XX.A",
-        "row.A.local.4:col.?.clb:row.A.local.4:XX.A", "row.A.long.3:col.?.clb:row.A.long.3:XX.A"]
+      a = [ "row.A.long.2:col.=.clb:row.A.long.2:==.A", "row.A.local.1:col.=.clb:row.A.local.1:==.A",
+        "row.A.local.2:col.=.clb:row.A.local.2:==.A", "row.A.local.3:col.=.clb:row.A.local.3:==.A",
+        "row.A.local.4:col.=.clb:row.A.local.4:==.A", "row.A.long.3:col.=.clb:row.A.long.3:==.A"]
       // Connection to pad. Hardcoding seems the easiest way.
       const pad = {A: 1, B: 3, C: 5, D: 7, E: 9, F: 11, G: 13, H: 15}[tile[1]];
-      a.push( "row.A.io2:col.?.clb::XX.A:PAD" + pad + ".I");
+      a.push( "row.A.io2:col.=.clb::==.A:PAD" + pad + ".I");
       // Mux tree: 16-bit active 0, 8-bit active 0, 4-bit active 0, 2-bit active 1, 1-bit muxes between pairs.
       amux = {30: 0, 13: 1, 24: 2, 12: 3, 21: 4, 25: 5, 31: 6}[this.mux['A']];
     } else {
       // Not top
-      a = [ "row.?.local.1:XX.A", "row.?.local.3:XX.A", "row.?.local.4:XX.A", "row.?.local.5:XX.A", "row.?.long.1:XX.A",
-         "XX.A:row.?.io4"];
+      a = [ "row.=.local.1:==.A", "row.=.local.3:==.A", "row.=.local.4:==.A", "row.=.local.5:==.A", "row.=.long.1:==.A",
+         "==.A:row.=.io4"];
       // Mux tree: 4-bit active 1, 2-bit active 0, 1-bit active 0, 0-bit muxes between pair.
       amux = {3: 0, 15: 1, 4: 2, 2: 3, 14: 4, 5: 5}[this.mux['A']];
     }
+
+
+    // Inputs to B
     if (tile[1] == "A") {
       // Left
+      b = [ "col.=.long.2:==.B", "col.=.local.1:==.B", "col.=.local.2:==.B", "col.=.local.3:==.B", "col.=.local.4:==.B",
+      "col.=.long.3:==.B", "col.=.long.4:==.B", "col.=.clk:==.B:CLK.AA.O:==.B"];
+      // Pad connections
+      const pad = {A: 58, B: 56, C: 54, D: 52, E: 51, F: 49, G: 47, H: 46}[tile[1]];
+      b.push("col.=.io3:==.B:" + "PAD" + pad + ".I:==.B");
+      if (tile == "AA") {
+        // Special case for tile AA since there's no tile above.
+        b.push("col.=.x:==.B:PAD1.I:==.B");
+      } else {
+        b.push("col.=.x:==.B:-=.X:==.B");
+      }
+      if (tile == "AA") {
+        // Special case for top left :-(
+        bmux = {15: 0, 22: 1, 26: 2, 28: 3, 63: 4, 23: 5, 27: 6, 29: 7, 14: 8, 62: 9}[this.mux['B']];
+      } else {
+        // Other left
+        bmux = {22: 0, 15: 1, 28: 2, 63: 3, 23: 4, 26: 5, 27: 6, 29: 7, 14: 8, 62: 9}[this.mux['B']];
+      }
+
     } else {
       // Not left
-      b = [ "col.?.local.1:XX.B", "col.?.local.2:XX.B", "col.?.local.3:XX.B", "col.?.local.4:XX.B", "col.?.local.5:XX.B",
-      "col.?.local.6:XX.B:XW.X:XX.A",
-      "col.?.long.1:XX.B", "col.?.long.2:XX.B", 
-      "col.?.clk:XX.B:CLK.AA.O:XX.B", "col.?.x:XX.B:WX.X:XX.B"];
-      // Mux tree: 32-bit active 1, 16-bit active 0, 8-bit active 0, 4-bit active 0, 2-bit active 0, 1-bit muxs between pairs.
-      bmux = {15: 0, 28: 1, 63: 2, 23: 3, 22: 4, 14: 5, 26: 6, 27: 7, 29: 8, 62: 9}[this.mux['B']];
+
+      b = [ "col.=.local.1:==.B", "col.=.local.2:==.B", "col.=.local.3:==.B", "col.=.local.4:==.B", "col.=.local.5:==.B",
+      "col.=.local.6:==.B:=-.X:==.A",
+      "col.=.long.1:==.B", "col.=.long.2:==.B", 
+      "col.=.clk:==.B:CLK.AA.O:==.B", "col.=.x:==.B:-=.X:==.B"];
+      if (tile[0] == "A") {
+        // Top row is special case (top left AA is earlier)
+        bmux = {22: 0, 26: 1, 28: 2, 63: 3, 15: 4, 14: 5, 23: 6, 27: 7, 29: 8, 62: 9}[this.mux['B']];
+      } else {
+        // Mux tree: 32-bit active 1, 16-bit active 0, 8-bit active 0, 4-bit active 0, 2-bit active 0, 1-bit muxs between pairs.
+        bmux = {15: 0, 28: 1, 63: 2, 23: 3, 22: 4, 14: 5, 26: 6, 27: 7, 29: 8, 62: 9}[this.mux['B']];
+      }
     }
+
+    // Inputs to C
+
+    if (tile[1] == "A") {
+      // Left
+      c = [ "col.=.long.2:==.C", "col.=.local.1:==.C", "col.=.local.2:==.C", "col.=.local.3:==.C", "col.=.local.4:==.C",
+        "col.=.long.3:==.C", "col.=.long.4:==.C"];
+      if (tile == "HA") {
+        // Special case for tile HA since there's no tile below
+        c.push("col.=.x:==.C:PAD45.I:==.C");
+      } else {
+        c.push("col.=.x:==.C:+=.X:==.C");
+      }
+      if (tile == "AA") {
+        // Special case for top left
+        cmux = {6: 0, 7: 1, 11: 2, 13: 3, 30: 4, 10: 5, 12: 6, 31: 7}[this.mux["C"]];
+      } else {
+        // Other left
+        cmux = {7: 0, 12: 1, 13: 2, 30: 3, 6: 4, 11: 5, 10: 6, 31: 7}[this.mux["C"]];
+      }
+    } else {
+      c = [ "col.=.local.1:==.C", "col.=.local.2:==.C", "col.=.local.3:==.C", "col.=.local.4:==.C", "col.=.local.5:==.C",
+      "col.=.long.1:==.C", "col.=.long.2:==.C", "col.=.x:==.C:-=.X:==.C"];
+      if (tile[0] == "A") {
+        // Top (except AA)
+        cmux = {7: 0, 11: 1, 13: 2, 30: 3, 6: 4, 10: 5, 12: 6, 31: 7}[this.mux["C"]];
+      } else {
+        cmux = {12: 0, 13: 1, 30: 2, 6: 3, 7: 4, 11: 5, 10: 6, 31: 7}[this.mux['C']];
+      }
+    }
+
+    // Inputs to k
+    if (tile[1] == "A") {
+      // Left
+      k = [ "col.=.long.4:==.K", "col.=.clk:==.K:CLK.AA.O:==.K"];
+    } else {
+      k = [ "col.=.long.2:==.K", "col.=.clk:==.K:CLK.AA.O:==.K"];
+    }
+    kmux = {2: 0, 1: 1, 3: undefined}[this.mux['K']]; // 3 is used for no-connection
+
+    // Inputs to D
+    d = [];
     if (tile[0] == "H") {
-      // Bottom
-    }  else {
+      // Bottom, has an extra input with different mux
+      const pad = {A: 45, B: 43, C: 41, D: 39, E: 37, F: 35, G: 33, H: 31}[tile[1]];
+      d = [ "row.+.io2:==.D:==.D:PAD" + pad + ".I",
+        "row.+.long.1:==.D", "row.+.local.1:==.D", "row.+.local.2:==.D", "row.+.local.3:==.D", "row.+.local.4:==.D", "row.+.long.2:==.D"];
+      dmux = {31: 0, 25: 1, 21: 2, 12: 3, 24: 4, 13: 5, 30: 6}[this.mux['D']];
+    } else {
       // Not bottom
-      d = [ "col.?.clb:row.?.io3:WX.X:XX.A"];
+      d = [ "row.+.io3:==.D:==.D:+=.X",
+        "row.+.local.1:==.D", "row.+.local.3:==.D", "row.+.local.4:==.D", "row.+.local.5:==.D", "row.+.long.1:==.D"];
+      dmux = {5: 0, 3: 1, 15: 2, 4: 3, 2: 4, 14: 5}[this.mux['D']];
     }
     this.apips = [];
     this.bpips = [];
     this.cpips = [];
     this.kpips = [];
     this.dpips = [];
+    // if (tile != 'AA' && tile != 'CA') return;
     a.forEach(p => this.apips.push(ClbDecoder.processClbPip(p, tile, tile + ".A")));
     b.forEach(p => this.bpips.push(ClbDecoder.processClbPip(p, tile, tile + ".B")));
     c.forEach(p => this.cpips.push(ClbDecoder.processClbPip(p, tile, tile + ".C")));
     k.forEach(p => this.kpips.push(ClbDecoder.processClbPip(p, tile, tile + ".K")));
     d.forEach(p => this.dpips.push(ClbDecoder.processClbPip(p, tile, tile + ".D")));
+    this.dpips.forEach(x => console.log(x));
     if (amux != undefined && amux != null) {
       this.apips[amux][4] = true; // Select the appropriate pip
     }
@@ -144,7 +235,7 @@ class ClbDecoder {
   }
 
   add(str, bit) {
-    const m = str.match(/\.([A-H]) MuxBit: (\d)/);
+    const m = str.match(/\.([ABCDK]) MuxBit: (\d)/);
     if (m) {
       this.mux[m[1]] |= (bit << parseInt(m[2]));
     }
@@ -162,12 +253,12 @@ class ClbDecoder {
     ctx.stroke();
     ctx.font = "6px arial";
     ctx.fillStyle = "red";
-    ctx.fillText("a" + this.mux["A"] + " " + this.mux["B"] + " " + this.mux["C"] + " " + this.mux["K"] + " " + this.mux["D"], this.screenPt[0], this.screenPt[1]);
-    drawPips(ctx, this.apips, "blue");
-    drawPips(ctx, this.bpips, "green");
-    drawPips(ctx, this.cpips, "yellow");
-    drawPips(ctx, this.kpips, "orange");
-    drawPips(ctx, this.dpips, "pink");
+    ctx.fillText("a" + this.mux["A"] + " b:" + this.mux["B"] + " " + this.mux["C"] + " k:" + this.mux["K"] + " " + this.mux["D"], this.screenPt[0], this.screenPt[1] + 10);
+    drawPips(ctx, this.apips, "white");
+    drawPips(ctx, this.kpips, "white");
+    drawPips(ctx, this.dpips, "white");
+    drawPips(ctx, this.bpips, "white");
+    drawPips(ctx, this.cpips, "white");
   }
 
   info() {
@@ -218,12 +309,12 @@ class ClbDecoders {
 ClbDecoders.gToName = {};
 ClbDecoders.tileToG = {};
 
-const muxB = [
-["col.X.local.2:XX.B", "CLK.AA.O:XX.B", "1"],
-["col.X.long.1:XX.B", "col.X.long.2:XX.B", "2"],
-["col.X.local.5:XX.B", "col.X.local.4:XX.B", "3"],
-["XW.X:XX.B", "col.X.local.1:XX.B", "4"],
-["WX.X:XX.B", "col.X.local.3:XX.B", "!5"],
+const XXXmuxB = [
+["col.X.local.2:==.B", "CLK.AA.O:==.B", "1"],
+["col.X.long.1:==.B", "col.X.long.2:==.B", "2"],
+["col.X.local.5:==.B", "col.X.local.4:==.B", "3"],
+["=-.X:==.B", "col.X.local.1:==.B", "4"],
+["-=.X:==.B", "col.X.local.3:==.B", "!5"],
 "0"];
 
 // Indices into the bitmamp
