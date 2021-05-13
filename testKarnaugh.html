@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!-- Test the Karnuagh code -->
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Karnaugh Test Suite</title>
+    <link rel="stylesheet" href="https://code.jquery.com/qunit/qunit-2.11.2.css">
+  </head>
+  <body>
+    <div id="qunit"></div>
+    <div id="qunit-fixture"></div>
+    <script src="https://code.jquery.com/qunit/qunit-2.11.2.js"></script>
+    <script src="formula.js"></script>
+    <script src="karnaugh.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+    <div id="result"></div>
+</body>
+
+<script>
+  QUnit.module('karnaugh', function() {
+
+    QUnit.test('test queryToTerm', function(assert) {
+      assert.equal(queryToTerm([1, -1, -1, -1]), "a");
+      assert.equal(queryToTerm([0, -1, -1, -1]), "~a");
+      assert.equal(queryToTerm([0, -1, -1, 1]), "~a * d");
+    });
+
+    QUnit.test('test generatePotentialTable', function(assert) {
+      assert.equal(generatePotentialTable([1, -1, -1, -1]), 0xaaaa);
+      assert.equal(generatePotentialTable([0, -1, -1, -1]), 0x5555);
+      assert.equal(generatePotentialTable([-1, 1, -1, -1]), 0xcccc);
+      assert.equal(generatePotentialTable([-1, -1, 1, -1]), 0xf0f0);
+      assert.equal(generatePotentialTable([-1, -1, -1, 1]), 0xff00);
+
+      assert.equal(generatePotentialTable([1, 1, 1, 1]), 0x8000);
+      assert.equal(generatePotentialTable([-1, -1, -1, -1]), 0xffff);
+      assert.equal(generatePotentialTable([0, 0, 0, 0]), 0x0001);
+    });
+
+    QUnit.test('test formulaString', function(assert) {
+      assert.equal(formulaString(0), "0");
+      assert.equal(formulaString(0xffff), "1");
+      assert.equal(formulaString(0xaaaa), "a");
+      assert.equal(formulaString(0x5555), "~a");
+      assert.equal(formulaString(0xcccc), "b");
+      assert.equal(formulaString(0x3333), "~b");
+      assert.equal(formulaString(0xf0f0), "c");
+      assert.equal(formulaString(0x0f0f), "~c");
+      assert.equal(formulaString(0xff00), "d");
+      assert.equal(formulaString(0x00ff), "~d");
+
+      assert.equal(formulaString(0x8000), "a * b * c * d");
+      assert.equal(formulaString(0x0001), "~a * ~b * ~c * ~d");
+      assert.equal(formulaString(0xeeee), "a + b");
+      assert.equal(formulaString(0xfffe), "a + b + c + d");
+
+      assert.equal(formulaString(0xaaaa | (0xcccc & 0xf0f0) | ~0xff00), "a + ~d + b * c");
+    });
+
+    QUnit.test('test formula3', function(assert) {
+      assert.equal(formula3(0xfe, "C", "D", "X", ), "C + D + X")
+      assert.equal(formula4(0xfffe, "C", "D", "X", "Y"), "C + D + X + Y")
+    });
+
+  });
+</script>
+
+
+</html>
