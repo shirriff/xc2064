@@ -720,6 +720,8 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     initDecoders();
   }
 
+  let popup = undefined;
+
   // Processes a click on the Layout image
   function layoutClick(x, y) {
     if (bitstreamTable == null) {
@@ -767,6 +769,22 @@ const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6
     }
   }
 
+function clbDrawPopup(clb, x, y) {
+  popup = $("<canvas/>", {class: "popup"}).width(300).height(300).css("left", x * SCALE).css("top", y * SCALE)[0];
+  $('#container').append(popup);
+  const context = popup.getContext('2d');
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "black";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function clbRemovePopup() {
+  if (popup) {
+    popup.remove();
+    popup = undefined;
+  }
+}
+
 
 function isOnWire(x, y) {
   const result = [];
@@ -812,6 +830,19 @@ function layoutClickInfo(x, y) {
     }
     $("#info0").html(col + " " + row + " " + colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
     console.log(col, row, colv[0] + "G" + rowv[0] + "; " + colv[1] + "," + rowv[1] + " " + pip);
+  }
+  const XOFF = 24;
+  const YOFF = 30;
+  let tilex = Math.floor((x - XOFF) / 72);
+  let tiley = Math.floor((y - YOFF) / 72);
+  tilex = Math.max(Math.min(tilex, 8), 0); // Clamp to range 0-8
+  tiley = Math.max(Math.min(tiley, 8), 0); // Clamp to range 0-8
+  const name = "ABCDEFGHI"[tiley] + "ABCDEFGHI"[tilex];
+  // inside clb
+  const clb = clbDecoders.get(name);
+  clbRemovePopup();
+  if (clb && clb.isInside(x, y)) {
+    clbDrawPopup(clb, x, y);
   }
   let iob = iobDecoders.getFromXY(x, y);
   if (iob) {
