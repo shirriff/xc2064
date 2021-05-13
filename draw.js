@@ -649,4 +649,16 @@ function pipRender(ctx, entries) {
 
 }
 
+function drawPips(ctx, pips, color) {
+  for (let i = 0; i < pips.length; i++) {
+    const [gCoord, col, row, pipname, selected] = pips[i];
+    if (selected) {
+      ctx.fillStyle = "red";
+    } else {
+      ctx.fillStyle = color;
+    }
+    ctx.fillRect(col - 1, row - 1, 3, 3);
+  }
+}
+
 
