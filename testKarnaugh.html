@@ -21,9 +21,9 @@
   QUnit.module('karnaugh', function() {
 
     QUnit.test('test queryToTerm', function(assert) {
-      assert.equal(queryToTerm([1, -1, -1, -1]), "a");
-      assert.equal(queryToTerm([0, -1, -1, -1]), "~a");
-      assert.equal(queryToTerm([0, -1, -1, 1]), "~a * d");
+      assert.equal(queryToTerm([1, -1, -1, -1]), "0");
+      assert.equal(queryToTerm([0, -1, -1, -1]), "~0");
+      assert.equal(queryToTerm([0, -1, -1, 1]), "~0 * 3");
     });
 
     QUnit.test('test generatePotentialTable', function(assert) {
@@ -41,21 +41,21 @@
     QUnit.test('test formulaString', function(assert) {
       assert.equal(formulaString(0), "0");
       assert.equal(formulaString(0xffff), "1");
-      assert.equal(formulaString(0xaaaa), "a");
-      assert.equal(formulaString(0x5555), "~a");
-      assert.equal(formulaString(0xcccc), "b");
-      assert.equal(formulaString(0x3333), "~b");
-      assert.equal(formulaString(0xf0f0), "c");
-      assert.equal(formulaString(0x0f0f), "~c");
-      assert.equal(formulaString(0xff00), "d");
-      assert.equal(formulaString(0x00ff), "~d");
+      assert.equal(formulaString(0xaaaa), "0");
+      assert.equal(formulaString(0x5555), "~0");
+      assert.equal(formulaString(0xcccc), "1");
+      assert.equal(formulaString(0x3333), "~1");
+      assert.equal(formulaString(0xf0f0), "2");
+      assert.equal(formulaString(0x0f0f), "~2");
+      assert.equal(formulaString(0xff00), "3");
+      assert.equal(formulaString(0x00ff), "~3");
 
-      assert.equal(formulaString(0x8000), "a * b * c * d");
-      assert.equal(formulaString(0x0001), "~a * ~b * ~c * ~d");
-      assert.equal(formulaString(0xeeee), "a + b");
-      assert.equal(formulaString(0xfffe), "a + b + c + d");
+      assert.equal(formulaString(0x8000), "0 * 1 * 2 * 3");
+      assert.equal(formulaString(0x0001), "~0 * ~1 * ~2 * ~3");
+      assert.equal(formulaString(0xeeee), "0 + 1");
+      assert.equal(formulaString(0xfffe), "0 + 1 + 2 + 3");
 
-      assert.equal(formulaString(0xaaaa | (0xcccc & 0xf0f0) | ~0xff00), "a + ~d + b * c");
+      assert.equal(formulaString(0xaaaa | (0xcccc & 0xf0f0) | ~0xff00), "0 + ~3 + 1 * 2");
     });
 
     QUnit.test('test formula3', function(assert) {
