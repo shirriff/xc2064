@@ -325,6 +325,7 @@ class ClbInternal {
     // bitPt is the index into the config bitmap
     constructor(name) {
       this.bitPt = [tileToBitmapX[name[1]], tileToBitmapY[name[0]]];
+      this.name = name; // temp
     }
 
     /**
@@ -381,8 +382,10 @@ class ClbInternal {
           this.configBase = 'F';
           this.configF = fin1 + ':B:' + fin2 + ':' + fin3;
           this.configG = '';
+          gname = 'F'; // NO G
           // F,G combined
-          str = 'F = ' + formula4((nf << 8) | ng, fin1, fin2, fin3, 'B');
+          this.configFormulaF = formula4((nf << 8) | ng, fin1, fin2, fin3, 'B');
+          str = 'F = ' + this.configFormulaF;
         } else {
           // MUX
           this.configBase = 'FGM';
@@ -390,16 +393,20 @@ class ClbInternal {
           this.configG = gin1 + ':' + gin2 + ':' + gin3;
           fname = 'M';
           gname = 'M';
-          str = 'F = B*(' + formula3(nf, fin1, fin2, fin3) +
-            ') + ~B*(' + formula3(ng, gin1, gin2, gin3) + ')';
+          this.configFormulaF = formula3(nf, fin1, fin2, fin3);
+          this.configFormulaG = formula3(ng, gin1, gin2, gin3);
+          str = 'F = B*(' + this.configFormulaF +
+            ') + ~B*(' + this.configFormalaG + ')';
         }
       } else {
         // F, G separate
         this.configBase = 'FG';
         this.configF = fin1 + ':' + fin2 + ':' + fin3;
         this.configG = gin1 + ':' + gin2 + ':' + gin3;
-        str = 'F = ' + formula3(nf, fin1, fin2, fin3);
-        str += '<br/>G = ' + formula3(ng, gin1, gin2, gin3);
+        this.configFormulaF = formula3(nf, fin1, fin2, fin3);
+        this.configFormulaG = formula3(ng, gin1, gin2, gin3);
+        str = 'F = ' + this.configFormulaF;
+        str += '<br/>G = ' + this.configFormulaG;
       }
 
       // Select one of four values based on two index bits
@@ -425,6 +432,7 @@ class ClbInternal {
       if (bitstreamTable[x + 9][y + 5]) {
         clkInvert = !clkInvert; // LATCH flips the clock
       }
+      console.log(this.name, bitstreamTable[x + 6][y + 4], bitstreamTable[x + 4][y + 4], bitstreamTable[x+9][y+5], bitstreamTable[x+5][y+4]);
       if (bitstreamTable[x + 6][y + 4] == 0) {
         // No clock
         this.configClk = '';
@@ -502,7 +510,7 @@ function clbDrawPopup(clb, x, y) {
   context.font = "20px arial";
   context.fillStyle = "red";
   const info = clb.clbInternal;
-  context.fillText(clb.clbInternal.configX + " " + clb.clbInternal.configY + " " + clb.clbInternal.configF, 20, 20);
+  context.fillText("s" + clb.clbInternal.configSet + " r" + clb.clbInternal.configRes + " c" + clb.clbInternal.configClk + " q" + clb.clbInternal.configQ, 20, 20);
   context.strokeStyle = "#888";
   if (info.configBase == 'F') {
     drawClbF(info, context);
@@ -519,6 +527,9 @@ function clbDrawPopup(clb, x, y) {
 function drawClbF(info, context) {
   context.strokeStyle = "white";
   context.fillStyle = "white";
+  context.font = "10px arial";
+  context.fillText("F = " + info.configFormulaF, 21, 250);
+  context.font = "20px arial";
   context.beginPath();
   context.rect(38, 48, 29, 108); // F box
   context.rect(120, 82, 29, 76); // Q box
@@ -570,7 +581,7 @@ function drawClbF(info, context) {
     context.moveTo(77, 87);
     context.lineTo(77, 182);
     context.lineTo(141, 182);
-    context.lineTo(141, 82);
+    context.lineTo(141, 158);
   } else {
     throw("Bad reset " + info.configRes);
   }
@@ -579,13 +590,13 @@ function drawClbF(info, context) {
   if (!info.configClk || info.configClk == "NOT") {
     // No connection
   } else {
-    if (info.configClk == "C" || info.configClk == "K") {
+    if (info.configClk[0] == "C" || info.configClk[0] == "K") {
       // Line from C or K to clock
-      context.fillText(info.configClk, 90, 214);
+      context.fillText(info.configClk[0], 90, 214);
       context.moveTo(94, 197);
       context.lineTo(94, 150);
       context.lineTo(119-6, 150);
-    } else if (info.configClk == "F") {
+    } else if (info.configClk[0] == "F") {
       // Line from F to clock
       context.moveTo(77, 87);
       context.lineTo(77, 150);
@@ -647,11 +658,10 @@ function drawClbF(info, context) {
     context.lineTo(195, 151);
     context.fillText("Y", 197, 159);
   } else if (info.configY == "Q") {
-    context.moveTo(77, 87);
-    context.lineTo(77, 55);
-    context.lineTo(188, 55);
-    context.lineTo(188, 151);
-    context.lineTo(195, 151);
+    context.moveTo(148, 118);
+    context.lineTo(174, 118);
+    context.lineTo(174, 151);
+    context.lineTo(197, 151);
     context.fillText("Y", 197, 159);
   } else {
      throw("Bad Y " + info.configY);
@@ -663,6 +673,10 @@ function drawClbF(info, context) {
 function drawClbFG(info, context) {
   context.strokeStyle = "white";
   context.fillStyle = "white";
+  context.font = "10px arial";
+  context.fillText("F = " + info.configFormulaF, 21, 250);
+  context.fillText("G = " + info.configFormulaG, 21, 270);
+  context.font = "20px arial";
   context.beginPath();
   context.rect(38, 48, 29, 76);
   context.rect(38, 144, 29, 76);
@@ -770,22 +784,22 @@ function drawClbFG(info, context) {
     context.lineTo(77, 54);
     context.lineTo(173, 54);
     context.lineTo(173, 87);
-    context.lineTo(182, 87);
-    context.fillText("X", 182, 96);
+    context.lineTo(196, 87);
+    context.fillText("X", 196, 96);
   } else if (info.configX == "G") {
     // Line from G to X
     context.moveTo(67, 182);
-    context.lineTo(173, 182);
-    context.lineTo(173, 87);
-    context.lineTo(182, 87);
-    context.fillText("X", 182, 96);
+    context.lineTo(188, 182);
+    context.lineTo(188, 87);
+    context.lineTo(196, 87);
+    context.fillText("X", 196, 96);
   } else if (info.configX == "Q") {
     // Line from Q to X
     context.moveTo(131, 118);
     context.lineTo(157, 118);
     context.lineTo(157, 87);
-    context.lineTo(182, 87);
-    context.fillText("X", 182, 96);
+    context.lineTo(196, 87);
+    context.fillText("X", 196, 96);
   } else {
     throw("Bad X " + info.configX);
   }
@@ -798,22 +812,21 @@ function drawClbFG(info, context) {
     context.lineTo(77, 54);
     context.lineTo(173, 54);
     context.lineTo(173, 151);
-    context.lineTo(182, 151);
-    context.fillText("Y", 182, 158);
+    context.lineTo(196, 151);
+    context.fillText("Y", 196, 158);
   } else if (info.configY == "G") {
     // Line from G to Y
     context.moveTo(67, 182);
-    context.lineTo(173, 182);
-    context.lineTo(173, 151);
-    context.lineTo(182, 151);
-    context.fillText("Y", 182, 158);
+    context.lineTo(188, 182);
+    context.lineTo(188, 151);
+    context.lineTo(196, 151);
+    context.fillText("Y", 196, 158);
   } else if (info.configY == "Q") {
-    context.moveTo(77, 87);
-    context.lineTo(77, 55);
-    context.lineTo(173, 55);
-    context.lineTo(173, 151);
-    context.lineTo(182, 151);
-    context.fillText("Y", 182, 158);
+    context.moveTo(131, 118);
+    context.lineTo(157, 118);
+    context.lineTo(157, 151);
+    context.lineTo(196, 151);
+    context.fillText("Y", 196, 158);
   } else {
      throw("Bad Y " + info.configY);
   }
@@ -824,6 +837,10 @@ function drawClbFG(info, context) {
 function drawClbFGM(info, context) {
   context.strokeStyle = "white";
   context.fillStyle = "white";
+  context.font = "10px arial";
+  context.fillText("F = " + info.configFormulaF, 21, 250);
+  context.fillText("G = " + info.configFormulaG, 21, 270);
+  context.font = "20px arial";
   context.beginPath();
   context.rect(38, 48, 29, 76);
   context.rect(38, 144, 29, 76);
@@ -891,9 +908,9 @@ function drawClbFGM(info, context) {
   } else if (info.configRes == "M") {
     // Line from M to Q res
     context.moveTo(108, 118);
-    context.moveTo(108, 182);
-    context.moveTo(172, 182);
-    context.lineTo(172, 156);
+    context.lineTo(108, 182);
+    context.lineTo(172, 182);
+    context.lineTo(172, 158);
   } else {
     throw("Bad reset " + info.configRes);
   }
@@ -944,7 +961,7 @@ function drawClbFGM(info, context) {
     // No connection
   } else if (info.configX == "M") {
     // Line from M to X
-    context.moveTo(108, 87);
+    context.moveTo(108, 118);
     context.lineTo(108, 54);
     context.lineTo(220, 54);
     context.lineTo(220, 87);
