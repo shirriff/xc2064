@@ -212,7 +212,6 @@ class ClbDecoder {
     c.forEach(p => this.cpips.push(ClbDecoder.processClbPip(p, tile, tile + ".C")));
     k.forEach(p => this.kpips.push(ClbDecoder.processClbPip(p, tile, tile + ".K")));
     d.forEach(p => this.dpips.push(ClbDecoder.processClbPip(p, tile, tile + ".D")));
-    this.dpips.forEach(x => console.log(x));
     if (amux != undefined && amux != null) {
       this.apips[amux][4] = true; // Select the appropriate pip
     }
@@ -253,7 +252,8 @@ class ClbDecoder {
     ctx.stroke();
     ctx.font = "6px arial";
     ctx.fillStyle = "red";
-    ctx.fillText("a" + this.mux["A"] + " b:" + this.mux["B"] + " " + this.mux["C"] + " k:" + this.mux["K"] + " " + this.mux["D"], this.screenPt[0], this.screenPt[1] + 10);
+    // ctx.fillText("a" + this.mux["A"] + " b:" + this.mux["B"] + " " + this.mux["C"] + " k:" + this.mux["K"] + " " + this.mux["D"], this.screenPt[0], this.screenPt[1] + 10);
+    ctx.fillText(this.clbInternal.shortInfo(), this.screenPt[0], this.screenPt[1] + 10);
     drawPips(ctx, this.apips, "white");
     drawPips(ctx, this.kpips, "white");
     drawPips(ctx, this.dpips, "white");
@@ -468,6 +468,15 @@ class ClbInternal {
       return this.configString;
     }
 
+    shortInfo() {
+      if (!this.configBase) {
+        return "";
+      } else {
+        return (this.configBase + ":" + this.configX + ':' + this.configY + ':' + this.configSet + ":" + this.configRes + ":" + this.configClk + this.configNf + ":" + this.configNg).
+          replaceAll("UNDEF", "");
+      }
+    }
+
     /**
      * Returns the function of each (known) bit in the bitstreamTable.
      *
@@ -480,12 +489,498 @@ class ClbInternal {
 
 let popup = undefined;
 function clbDrawPopup(clb, x, y) {
-  popup = $("<canvas/>", {class: "popup"}).width(300).height(300).css("left", x * SCALE).css("top", y * SCALE)[0];
+  popup = $("<canvas/>", {class: "popup"}).css("left", x * SCALE).css("top", y * SCALE)[0];
+  popup.width = 300;
+  popup.height = 300;
   $('#container').append(popup);
   const context = popup.getContext('2d');
+  context.resetTransform();
+  context.translate(0.5, 0.5); // Prevent aliasing
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "black";
   context.fillRect(0, 0, canvas.width, canvas.height);
+  context.font = "20px arial";
+  context.fillStyle = "red";
+  const info = clb.clbInternal;
+  context.fillText(clb.clbInternal.configX + " " + clb.clbInternal.configY + " " + clb.clbInternal.configF, 20, 20);
+  context.strokeStyle = "#888";
+  if (info.configBase == 'F') {
+    drawClbF(info, context);
+  } else if (info.configBase == 'FG') {
+    drawClbFG(info, context);
+  } else if (info.configBase == 'FGM') {
+    drawClbFGM(info, context);
+  } else {
+    throw("Bad config base" + info.configBase);
+  }
+}
+
+// The F base is the configuration with one 4-input CLB called "F".
+function drawClbF(info, context) {
+  context.strokeStyle = "white";
+  context.fillStyle = "white";
+  context.beginPath();
+  context.rect(38, 48, 29, 108); // F box
+  context.rect(120, 82, 29, 76); // Q box
+  context.stroke();
+  // Inputs to F
+  context.fillText(info.configF[0], 21, 63);
+  context.fillText(info.configF[2], 21, 95);
+  context.fillText(info.configF[4], 21, 127);
+  context.fillText(info.configF[6], 21, 159);
+
+  // Labels of F and Q boxes
+  context.strokeStyle = "yellow";
+  context.fillStyle = "yellow";
+  context.fillText("F", 51, 96);
+  context.fillText("Q", 130, 126);
+
+  context.beginPath();
+  // Line from F to Q
+  context.moveTo(67, 87);
+  context.lineTo(119, 87);
+
+  // Set connection
+  if (!info.configSet) {
+    // No connection
+  } else if (info.configSet == "A") {
+    // Line from A to Q set
+    context.fillText("A", 135, 36);
+    context.moveTo(141, 40);
+    context.lineTo(141, 82);
+  } else if (info.configSet == "F") {
+    // Line from F to Q set
+    context.moveTo(141, 54);
+    context.lineTo(141, 82);
+  } else {
+    throw("Bad set " + info.configSet);
+  }
+  context.stroke();context.beginPath()
+
+  // Reset connection
+  if (!info.configRes) {
+    // No connection
+  } else if (info.configRes == "D") {
+    // Line from D to Q res
+    context.fillText("D", 138, 214);
+    context.moveTo(141, 198);
+    context.lineTo(141, 158);
+  } else if (info.configRes == "F") {
+    // Line from F to Q res
+    context.moveTo(77, 87);
+    context.lineTo(77, 182);
+    context.lineTo(141, 182);
+    context.lineTo(141, 82);
+  } else {
+    throw("Bad reset " + info.configRes);
+  }
+
+  // Clock connection
+  if (!info.configClk || info.configClk == "NOT") {
+    // No connection
+  } else {
+    if (info.configClk == "C" || info.configClk == "K") {
+      // Line from C or K to clock
+      context.fillText(info.configClk, 90, 214);
+      context.moveTo(94, 197);
+      context.lineTo(94, 150);
+      context.lineTo(119-6, 150);
+    } else if (info.configClk == "F") {
+      // Line from F to clock
+      context.moveTo(77, 87);
+      context.lineTo(77, 150);
+      context.lineTo(119-6, 150);
+    } else {
+       throw("Bad clock " + info.configClk);
+    }
+    // Inverter bubble or line on Q input
+    if (info.configClk.indexOf("NOT") >= 0) {
+      context.stroke();
+      context.beginPath();
+      context.arc(119-3, 150, 3, 0, 2 * Math.PI);
+    } else {
+      context.lineTo(119, 150);
+    }
+  }
+
+  // Mark Q with either an E or a clock input triangle
+
+  if (info.configQ == "LATCH") {
+    context.fillStyle = "red";
+    context.fillText("E", 120, 151);
+  } else if (info.configQ == "FF") {
+    context.moveTo(120, 158);
+    context.lineTo(127, 151);
+    context.lineTo(120, 144);
+  }
+
+  // X connection
+  if (!info.configX || info.configX == "UNDEF") {
+    // No connection
+  } else if (info.configX == "F") {
+    // Line from F to X
+    context.moveTo(77, 87);
+    context.lineTo(77, 54);
+    context.lineTo(188, 54);
+    context.lineTo(188, 87);
+    context.lineTo(197, 87);
+    context.fillText("X", 197, 96);
+  } else if (info.configX == "Q") {
+    // Line from Q to X
+    context.moveTo(148, 118);
+    context.lineTo(174, 118);
+    context.lineTo(174, 87);
+    context.lineTo(197, 87);
+    context.fillText("X", 197, 96);
+  } else {
+    throw("Bad X " + info.configX);
+  }
+
+  // Y output
+  if (!info.configY || info.configY == "UNDEF") {
+    // No output
+  } else if (info.configY == "F") {
+    context.moveTo(77, 87);
+    context.lineTo(77, 54);
+    context.lineTo(188, 54);
+    context.lineTo(188, 151);
+    context.lineTo(195, 151);
+    context.fillText("Y", 197, 159);
+  } else if (info.configY == "Q") {
+    context.moveTo(77, 87);
+    context.lineTo(77, 55);
+    context.lineTo(188, 55);
+    context.lineTo(188, 151);
+    context.lineTo(195, 151);
+    context.fillText("Y", 197, 159);
+  } else {
+     throw("Bad Y " + info.configY);
+  }
+  context.stroke();
+}
+
+// The FG base is the configuration with two 3-input CLBs called "F" and "G".
+function drawClbFG(info, context) {
+  context.strokeStyle = "white";
+  context.fillStyle = "white";
+  context.beginPath();
+  context.rect(38, 48, 29, 76);
+  context.rect(38, 144, 29, 76);
+  context.rect(102, 82, 29, 76);
+  context.stroke();
+  context.fillText(info.configF[0], 21, 63);
+  context.fillText(info.configF[2], 21, 95);
+  context.fillText(info.configF[4], 21, 127);
+  context.fillText(info.configG[0], 21, 159);
+  context.fillText(info.configG[2], 21, 191);
+  context.fillText(info.configG[4], 21, 223);
+
+  // Labels of F, G, and Q boxes
+  context.strokeStyle = "yellow";
+  context.fillStyle = "yellow";
+  context.fillText("F", 51, 96);
+  context.fillText("G", 49, 191);
+  context.fillText("Q", 113, 126);
+
+  context.beginPath();
+  // Line from F to Q
+  context.moveTo(67, 87);
+  context.lineTo(102, 87);
+
+  // Set connection
+  if (!info.configSet) {
+    // No connection
+  } else if (info.configSet == "A") {
+    // Line from A to Q set
+    context.fillText("A", 118, 36);
+    context.moveTo(124, 40);
+    context.lineTo(124, 82);
+  } else if (info.configSet == "F") {
+    // Line from F to Q set
+    context.moveTo(77, 87);
+    context.lineTo(77, 54);
+    context.lineTo(124, 54);
+    context.lineTo(124, 82);
+  } else {
+    throw("Bad set " + info.configSet);
+  }
+
+  // Reset connection
+  if (!info.configRes) {
+    // No connection
+  } else if (info.configRes == "D") {
+    // Line from D to Q res
+    context.fillText("D", 118, 216);
+    context.moveTo(124, 198);
+    context.lineTo(124, 158);
+  } else if (info.configRes == "G") {
+    // Line from G to Q res
+    context.moveTo(67, 182);
+    context.lineTo(124, 182);
+    context.lineTo(124, 158);
+  } else {
+    throw("Bad reset " + info.configRes);
+  }
+
+  // Clock connection
+  if (!info.configClk || info.configClk == "NOT") {
+    // No connection
+  } else {
+    if (info.configClk[0] == "C" || info.configClk[0] == "K") {
+      // Line from C or K to clock
+      context.fillText(info.configClk[0], 72, 216);
+      context.moveTo(77, 197);
+      context.lineTo(77, 150);
+      context.lineTo(102-6, 150);
+    } else if (info.configClk[0] == "G") {
+      // Line from G to clock
+      context.moveTo(67, 182);
+      context.lineTo(77, 182);
+      context.lineTo(77, 150);
+      context.lineTo(102-6, 150);
+    } else {
+       throw("Bad clock " + info.configClk);
+    }
+    // Inverter bubble or line on Q input
+    if (info.configClk.indexOf("NOT") >= 0) {
+      context.stroke();
+      context.beginPath();
+      context.arc(102-3, 150, 3, 0, 2 * Math.PI);
+    } else {
+      context.lineTo(102, 150);
+    }
+  }
+
+  // Mark Q with either an E or a clock input triangle
+  if (info.configQ == "LATCH") {
+    context.fillStyle = "red";
+    context.fillText("E", 103, 151);
+  } else if (info.configQ == "FF") {
+    context.moveTo(102, 158);
+    context.lineTo(109, 151);
+    context.lineTo(102, 144);
+  }
+
+  // X connection
+  if (!info.configX || info.configX == "UNDEF") {
+    // No connection
+  } else if (info.configX == "F") {
+    // Line from F to X
+    context.moveTo(77, 87);
+    context.lineTo(77, 54);
+    context.lineTo(173, 54);
+    context.lineTo(173, 87);
+    context.lineTo(182, 87);
+    context.fillText("X", 182, 96);
+  } else if (info.configX == "G") {
+    // Line from G to X
+    context.moveTo(67, 182);
+    context.lineTo(173, 182);
+    context.lineTo(173, 87);
+    context.lineTo(182, 87);
+    context.fillText("X", 182, 96);
+  } else if (info.configX == "Q") {
+    // Line from Q to X
+    context.moveTo(131, 118);
+    context.lineTo(157, 118);
+    context.lineTo(157, 87);
+    context.lineTo(182, 87);
+    context.fillText("X", 182, 96);
+  } else {
+    throw("Bad X " + info.configX);
+  }
+
+  // Y connection
+  if (!info.configY || info.configY == "UNDEF") {
+    // No output
+  } else if (info.configY == "F") {
+    context.moveTo(77, 87);
+    context.lineTo(77, 54);
+    context.lineTo(173, 54);
+    context.lineTo(173, 151);
+    context.lineTo(182, 151);
+    context.fillText("Y", 182, 158);
+  } else if (info.configY == "G") {
+    // Line from G to Y
+    context.moveTo(67, 182);
+    context.lineTo(173, 182);
+    context.lineTo(173, 151);
+    context.lineTo(182, 151);
+    context.fillText("Y", 182, 158);
+  } else if (info.configY == "Q") {
+    context.moveTo(77, 87);
+    context.lineTo(77, 55);
+    context.lineTo(173, 55);
+    context.lineTo(173, 151);
+    context.lineTo(182, 151);
+    context.fillText("Y", 182, 158);
+  } else {
+     throw("Bad Y " + info.configY);
+  }
+  context.stroke();
+}
+
+// The FGM base is the configuration with two 3-input CLBs called "F" and "G", with a multiplexer "M" selecting between them
+function drawClbFGM(info, context) {
+  context.strokeStyle = "white";
+  context.fillStyle = "white";
+  context.beginPath();
+  context.rect(38, 48, 29, 76);
+  context.rect(38, 144, 29, 76);
+  context.rect(70, 82, 29, 107);
+  context.rect(152, 82, 29, 76);
+  context.stroke();
+  context.fillText(info.configF[0], 21, 63);
+  context.fillText(info.configF[2], 21, 95);
+  context.fillText(info.configF[4], 21, 127);
+  context.fillText(info.configG[0], 21, 159);
+  context.fillText(info.configG[2], 21, 191);
+  context.fillText(info.configG[4], 21, 223);
+
+  // Labels of F, G, and Q boxes
+  context.strokeStyle = "yellow";
+  context.fillStyle = "yellow";
+  context.fillText("B", 85, 38);
+  context.fillText("F", 51, 96);
+  context.fillText("G", 51, 191);
+  context.fillText("M", 81, 126);
+  context.fillText("Q", 161, 126);
+
+  context.beginPath();
+  // Line from F to M
+  context.moveTo(67, 87);
+  context.lineTo(70, 87);
+  // Line from G to M
+  context.moveTo(67, 181);
+  context.lineTo(70, 181);
+  // Line from M to Q
+  context.moveTo(99, 118);
+  context.lineTo(152, 118);
+  // Line from B to M
+  context.moveTo(93, 40);
+  context.lineTo(93, 82);
+
+
+
+  // Set connection
+  if (!info.configSet) {
+    // No connection
+  } else if (info.configSet == "A") {
+    // Line from A to Q set
+    context.fillText("A", 166, 36);
+    context.moveTo(172, 40);
+    context.lineTo(172, 82);
+  } else if (info.configSet == "M") {
+    // Line from M to Q set
+    context.moveTo(108, 118);
+    context.moveTo(108, 54);
+    context.moveTo(172, 54);
+    context.lineTo(172, 82);
+  } else {
+    throw("Bad set " + info.configSet);
+  }
+
+  // Reset connection
+  if (!info.configRes) {
+    // No connection
+  } else if (info.configRes == "D") {
+    // Line from D to Q res
+    context.fillText("D", 165, 216);
+    context.moveTo(172, 198);
+    context.lineTo(172, 158);
+  } else if (info.configRes == "M") {
+    // Line from M to Q res
+    context.moveTo(108, 118);
+    context.moveTo(108, 182);
+    context.moveTo(172, 182);
+    context.lineTo(172, 156);
+  } else {
+    throw("Bad reset " + info.configRes);
+  }
+
+  // Clock connection
+  if (!info.configClk || info.configClk == "NOT") {
+    // No connection
+  } else {
+    if (info.configClk[0] == "C" || info.configClk[0] == "K") {
+      // Line from C or K to clock
+      context.fillText(info.configClk[0], 118, 211);
+      context.moveTo(125, 197);
+      context.lineTo(125, 150);
+      context.lineTo(150-6, 150);
+    } else if (info.configClk[0] == "M") {
+      // Line from M to clock
+      context.moveTo(108, 118);
+      context.lineTo(108, 182);
+      context.lineTo(125, 182);
+      context.lineTo(125, 150);
+      context.lineTo(150-6, 150);
+    } else {
+       throw("Bad clock " + info.configClk);
+    }
+    // Inverter bubble or line on Q input
+    if (info.configClk.indexOf("NOT") >= 0) {
+      context.stroke();
+      context.beginPath();
+      context.arc(150-3, 150, 3, 0, 2 * Math.PI);
+    } else {
+      context.lineTo(150, 150);
+    }
+  }
+
+  // Mark Q with either an E or a clock input triangle
+
+  if (info.configQ == "LATCH") {
+    context.fillStyle = "red";
+    context.fillText("E", 151, 151);
+  } else if (info.configQ == "FF") {
+    context.moveTo(150, 158);
+    context.lineTo(157, 151);
+    context.lineTo(150, 144);
+  }
+
+  // X connection
+  if (!info.configX || info.configX == "UNDEF") {
+    // No connection
+  } else if (info.configX == "M") {
+    // Line from M to X
+    context.moveTo(108, 87);
+    context.lineTo(108, 54);
+    context.lineTo(220, 54);
+    context.lineTo(220, 87);
+    context.lineTo(229, 87);
+    context.fillText("X", 229, 91);
+  } else if (info.configX == "Q") {
+    // Line from Q to X
+    context.moveTo(181, 118);
+    context.lineTo(205, 118);
+    context.lineTo(205, 87);
+    context.lineTo(229, 87);
+    context.fillText("X", 229, 91);
+  } else {
+    throw("Bad X " + info.configX);
+  }
+
+  // Y output
+  if (!info.configY || info.configY == "UNDEF") {
+    // No output
+  } else if (info.configY == "M") {
+    context.moveTo(208, 87);
+    context.lineTo(208, 54);
+    context.lineTo(220, 54);
+    context.lineTo(220, 151);
+    context.lineTo(229, 151);
+    context.fillText("Y", 229, 160);
+  } else if (info.configY == "Q") {
+    context.moveTo(181, 118);
+    context.lineTo(205, 118);
+    context.lineTo(205, 151);
+    context.lineTo(229, 151);
+    context.fillText("Y", 229, 160);
+  } else {
+     throw("Bad Y " + info.configY);
+  }
+  context.stroke();
 }
 
 function clbRemovePopup() {

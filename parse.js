@@ -104,7 +104,7 @@ function makeBitstreamTable(rawBitstream) {
   for (var x = 0; x < 160; x++) {
     bitstreamTable[x] = new Array(71);
     for (var y = 0; y < 71; y++) {
-      bitstreamTable[x][y] = rawBitstream[(159 - x) * 71 + (70 - y)];
+      bitstreamTable[x][y] = rawBitstream[(159 - x) * 71 + (70 - y)] ? 0 : 1;
       
     }
   }
