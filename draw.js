@@ -767,8 +767,10 @@ function layoutClickInfo(x, y) {
   if (clb && clb.isInside(x, y)) {
     clbDrawPopup(clb, x, y);
   }
+  iobRemovePopup();
   let iob = iobDecoders.getFromXY(x, y);
   if (iob) {
+    iobDrawPopup(iob, x, y);
     console.log(iob.info());
     return;
   }

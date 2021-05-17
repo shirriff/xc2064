@@ -438,10 +438,10 @@ class Iob {
     ctx.rect(this.x0, this.y0, this.W, this.H);
     ctx.stroke();
     ctx.fillStyle = "yellow";
-    drawPips(ctx, this.kpips, "yellow");
-    drawPips(ctx, this.opips, "blue");
-    drawPips(ctx, this.ipips, "green");
-    drawPips(ctx, this.tpips, "pink");
+    // drawPips(ctx, this.kpips, "gray");
+    // drawPips(ctx, this.opips, "blue");
+    // drawPips(ctx, this.ipips, "green");
+    // drawPips(ctx, this.tpips, "pink");
     ctx.font = "5px arial";
     ctx.fillStyle = "red";
     ctx.fillText(this.label + "" + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt, this.x0, this.y0);
@@ -480,4 +480,111 @@ class Iob {
       return "IOB " + this.pin + " " + this.tile + " " + this.style + " " + this.pips + this.data.join(", ");
     }
 
+}
+
+let iobPopup = undefined;
+function iobDrawPopup(iob, x, y) {
+  iobPopup = $("<canvas/>", {class: "popup"}).css("left", x * SCALE).css("top", y * SCALE)[0];
+  iobPopup.width = 300;
+  iobPopup.height = 300;
+  $('#container').append(iobPopup);
+  const context = iobPopup.getContext('2d');
+  context.resetTransform();
+  context.translate(0.5, 0.5); // Prevent aliasing
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.fillStyle = "black";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.font = "20px arial";
+  context.fillStyle = "red";
+
+  context.strokeStyle = "white";
+  context.fillStyle = "white";
+  context.font = "20px arial";
+  context.beginPath();
+  context.rect(9, 131, 60, 70); // pad box
+  context.stroke();
+  context.fillStyle = "yellow";
+  context.fillText("PAD", 16, 179);
+
+  if (pad || q) {
+    // draw input buffer
+    context.strokeStyle = "white";
+    context.moveTo(86, 188);
+    context.lineTo(86 + 14, 188 + 14);
+    context.lineTo(86, 188 + 28);
+    context.lineTo(86, 188);
+    context.stroke();
+
+    context.strokeStyle = "yellow";
+    context.moveTo(69, 170);
+    context.lineTo(79, 170);
+    context.lineTo(79, 188 + 14);
+    context.lineTo(86, 188 + 14);
+
+    if (pad) {
+      // Input line
+      context.moveTo(86 + 14, 188 + 14);
+      context.lineTo(167, 188 + 14);
+      context.fillStyle("white");
+      context.fillText("I", 172, 210);
+    } else {
+      // Input flip flop
+      context.moveTo(86 + 14, 188 + 14);
+      context.lineTo(111, 188 + 14);
+      context.lineTo(111, 235);
+      context.lineTo(121, 235);
+      context.moveTo(105, 299);
+      context.lineTo(121, 299);
+      context.moveTo(151, 267);
+      context.lineToTo(167, 267);
+      rect(121, 229, 29, 76);
+      context.moveTo(121, 229 + 76); // clock triangle
+      context.lineTo(121 + 7, 229 + 76 - 7); // clock triangle
+      context.lineTo(1217, 229 + 76 - 14); // clock triangle
+      context.fillStyle("white");
+      context.fillText("I", 172, 210);
+      context.fillText("K", 88, 307);
+      context.fillStyle("yellow");
+      context.fillText("Q", 132, 263);
+    }
+  }
+
+  if (o || t) {
+    // draw output buffer
+    context.strokeStyle = "white";
+    context.moveTo(118, 125);
+    context.lineTo(118 - 14, 125 + 14);
+    context.lineTo(118, 125 + 28);
+    context.lineTo(118, 125);
+    context.stroke();
+
+    context.strokeStyle = "yellow";
+    context.moveTo(69, 170);
+    context.lineTo(79, 170);
+    context.lineTo(79, 125 + 14);
+    context.lineTo(118 - 14, 125 + 14);
+
+    context.moveTo(118, 125 + 14);
+    context.lineTo(135, 125 + 14);
+    context.fillStyle("white");
+    context.fillText("O", 138, 148);
+  }
+
+  if (t) {
+    context.moveTo(118 - 7, 125 + 7);
+    context.lineTo(118 - 7, 74);
+    context.lineTo(135, 74);
+    context.fillStyle("white");
+    context.fillText("T", 138, 84);
+  }
+
+  context.stroke();
+
+}
+
+function iobRemovePopup() {
+  if (iobPopup) {
+    iobPopup.remove();
+    iobPopup = undefined;
+  }
 }
