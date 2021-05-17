@@ -70,6 +70,11 @@ $(document).ready(function() {
     });
 
     $('#colors').on('change', function() {
+      if ($("#colors").is(":checked")) {
+        $('#colortext').css('display', 'block'); // Show the legend
+      } else {
+        $('#colortext').css('display', 'none'); // Hide the legend
+      }
       redraw(ctx);
     });
 
@@ -95,9 +100,9 @@ $(document).ready(function() {
 
     $("#demo").click(function() {
       rawBitstream = makeDemoBitstream();
-      $('#mode').css('display', 'block'); // Show the dropdown
+      $('#modetext').css('display', 'block'); // Show the dropdown
       decode(rawBitstream, config);
-      $("#mode").val("layout");
+      $("#modetext").val("layout");
       redraw(ctx);
     });
   }
@@ -113,7 +118,7 @@ $(document).ready(function() {
    */
   function rbtUpload(contents) {
     rbtParse(contents); // Sets rawBitstream and bitstreamTable
-    $('#mode').css('display', 'block'); // Show the dropdown
+    $('#modetext').css('display', 'block'); // Show the dropdown
     decode(rawBitstream, config);
     redraw(ctx);
   }
@@ -152,16 +157,24 @@ $(document).ready(function() {
   .popup {border: 2px solid #ccc; position: absolute; z-index: 2; top: 100px; left: 100px;}
 </style>
 
-<title>FPGA viewer: draw</title>
+<title>XC2064 display</title>
 </head>
 <body>
+This program decodes an XC2064 bitmap file.
+To use, drag-and-drop an .RBT file onto this page, or load a sample file by clicking: <button id="demo">Demo</button>
 <div id="header">
-<select id="mode" style="display:none"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
-<button id="demo">Demo</button>
+<div id="modetext" style="display:none">
+Select either the graphical layout display or the raw bitstream:
+<select id="mode"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
+</div>
 <span id="bitstreamSpan" style="display:none">
-<input type="checkbox" id="labels" value="Labels" checked>Labels</input>
+Default bit values are grayed out.
+Display: <input type="checkbox" id="labels" value="Labels" checked>Labels</input>
 <input type="checkbox" id="colors" value="Colors">Colors</input>
 </span>
+<div id="colortext" style="display:none">
+Color code: red=LUT, green=CLB, blue=PIP, purple=switch, yellow=IOB, orange=BIDI, gray=other, white=unused.
+</div>
 <div id="info0"></div>
 </div>
 <div id="info"></div>

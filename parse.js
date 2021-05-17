@@ -95,9 +95,9 @@ function parseRbtFile(contents) {
  * .       .
  * HA ... HH
  * This function flips the rbtLines to match the die, stored as bitstreamTable[x][y].
- * bitstreamTable also holds ints (not chars) and is inverted with respect to the bitstreamTable, so 1 is active.
  * I'm using the term "bitstreamTable" to describe the bitstreamTable with the die's layout and "rbtLines" to describe the bitstreamTable
  * with the .RBT file's layout.
+ * Note: this bitstream is inverted with respect to the RBT file: a 0 entry is converted to active 1.
  */
 function makeBitstreamTable(rawBitstream) {
   var bitstreamTable = new Array(160);
@@ -105,7 +105,6 @@ function makeBitstreamTable(rawBitstream) {
     bitstreamTable[x] = new Array(71);
     for (var y = 0; y < 71; y++) {
       bitstreamTable[x][y] = rawBitstream[(159 - x) * 71 + (70 - y)] ? 0 : 1;
-      
     }
   }
   return bitstreamTable;
@@ -118,7 +117,10 @@ function decode(rawBitstream, config) {
   decoders.forEach(d => d.startDecode());
   for (let i = 0; i < 160 * 71; i++) {
     let entry = config[i];
-    if (entry == undefined || entry == "----- NOT USED -----") continue;
+    if (entry == undefined || entry == "----- NOT USED -----") {
+      bitTypes[i] = BITTYPE.unused;
+      continue;
+    }
     let m = entry.match(/IOB (P\d+)(.*)/);
     if (m) {
       bitTypes[i] = BITTYPE.iob;
@@ -147,7 +149,11 @@ function decode(rawBitstream, config) {
     }
     m = entry.match(/CLB ([A-H][A-H])\s*(.*)/);
     if (m) {
-      bitTypes[i] = BITTYPE.clb;
+      if (entry.match(/Logic Table/)) {
+        bitTypes[i] = BITTYPE.lut;
+      } else {
+        bitTypes[i] = BITTYPE.clb;
+      }
       clbDecoders.get(m[1]).add(m[2], rawBitstream[i]);
       continue;
     }
@@ -343,7 +349,7 @@ class OtherDecoder {
 }
 
 
-const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, mux: 4, switch: 5, iob: 6, other: 7});
+const BITTYPE = Object.freeze({lut: 1, clb: 2, pip: 3, switch: 5, iob: 6, bidi: 7, other: 8, unused: 9});
   class PipDecode {
     constructor(name, bitPt) {
       this.name = name;

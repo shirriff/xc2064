@@ -57,16 +57,17 @@ const YSIZE = 9;
 
     // Draw data
     $("#img").css('opacity', 0);
-    ctx.font = "10pt arial";
+    ctx.font = "8pt arial";
     ctx.fillStyle = "black";
     for (var x = 0; x < 160; x++) {
       for (var y = 0; y < 71; y++) {
-        if (getDefaultBit(x, y) != bitstream[x][y]) {
+        const bit = bitstream[x][y] ^ 1; // Invert bit back from bitstream value (activ 1) to RBT value (active 0).
+        if (getDefaultBit(x, y) != bit) {
           ctx.fillStyle = '#ccc';
-          fillText(ctx, bitstream[x][y] == 0 ? ' ' : '1', 1 + x * XSIZE, 7 + y * YSIZE);
+          fillText(ctx, bit == 0 ? '0' : '1', 1 + x * XSIZE - 2, 8 + y * YSIZE);
         } else {
           ctx.fillStyle = 'black';
-          fillText(ctx, bitstream[x][y], x * XSIZE - 1, YSIZE - 1 + y * YSIZE);
+          fillText(ctx, bit, x * XSIZE - 1, YSIZE + y * YSIZE);
         }
       }
     }
@@ -80,22 +81,29 @@ const YSIZE = 9;
       let type = bitTypes[i];
       let y = 70 - (i % 71);
       let x = 159 - Math.floor(i / 71);
-      if (type == undefined) {
-        continue;
-      } else if (type == BITTYPE.lut) {
-        ctx.fillStyle = '#f88';
+      const n = (159 - x) * 71 + (70 - y);
+      // Color by categories.
+      assert(type);
+      if (type == BITTYPE.lut) {
+        ctx.fillStyle = '#fcc';
       } else if (type == BITTYPE.clb) {
         ctx.fillStyle = '#cfc';
       } else if (type == BITTYPE.pip) {
         ctx.fillStyle = '#0cf';
       } else if (type == BITTYPE.mux) {
-        ctx.fillStyle = '#cff';
+        ctx.fillStyle = '#000';
       } else if (type == BITTYPE.switch) {
         ctx.fillStyle = '#fcf';
       } else if (type == BITTYPE.iob) {
         ctx.fillStyle = '#ffc';
+      } else if (type == BITTYPE.bidi) {
+        ctx.fillStyle = '#eb8';
       } else if (type == BITTYPE.other) {
-        ctx.fillStyle = '#ccc';
+        ctx.fillStyle = '#888';
+      } else if (type == BITTYPE.unused) {
+        ctx.fillStyle = '#fff';
+      } else {
+        assert(0, "bad type " + type);
       }
       ctx.fillRect(x * XSIZE, y * YSIZE, XSIZE, YSIZE);
     }
@@ -109,7 +117,7 @@ const YSIZE = 9;
     const xn = Math.trunc(x / XSIZE); // Convert to bit indices
     const yn = Math.trunc(y / YSIZE);
     const n = (159 - xn) * 71 + (70 - yn);
-    $("#info3").html(xn + ' ' + yn + 'Bit ' + n + ' = ' + rawBitstream[n] + ": " + config[n]);
+    $("#info3").html('Bit ' + n + ' = ' + rawBitstream[n] + ": " + config[n]);
   }
 
 // Default bitstream for an empty configuration, encoded as 32-bit ints for compactness
@@ -131,7 +139,7 @@ function makeDemoBitstream() {
       
     }
   }
-  bitstreamTable = makeBitstreamTable(rawBitstream);
+  bitstreamTable = makeBitstreamTable(rawBitstream, false /* invert */);
   return rawBitstream;
 }
 
