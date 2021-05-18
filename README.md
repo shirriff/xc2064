@@ -5,8 +5,8 @@ The XC2064 was the first FPGA, introduced by Xilinx in 1985. This FPGA contained
 
 ### The code
 
-* Files in html implement a tool to decode a raw bitstream file (RBT).
-* Try it (under development) at [https://righto.com/xc2064/](righto.com/xc2064)
+* The files in html implement a tool to decode a raw bitstream file (RBT).
+* Try it (under development) at [righto.com/xc2064](https://righto.com/xc2064/)
 
 Sample output:
 ![screenshot](screenshot.jpg)
