@@ -11,9 +11,10 @@ def fmt(fname):
       m = re.match('0([01]{71})111', line)
       if m:
         buf[cnt] = m.group(1)[::-1] # Reverse each line
-	# Flip 1's and 0's
-	buf[cnt] = ''.join(['1' if x == '0' else '0' for x in buf[cnt]])
-	cnt += 1
+        # Flip 1's and 0's
+        buf[cnt] = ''.join(['1' if x == '0' else '0' for x in buf[cnt]])
+        cnt += 1
+    if cnt != 160: print(cnt)
     assert(cnt == 160)
 
 
@@ -35,16 +36,16 @@ def fmt(fname):
     if y in ybreaks:
       ylinecount = 1
       yregioncount += 1
-      print
+      print()
       if labels[yregioncount]:
-        print '     A%c       B%c       C%c         D%c       E%c       F%c         G%c       H%c' % tuple([labels[yregioncount]]*8)
+        print('     A%c       B%c       C%c         D%c       E%c       F%c         G%c       H%c' % tuple([labels[yregioncount]]*8))
 
-    print '%2d ' % ylinecount,
+    print('%2d ' % ylinecount, end=' ')
     for x in range(0, 71):
       if x in xbreaks: sys.stdout.write(' ')
       sys.stdout.write(buf[y][x])
 
-    print
+    print()
       
 
 
