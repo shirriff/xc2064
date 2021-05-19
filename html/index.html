@@ -23,10 +23,14 @@ function assert(cond, message) {
     throw new Error('assertion failed: ' + message);
   }
 }
+let alerted = false;
 $(document).ready(function() {
   window.onerror = function errorHandler(msg, url, line) {
-    alert('Exception ' + msg + ' ' + url + ' ' + line);
     error('Exception ' + msg + ' ' + url + ' ' + line);
+    if (!alerted) {
+      alert('Exception ' + msg + ' ' + url + ' ' + line);
+      alerted = true; // Only show one alert to avoid annoyance.
+    }
     return false;
   }
 
