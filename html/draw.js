@@ -201,139 +201,6 @@ function initNames() {
   }
   
 
-  class XXXClb {
-    constructor(x, y, screenPt, gPt, bitPt) {
-      this.x = x;
-      this.y = y;
-      this.name = "ABCDEFGH"[y] + "ABCDEFGH"[x];
-      this.gPt = gPt;
-      this.bitPt = bitPt;
-      this.configString = '';
-    }
-
-    draw(ctx) {
-      ctx.strokeStyle = "red";
-      ctx.beginPath();
-      // Screen coordinate center of the CLB
-      let xCenter = colInfo['col.' + this.name[1] + '.clb'][1];
-      let yCenter = rowInfo['row.' + this.name[0] + '.c'][1];
-      var x0 = xCenter - 10;
-      var y0 = yCenter - 18;
-      ctx.rect(x0, y0, 20, 32);
-      ctx.moveTo(x0 + 16, y0 - 2);
-      ctx.lineTo(x0 + 16, y0);
-
-      ctx.moveTo(x0 - 2, y0 + 12);
-      ctx.lineTo(x0, y0 + 12);
-      ctx.moveTo(x0 - 2, y0 + 18);
-      ctx.lineTo(x0, y0 + 18);
-      ctx.moveTo(x0 - 2, y0 + 24);
-      ctx.lineTo(x0, y0 + 24);
-
-      ctx.moveTo(x0 + 10, y0 + 33);
-      ctx.lineTo(x0 + 10, y0 + 35);
-
-      ctx.moveTo(x0 + 21, y0 + 18);
-      ctx.lineTo(x0 + 23, y0 + 18);
-      ctx.moveTo(x0 + 21, y0 + 28);
-      ctx.lineTo(x0 + 23, y0 + 28);
-
-      ctx.stroke();
-      ctx.font = "10px arial";
-      ctx.fillStyle = "green";
-      fillText(ctx, this.name, x0 + 1, y0 + 8);
-
-      // this.drawNetwork(ctx);
-    }
-
-    // Returns screen position for e.g. 'local.1'
-    colPos(s) {
-      const name = 'col.' + this.name[1] + '.' + s;
-      try {
-        return colInfo[name][1];
-      } catch {
-        throw "bad name " + name;
-      }
-    }
-
-    // Returns screen position for e.g. 'local.1'
-    rowPos(s) {
-      const name = 'row.' + this.name[0] + '.' + s;
-      try {
-        return rowInfo[name][1];
-      } catch {
-        throw "bad name " + name;
-      }
-    }
-
-    // Draw the PIPs and network lines.
-    drawNetwork(ctx) {
-      let xCenter = this.colPos('clb');
-      let yCenter = this.rowPos('c');
-      ctx.beginPath();
-      ctx.strokeStyle = "black";
-      ctx.moveTo(this.colPos('long.2'), this.rowPos('c'));
-      ctx.lineTo(xCenter - 20, this.rowPos('c'));
-      ctx.lineTo(xCenter - 20, this.rowPos('c'));
-      ctx.stroke();
-      let cols;
-
-      if (this.name[1] == 'A') {
-        cols = [];
-      } else {
-        cols = ["local.2", "local.4", "long.1"];
-      }
-      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('io2') - 1, 2, 2));
-
-      if (this.name[1] == 'A') {
-        cols = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "long.4", "clk", "io3", "x"];
-      } else {
-        cols = ["local.1", "local.2", "local.3", "local.4", "local.5", "local.6", "long.1", "long.2", "clk", "x"];
-      }
-      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('b') - 1, 2, 2));
-
-      if (this.name[1] == 'A') {
-        cols = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "long.4", "x"];
-      } else {
-        cols = ["local.1", "local.2", "local.3", "local.4", "local.5", "long.1", "long.2", "x"];
-      }
-      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('c') - 1, 2, 2));
-
-      if (this.name[1] == 'A') {
-        cols = ["long.4", "clk"];
-      } else {
-        cols = ["long.2", "clk"];
-      }
-      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('k') - 1, 2, 2));
-
-      if (this.name[1] == 'A') {
-        cols = [];
-      } else {
-        cols = ["local.1", "local.3", "local.5", "long.2"];
-      }
-      cols.forEach(s => ctx.fillRect(this.colPos(s) - 1, this.rowPos('y') - 1, 2, 2));
-
-      // Segments above: D inputs
-      let rows;
-      if (this.name[0] == 'A') {
-        rows = [];
-      } else {
-        rows = ["io3", "local.1", "local.3", "local.4", "local.5", "long.1"];
-      }
-      rows.forEach(s => ctx.fillRect(this.colPos("clb") - 1, this.rowPos(s) - 1, 2, 2));
-
-      // A inputs
-      if (this.name[0] == 'A') {
-        rows = ["long.2", "local.1", "local.2", "local.3", "local.4", "long.3", "local.5"];
-        rows.forEach(s => ctx.fillRect(this.colPos("clb") - 1, this.rowPos(s) - 1, 2, 2));
-      } else {
-        rows = ["local.1", "local.3", "local.4", "local.5", "long.1", "io4"];
-        rows.forEach(s => ctx.fillRect(this.colPos("clbr1") - 1, this.rowPos(s) - 1, 2, 2));
-      }
-
-    }
-  }
-
   class Pip {
     constructor(name, bitPt) {
       this.name = name;
@@ -374,44 +241,6 @@ function initNames() {
       ctx.beginPath();
       ctx.rect(this.screenPt[0] - 1, this.screenPt[1] - 1, 2, 2);
       ctx.stroke();
-    }
-  }
-
-  class XXXTile {
-    constructor(x, y) {
-      this.x = x; // Index 0-8
-      this.y = y;
-      this.name = "ABCDEFGHI"[y] + "ABCDEFGHI"[x];
-      this.screenPt = [x * 72 + 78, y * 72 + 68];
-      this.gPt = [x * 19, y * 20];
-      this.bitPt = [xTileStarts[x], yTileStarts[y]];
-      this.pips = [];
-      this.pins = [];
-      if (x < 8 && y < 8) {
-        this.clb = new Clb(x, y, [x * 72 + 78, y * 72 + 68], [x * 19, y * 20], this.bitPt);
-      } else {
-        this.clb = null;
-      }
-      this.type = tileType(x, y);
-
-      var row = "ABCDEFGHI"[y];
-      var col = "ABCDEFGHI"[x];
-
-      // For a repeated tile, the pip location is relative to the origin for tile BB. The x and y will need to shift based on the row/column.
-      // (The pip location could be given relative to the start of tile BB, but it's not.)
-      // This shift is not constant because of the buffers.
-      // For non-repeated tiles, the pip does not need to be adjusted.
-      // 
-      var xoffset = xTileStarts[x] - xTileStarts[1]; // xoffset == 0 for tile B
-      var yoffset = yTileStarts[y] - yTileStarts[1]; // xoffset == 0 for tile B
-    }
-
-    draw(ctx) {
-      if (this.clb) {
-        this.clb.draw(ctx);
-      }
-      this.pips.forEach(pip => pip.draw(ctx));
-      this.pins.forEach(pin => pin.draw(ctx));
     }
   }
 
@@ -481,7 +310,7 @@ function initNames() {
    drawWires(ctx) {
      ctx.beginPath();
      const self = this;
-     ctx.strokeStyle = 'blue';
+     ctx.strokeStyle = 'yellow';
      this.wires.forEach(function([pin1, pin2]) {
        var coord1 = self.pinCoord(pin1);
        var coord2 = self.pinCoord(pin2);
@@ -641,6 +470,7 @@ function pipRender(ctx, entries) {
     const y = rowInfo[row][1];
     if (bit) {
       ctx.fillStyle = "gray";
+      continue;
     } else {
       ctx.fillStyle = "red";
     }
@@ -663,7 +493,10 @@ function drawPips(ctx, pips, color) {
 
 
 // Processes a click on the Layout image
-function layoutClick(x, y) {
+function layoutMouse(x, y) {
+  if (!debug) {
+    return;
+  }
   if (bitstreamTable == null) {
     // return;
   }
@@ -724,7 +557,8 @@ function isOnWire(x, y) {
   }
 }
 
-function layoutClickInfo(x, y) {
+function layoutClick(x, y) {
+  removePopups();
   x = Math.floor(x / SCALE);
   y = Math.floor(y / SCALE);
   let col;
@@ -745,7 +579,7 @@ function layoutClickInfo(x, y) {
   });
   if (rowv == undefined || colv == undefined) {
     $("#info0").html("");
-  } else {
+  } else if (debug) {
     const gcoord = colv[0] + "G" + rowv[0];
     let pip = "";
     if (IobDecoders.gToName[gcoord]) {
@@ -763,15 +597,18 @@ function layoutClickInfo(x, y) {
   const name = "ABCDEFGHI"[tiley] + "ABCDEFGHI"[tilex];
   // inside clb
   const clb = clbDecoders.get(name);
-  clbRemovePopup();
   if (clb && clb.isInside(x, y)) {
     clbDrawPopup(clb, x, y);
   }
-  iobRemovePopup();
   let iob = iobDecoders.getFromXY(x, y);
   if (iob) {
     iobDrawPopup(iob, x, y);
     console.log(iob.info());
     return;
   }
+}
+
+function removePopups() {
+  clbRemovePopup();
+  iobRemovePopup();
 }

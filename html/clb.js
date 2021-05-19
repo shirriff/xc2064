@@ -247,18 +247,16 @@ class ClbDecoder {
 
   render(ctx) {
     this.generateClbPips(this.tile);
-    ctx.strokeStyle = "#cff";
-    // ctx.rect(this.screenPt[0], this.screenPt[1], this.W, this.H);
-    ctx.stroke();
-    ctx.font = "6px arial";
-    ctx.fillStyle = "red";
-    // ctx.fillText("a" + this.mux["A"] + " b:" + this.mux["B"] + " " + this.mux["C"] + " k:" + this.mux["K"] + " " + this.mux["D"], this.screenPt[0], this.screenPt[1] + 10);
-    ctx.fillText(this.clbInternal.shortInfo(), this.screenPt[0], this.screenPt[1] + 10);
-    drawPips(ctx, this.apips, "white");
-    drawPips(ctx, this.kpips, "white");
-    drawPips(ctx, this.dpips, "white");
-    drawPips(ctx, this.bpips, "white");
-    drawPips(ctx, this.cpips, "white");
+    if (debug) {
+      ctx.font = "6px arial";
+      ctx.fillStyle = "red";
+      ctx.fillText(this.clbInternal.shortInfo(), this.screenPt[0], this.screenPt[1] + 10);
+      drawPips(ctx, this.apips, "white");
+      drawPips(ctx, this.kpips, "white");
+      drawPips(ctx, this.dpips, "white");
+      drawPips(ctx, this.bpips, "white");
+      drawPips(ctx, this.cpips, "white");
+    }
   }
 
   info() {
@@ -507,10 +505,12 @@ function clbDrawPopup(clb, x, y) {
   context.clearRect(0, 0, canvas.width, canvas.height);
   context.fillStyle = "black";
   context.fillRect(0, 0, canvas.width, canvas.height);
-  context.font = "20px arial";
-  context.fillStyle = "red";
   const info = clb.clbInternal;
-  context.fillText("s" + clb.clbInternal.configSet + " r" + clb.clbInternal.configRes + " c" + clb.clbInternal.configClk + " q" + clb.clbInternal.configQ, 20, 20);
+  if (debug) {
+    context.font = "20px arial";
+    context.fillStyle = "red";
+    context.fillText("s" + clb.clbInternal.configSet + " r" + clb.clbInternal.configRes + " c" + clb.clbInternal.configClk + " q" + clb.clbInternal.configQ, 20, 20);
+  }
   context.strokeStyle = "#888";
   if (info.configBase == 'F') {
     drawClbF(info, context);

@@ -109,8 +109,8 @@ const YSIZE = 9;
     }
   }
 
-  // Processes a click on the bitstream image
-  function bitstreamClick(x, y) {
+  // Processes a mouse-over on the bitstream image
+  function bitstreamMouse(x, y) {
     if (config == null) {
       return;
     }

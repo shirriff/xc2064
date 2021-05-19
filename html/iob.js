@@ -433,18 +433,20 @@ class Iob {
 
   render(ctx) {
     this.generateIobPips(this.pin, this.tile, this.style, this.pad);
-    ctx.strokeStyle = "white";
-    ctx.beginPath();
-    ctx.rect(this.x0, this.y0, this.W, this.H);
-    ctx.stroke();
-    ctx.fillStyle = "yellow";
-    // drawPips(ctx, this.kpips, "gray");
-    // drawPips(ctx, this.opips, "blue");
-    // drawPips(ctx, this.ipips, "green");
-    // drawPips(ctx, this.tpips, "pink");
-    ctx.font = "5px arial";
-    ctx.fillStyle = "red";
-    ctx.fillText(this.label + "" + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt, this.x0, this.y0);
+    if (debug) {
+      ctx.strokeStyle = "white";
+      ctx.beginPath();
+      ctx.rect(this.x0, this.y0, this.W, this.H);
+      ctx.stroke();
+      ctx.fillStyle = "yellow";
+      // drawPips(ctx, this.kpips, "gray");
+      // drawPips(ctx, this.opips, "blue");
+      // drawPips(ctx, this.ipips, "green");
+      // drawPips(ctx, this.tpips, "pink");
+      ctx.font = "5px arial";
+      ctx.fillStyle = "red";
+      ctx.fillText(this.label + "" + this.latch + " " + this.muxk + " " + this.muxo + " " + this.muxt, this.x0 - 5, this.y0);
+    }
   }
 
   add(str, bit) {
@@ -482,6 +484,7 @@ class Iob {
 
 }
 
+// Draw the representation of an IOB for the popup
 let iobPopup = undefined;
 function iobDrawPopup(iob, x, y) {
   iobPopup = $("<canvas/>", {class: "popup"}).css("left", x * SCALE).css("top", y * SCALE)[0];
@@ -506,7 +509,12 @@ function iobDrawPopup(iob, x, y) {
   context.fillStyle = "yellow";
   context.fillText("PAD", 16, 179);
 
-  if (pad || q) {
+  // Todo
+  let q = false;
+  let o = false;
+  let t = false;
+
+  if (!iob.latched || q) {
     // draw input buffer
     context.strokeStyle = "white";
     context.moveTo(86, 188);
@@ -521,11 +529,11 @@ function iobDrawPopup(iob, x, y) {
     context.lineTo(79, 188 + 14);
     context.lineTo(86, 188 + 14);
 
-    if (pad) {
+    if (!iob.latched) {
       // Input line
       context.moveTo(86 + 14, 188 + 14);
       context.lineTo(167, 188 + 14);
-      context.fillStyle("white");
+      context.fillStyle = "white";
       context.fillText("I", 172, 210);
     } else {
       // Input flip flop

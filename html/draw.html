@@ -4,17 +4,19 @@
   View coordinate data.
   -->
 <head>
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+  <!--
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"></script>
+-->
+<script src="jquery.min.js"></script>
 <script src="draw.js"></script>
 <script src="parse.js"></script>
 <script src="iob.js"></script>
 <script src="clb.js"></script>
+<script src="data.js"></script>
 <script src="karnaugh.js"></script>
 <script src="bitstreamDisplay.js"></script>
 
 <script>
-debug = false; // Enable/disable debug stuff
-
 function assert(cond, message) {
   if (!cond) {
     console.log(message);
@@ -43,7 +45,6 @@ $(document).ready(function() {
     $("html").on("drop", function (e) {
       e.preventDefault();
       e.stopPropagation();
-      removePopups();
       var files = e.originalEvent.dataTransfer.files;
 
       if (files.length != 1) {
@@ -82,9 +83,9 @@ $(document).ready(function() {
       var x = e.pageX - offset.left;
       var y = e.pageY - offset.top;
       if (canvasMode() == 'bitstream') {
-        bitstreamMouse(x, y);
+        bitstreamClick(x, y);
       } else {
-        layoutMouse(x, y);
+        layoutClick(x, y);
       }
     });
 
@@ -93,7 +94,7 @@ $(document).ready(function() {
       var x = e.pageX - offset.left;
       var y = e.pageY - offset.top;
       if (canvasMode() == 'layout') {
-        layoutClick(x, y);
+        layoutClickInfo(x, y);
       }
     });
 
@@ -136,9 +137,6 @@ $(document).ready(function() {
 
   // Returns bitstream or layout
   function canvasMode() {
-    if (!bitstreamTable) {
-      return null; // Nothing loaded
-    }
     return $("#mode").val();
   }
 
@@ -168,8 +166,6 @@ To use, drag-and-drop an .RBT file onto this page, or load a sample file by clic
 <div id="modetext" style="display:none">
 Select either the graphical layout display or the raw bitstream:
 <select id="mode"><option value="layout" selected>Layout</option><option value="bitstream">Bitstream</option></select>
-<br/>
-Click a CLB for more info.
 </div>
 <span id="bitstreamSpan" style="display:none">
 Default bit values are grayed out.
