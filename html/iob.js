@@ -373,9 +373,9 @@ class Iob {
         if (this.muxt & 1) {
           this.tmode = "TRI";
           tmux = {3: 0, 1: 1, 7: 2, 5: 3}[this.muxt];
-        } else if (this.muxt == 4) {
-          this.tmode = "";
         } else if (this.muxt == 6) {
+          this.tmode = "";
+        } else if (this.muxt == 4) {
           this.tmode = "ON";
         } else {
           assert(false, "Unexpected muxt " + this.muxt);
@@ -396,9 +396,9 @@ class Iob {
         if (this.muxt & 1) {
           this.tmode = "TRI";
           tmux = {3: 0, 1: 1, 7: 2, 5: 3}[this.muxt];
-        } else if (this.muxt == 4) {
-          this.tmode = "";
         } else if (this.muxt == 6) {
+          this.tmode = "";
+        } else if (this.muxt == 4) {
           this.tmode = "ON";
         } else {
           assert(false, "Unexpected muxt " + this.muxt);
@@ -421,9 +421,9 @@ class Iob {
         if (this.muxt & 1) {
           this.tmode = "TRI";
           tmux = {3: 0, 1: 1, 7: 2, 5: 3}[this.muxt];
-        } else if (this.muxt == 4) {
-          this.tmode = "";
         } else if (this.muxt == 6) {
+          this.tmode = "";
+        } else if (this.muxt == 4) {
           this.tmode = "ON";
         } else {
           assert(false, "Unexpected muxt " + this.muxt);
@@ -449,9 +449,9 @@ class Iob {
         if (this.muxt & 1) {
           this.tmode = "TRI";
           tmux = {3: 0, 1: 1, 7: 2, 5: 3}[this.muxt];
-        } else if (this.muxt == 4) {
-          this.tmode = "";
         } else if (this.muxt == 6) {
+          this.tmode = "";
+        } else if (this.muxt == 4) {
           this.tmode = "ON";
         } else {
           assert(false, "Unexpected muxt " + this.muxt);
@@ -527,12 +527,12 @@ class Iob {
           // P24 special case
           i.push("col.A.io3:HA.B:" + pad + ".I:HA.B");
         }
-        if (this.muxt & 1) {
+        if (!(this.muxt & 1)) {
           this.tmode = "TRI";
           tmux = {6: 0, 0: 1, 4: 2, 2: 3}[this.muxt];
-        } else if (this.muxt == 4) {
+        } else if (this.muxt == 5) {
           this.tmode = "";
-        } else if (this.muxt == 6) {
+        } else if (this.muxt == 7) {
           this.tmode = "ON";
         } else {
           assert(false, "Unexpected muxt " + this.muxt);
@@ -553,12 +553,12 @@ class Iob {
         // Annoying special case to deal with connection to above tile.
         let prevRow = String.fromCharCode(tile.charCodeAt(0) - 1);
         i.push("col.A.io3:" + prevRow + "A.B:" + pad + ".I:" + prevRow + "A.B");
-        if (this.muxt & 1) {
+        if (!(this.muxt & 1)) {
           this.tmode = "TRI";
           tmux = {6: 0, 0: 1, 4: 2, 2: 3}[this.muxt];
-        } else if (this.muxt == 4) {
+        } else if (this.muxt == 5) {
           this.tmode = "";
-        } else if (this.muxt == 6) {
+        } else if (this.muxt == 7) {
           this.tmode = "ON";
         } else {
           assert(false, "Unexpected muxt " + this.muxt);
