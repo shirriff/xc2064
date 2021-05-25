@@ -21,7 +21,7 @@ Sample output:
 
 * My blog post [Reverse-engineering the first FPGA chip, the XC2064](https://www.righto.com/2020/09/reverse-engineering-first-fpga-chip.html).
 * Die photos of the [XC2064](http://siliconpr0n.org/map/xilinx/xc2064/) and [XC2018](http://siliconpr0n.org/map/xilinx/xc2018/).
-* [XC2000 family datasheet](http://www.itisravenna.gov.it/sheet/XC2000FM.PDF)
+* [XC2000 family datasheet](https://media.digikey.com/pdf/Data%20Sheets/Xilinx%20PDFs/XC2000%20Families.pdf)
 * [XACT development system manual](https://www.xilinx.com/txpatches/pub/documentation/xactstep6/dsuser.pdf)
 * [John McMaster's XC2064 project](https://github.com/JohnDMcMaster/project2064)
 
