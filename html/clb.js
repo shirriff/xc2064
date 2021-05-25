@@ -206,7 +206,6 @@ class ClbDecoder {
     this.cpips = [];
     this.kpips = [];
     this.dpips = [];
-    // if (tile != 'AA' && tile != 'CA') return;
     a.forEach(p => this.apips.push(ClbDecoder.processClbPip(p, tile, tile + ".A")));
     b.forEach(p => this.bpips.push(ClbDecoder.processClbPip(p, tile, tile + ".B")));
     c.forEach(p => this.cpips.push(ClbDecoder.processClbPip(p, tile, tile + ".C")));
@@ -251,12 +250,12 @@ class ClbDecoder {
       ctx.font = "6px arial";
       ctx.fillStyle = "red";
       ctx.fillText(this.clbInternal.shortInfo(), this.screenPt[0], this.screenPt[1] + 10);
-      drawPips(ctx, this.apips, "white");
-      drawPips(ctx, this.kpips, "white");
-      drawPips(ctx, this.dpips, "white");
-      drawPips(ctx, this.bpips, "white");
-      drawPips(ctx, this.cpips, "white");
     }
+    drawPips(ctx, this.apips);
+    drawPips(ctx, this.kpips);
+    drawPips(ctx, this.dpips);
+    drawPips(ctx, this.bpips);
+    drawPips(ctx, this.cpips);
   }
 
   info() {
@@ -430,7 +429,6 @@ class ClbInternal {
       if (bitstreamTable[x + 9][y + 5]) {
         clkInvert = !clkInvert; // LATCH flips the clock
       }
-      console.log(this.name, bitstreamTable[x + 6][y + 4], bitstreamTable[x + 4][y + 4], bitstreamTable[x+9][y+5], bitstreamTable[x+5][y+4]);
       if (bitstreamTable[x + 6][y + 4] == 0) {
         // No clock
         this.configClk = '';
