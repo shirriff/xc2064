@@ -71,6 +71,7 @@ const YSIZE = 9;
         }
       }
     }
+    $("#settings").text(otherDecoder.info());
   }
 
   /**

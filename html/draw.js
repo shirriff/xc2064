@@ -447,7 +447,10 @@ const SCALE = 2;
     ctx.lineWidth = 1;
     ctx.lineCap = 'butt';
     // objects.forEach(o => o.draw(ctx));
-    decoders.forEach(d => d.render(ctx));
+    if (bitstreamTable) {
+      decoders.forEach(d => d.render(ctx));
+    }
+    $("#settings").text(otherDecoder.info());
   }
 
 /**
@@ -484,8 +487,10 @@ function drawPips(ctx, pips, color) {
     const [gCoord, col, row, pipname, selected] = pips[i];
     if (selected) {
       ctx.fillStyle = "red";
-    } else {
+    } else if (debug) {
       ctx.fillStyle = color;
+    } else {
+      continue;
     }
     ctx.fillRect(col - 1, row - 1, 3, 3);
   }

@@ -110,6 +110,12 @@ function makeBitstreamTable(rawBitstream) {
   return bitstreamTable;
 }
 
+/*
+ * The model for a decoder is:
+ * startDecode() is called to initialize.
+ * add() is called to add bits as they are parsed from the XC2064-def.txt file.
+ * decode() is called at the end to complete the decoding.
+ */
 
 let bitTypes;
 function decode(rawBitstream, config) {
@@ -335,6 +341,10 @@ class OtherDecoder {
   }
 
   startDecode() {
+    this.input = "";
+    this.donepad = "";
+    this.read = "";
+    this.unk = "";
     this.entries = {};
   }
 
@@ -342,7 +352,23 @@ class OtherDecoder {
     this.entries[str] = bit;
   }
 
-  decode() {}
+  decode() {
+    this.input = this.entries["TTL/CMOS level Inputs"] ? "TTL" : "CMOS";
+    if (this.entries["Single/Unlimited FPGA readback if readback enabled"]) {
+      this.read = this.entries["FPGA readback Enabled/Disable"] ? "0" : "1";
+    } else {
+      this.read = "CMD";
+    }
+    this.donepad = this.entries["DONE pin Pullup/No Pullup"] ? "NOPULLUP" : "PULLUP";
+    const unk = "" + this.entries["UNknown 1"] + this.entries["UNknown 2"] + this.entries["UNknown 3"] + this.entries["UNknown 4"];
+    if (unk != "1011") {
+      this.unk = "Unknown: " + unk;
+    }
+  }
+
+  info() {
+    return this.input + " " + this.donepad + " " + this.read + " " + this.unk;
+  }
 
   render(ctx) {
   }
