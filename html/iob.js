@@ -368,7 +368,7 @@ class Iob {
 "|col.I.io2:row.?.local.1", "|col.I.io2:row.?.local.4", "|col.I.io2:row.?.long.1",];
         // Annoying special case. The X and Y connections are to e.g. AH while everything else is in the BH tile.
         let prevRow = String.fromCharCode(tile.charCodeAt(0) - 1);
-        o.push("col.I.io2:" + prevRow + "H.X:" + pad + ".O:" + prevRow + "H.X");
+        o.push("col.I.io2:" + prevRow + "H.B:" + pad + ".O:" + prevRow + "H.X");
         o.push("col.I.io2:" + prevRow + "H.Y:" + pad + ".O:" + prevRow + "H.Y");
         if (this.muxt & 1) {
           this.tmode = "TRI";
@@ -381,7 +381,7 @@ class Iob {
           assert(false, "Unexpected muxt " + this.muxt);
         }
         // Standard mux: 2-bit active high, other bits active low, 1-bit toggles.
-        omux = {4: 0, 9: 1, 14: 2, 8: 3, 5: 4, 15: 5}[this.muxo];
+        omux = {6: 0, 30: 1, 20: 2, 21: 3, 19: 4, 18: 5, 7: 6, 31: 7}[this.muxo];
       } else if (direction == "rightupper") {
         this.W = 12;
         this.H = 26;
@@ -392,7 +392,7 @@ class Iob {
         i = [ "-col.I.local.4:row.?.io5", "-col.I.local.2:row.?.io5", "-col.I.long.2:row.?.io5",
            "|col.I.io3:row.?.long.1", "|col.I.io3:row.?.local.4", "|col.I.io3:row.?.local.1",];
         o = [ "-col.I.long.3:row.?.io6", "-col.I.local.3:row.?.io6", "-col.I.local.1:row.?.io6", "-col.I.long.1:row.?.io6",
-          "|col.I.local.0:row.?.local.5", "|col.I.local.0:row.?.local.3", "|col.I.local.0:?H.X", "|col.I.local.0:?H.Y"]
+          "|col.I.local.0:row.?.local.5", "|col.I.local.0:row.?.local.3", "col.I.local.0:?H.B:|col.I.local.0:?H.X", "|col.I.local.0:?H.Y"]
         if (this.muxt & 1) {
           this.tmode = "TRI";
           tmux = {5: 0, 3: 1, 7: 2, 1: 3}[this.muxt];
@@ -404,7 +404,7 @@ class Iob {
           assert(false, "Unexpected muxt " + this.muxt);
         }
         // Standard mux: 2-bit active high, other bits active low, 1-bit toggles.
-        omux = {4: 0, 9: 1, 14: 2, 8: 3, 5: 4, 15: 5}[this.muxo];
+        omux = {31: 0, 25: 1, 21: 2, 13: 3, 12: 4, 24: 5, 20: 6, 30: 7}[this.muxo];
       } else if (direction == "bottomright" && tile == "II") {
         this.W = 20;
         this.H = 12;
