@@ -372,7 +372,7 @@ class Iob {
         o.push("col.I.io2:" + prevRow + "H.Y:" + pad + ".O:" + prevRow + "H.Y");
         if (this.muxt & 1) {
           this.tmode = "TRI";
-          tmux = {3: 0, 1: 1, 7: 2, 5: 3}[this.muxt];
+          tmux = {3: 0, 5: 1, 1: 2, 7: 3}[this.muxt];
         } else if (this.muxt == 6) {
           this.tmode = "";
         } else if (this.muxt == 4) {
@@ -395,7 +395,7 @@ class Iob {
           "|col.I.local.0:row.?.local.5", "|col.I.local.0:row.?.local.3", "|col.I.local.0:?H.X", "|col.I.local.0:?H.Y"]
         if (this.muxt & 1) {
           this.tmode = "TRI";
-          tmux = {3: 0, 1: 1, 7: 2, 5: 3}[this.muxt];
+          tmux = {5: 0, 3: 1, 7: 2, 1: 3}[this.muxt];
         } else if (this.muxt == 6) {
           this.tmode = "";
         } else if (this.muxt == 4) {
@@ -633,7 +633,7 @@ class Iob {
       ctx.fillStyle = "red";
       ctx.fillText(this.info(), this.x0 - 5, this.y0);
     }
-    drawPips(ctx, this.kpips, "yellow");
+    drawPips(ctx, this.kpips, "gray");
     drawPips(ctx, this.kinpips, "gray");
     drawPips(ctx, this.opips, "blue");
     drawPips(ctx, this.ipips, "green");
