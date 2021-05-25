@@ -405,7 +405,7 @@ class Iob {
         }
         // Standard mux: 2-bit active high, other bits active low, 1-bit toggles.
         omux = {31: 0, 25: 1, 21: 2, 13: 3, 12: 4, 24: 5, 20: 6, 30: 7}[this.muxo];
-      } else if (direction == "bottomright" && tile == "II") {
+      } else if (direction == "bottomright" && tile == "II") { // P43
         this.W = 20;
         this.H = 12;
         xoff = -4;
@@ -429,7 +429,7 @@ class Iob {
           assert(false, "Unexpected muxt " + this.muxt);
         }
         // Standard mux: 2-bit active high, other bits active low, 1-bit toggles.
-        omux = {4: 0, 9: 1, 14: 2, 8: 3, 5: 4, 15: 5}[this.muxo];
+        omux = {14: 0, 45: 1, 42: 2, 43: 3, 39: 4, 62: 5, 38: 6, 63: 7, 44: 8}[this.muxo];
       } else if (direction == "bottomright") {
         this.W = 20;
         this.H = 12;
@@ -457,8 +457,8 @@ class Iob {
           assert(false, "Unexpected muxt " + this.muxt);
         }
         // Standard mux: 2-bit active high, other bits active low, 1-bit toggles.
-        omux = {4: 0, 9: 1, 14: 2, 8: 3, 5: 4, 15: 5}[this.muxo];
-      } else if (direction == "bottomleft" && tile == "IA") {
+        omux = {13: 0, 10: 1, 11: 2, 30: 3, 6: 4, 7: 5, 31: 6, 12: 7}[this.muxo];
+      } else if (direction == "bottomleft" && tile == "IA") { // P27
         this.W = 20;
         this.H = 12;
         xoff = -8;
@@ -484,7 +484,7 @@ class Iob {
           assert(false, "Unexpected muxt " + this.muxt);
         }
         // Standard mux: 2-bit active high, other bits active low, 1-bit toggles.
-        omux = {4: 0, 9: 1, 14: 2, 8: 3, 5: 4, 15: 5}[this.muxo];
+        omux = {20: 0, 25: 1, 30: 2, 24: 3, 21: 4, 31: 5, 12: 6}[this.muxo];
       } else if (direction == "bottomleft") {
         this.W = 20;
         this.H = 12;
